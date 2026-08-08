@@ -60,7 +60,7 @@ fun TimeGoNavHost() {
         ) {
             composable("log") { com.lsing.timego.ui.log.LogScreen() }
             composable("progress") { com.lsing.timego.ui.progress.ProgressScreen() }
-            composable("routines") { Text("Routines screen -- Task 12") }
+            composable("routines") { com.lsing.timego.ui.routines.RoutinesScreen() }
         }
     }
 }
