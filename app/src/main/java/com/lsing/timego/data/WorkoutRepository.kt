@@ -19,8 +19,8 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         if (db.exerciseDao().count() == 0) db.exerciseDao().insertAll(seed)
     }
 
-    suspend fun addCustomExercise(name: String, muscleGroups: List<String>): Long =
-        db.exerciseDao().insert(Exercise(name = name, muscleGroups = muscleGroups, isCustom = true))
+    suspend fun addCustomExercise(name: String, muscleGroups: List<String>, category: String): Long =
+        db.exerciseDao().insert(Exercise(name = name, muscleGroups = muscleGroups, isCustom = true, category = category))
 
     suspend fun startOrGetTodaySession(routineId: Long?): WorkoutSession =
         db.sessionDao().findByDate(LocalDate.now())
@@ -41,6 +41,23 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         )
     }
 
+    suspend fun logCardioSet(sessionId: Long, exerciseId: Long, durationMinutes: Double, distanceKm: Double?) {
+        db.setLogDao().insert(
+            SetLog(
+                sessionId = sessionId,
+                exerciseId = exerciseId,
+                weightKg = 0.0,
+                reps = 0,
+                targetReps = 0,
+                loggedAtEpochMillis = System.currentTimeMillis(),
+                durationMinutes = durationMinutes,
+                distanceKm = distanceKm,
+            ),
+        )
+    }
+
+    suspend fun latestBodyWeightKg(): Double? = bodyMetrics.first().lastOrNull { it.weightKg != null }?.weightKg
+
     suspend fun historyForExercise(exerciseId: Long): List<SetLog> = db.setLogDao().historyForExercise(exerciseId)
 
     suspend fun allSetLogs(): List<SetLog> = db.setLogDao().getAll()
@@ -49,8 +66,8 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         db.bodyMetricDao().insert(BodyMetric(date = date, weightKg = weightKg, waistCm = waistCm))
     }
 
-    suspend fun createRoutine(name: String, exerciseIds: List<Long>): Long {
-        val routineId = db.routineDao().insertRoutine(Routine(name = name))
+    suspend fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>): Long {
+        val routineId = db.routineDao().insertRoutine(Routine(name = name, daysOfWeek = daysOfWeek))
         exerciseIds.forEachIndexed { index, exerciseId ->
             db.routineDao().insertRoutineExercise(RoutineExercise(routineId = routineId, exerciseId = exerciseId, orderIndex = index))
         }
