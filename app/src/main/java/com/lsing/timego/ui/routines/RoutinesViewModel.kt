@@ -47,7 +47,7 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
         _untrainedGroups.value = untrainedMuscleGroups(allGroups, lastTrained, LocalDate.now())
     }
 
-    fun createRoutine(name: String, exerciseIds: List<Long>) {
-        viewModelScope.launch { repository.createRoutine(name, exerciseIds) }
+    fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) {
+        viewModelScope.launch { repository.createRoutine(name, exerciseIds, daysOfWeek) }
     }
 }
