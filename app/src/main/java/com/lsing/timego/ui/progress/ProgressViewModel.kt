@@ -8,6 +8,7 @@ import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.PersonalRecord
+import com.lsing.timego.domain.muscleGroupStrengthCurve
 import com.lsing.timego.domain.personalRecords
 import com.lsing.timego.domain.strengthCurve
 import com.lsing.timego.domain.workoutVolumeRatios
@@ -16,6 +17,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+
+enum class CurveMode { EXERCISE, MUSCLE_GROUP }
 
 class ProgressViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
@@ -34,6 +37,12 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
 
     private val _selectedExerciseId = MutableStateFlow<Long?>(null)
     val selectedExerciseId: StateFlow<Long?> = _selectedExerciseId.asStateFlow()
+
+    private val _curveMode = MutableStateFlow(CurveMode.EXERCISE)
+    val curveMode: StateFlow<CurveMode> = _curveMode.asStateFlow()
+
+    private val _selectedMuscleGroup = MutableStateFlow<String?>(null)
+    val selectedMuscleGroup: StateFlow<String?> = _selectedMuscleGroup.asStateFlow()
 
     private val _strengthCurve = MutableStateFlow<List<Pair<LocalDate, Double>>>(emptyList())
     val strengthCurve: StateFlow<List<Pair<LocalDate, Double>>> = _strengthCurve.asStateFlow()
@@ -61,11 +70,23 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun selectExercise(exerciseId: Long) {
+        _curveMode.value = CurveMode.EXERCISE
         _selectedExerciseId.value = exerciseId
         viewModelScope.launch {
             val history = repository.historyForExercise(exerciseId)
             val sessionDateById = repository.allSessions().associate { it.id to it.date }
             _strengthCurve.value = strengthCurve(history, sessionDateById)
+        }
+    }
+
+    fun selectMuscleGroup(group: String) {
+        _curveMode.value = CurveMode.MUSCLE_GROUP
+        _selectedMuscleGroup.value = group
+        viewModelScope.launch {
+            val allSets = repository.allSetLogs()
+            val exercisesById = _exercises.value.associateBy { it.id }
+            val sessionDateById = repository.allSessions().associate { it.id to it.date }
+            _strengthCurve.value = muscleGroupStrengthCurve(allSets, exercisesById, sessionDateById, group)
         }
     }
 
