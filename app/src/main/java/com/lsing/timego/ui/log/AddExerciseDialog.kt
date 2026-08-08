@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.log
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,7 +42,7 @@ fun AddExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String, muscleGroups:
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text("Category", modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                     ExerciseCategory.entries.forEach { entry ->
                         FilterChip(
                             selected = category == entry,

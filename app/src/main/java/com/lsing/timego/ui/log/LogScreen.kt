@@ -1,9 +1,11 @@
 package com.lsing.timego.ui.log
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
@@ -51,7 +53,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 Text("Session type", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 Button(onClick = { showAddDialog = true }) { Text("+ Add exercise") }
             }
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).horizontalScroll(rememberScrollState())) {
                 FilterChip(
                     selected = selectedRoutineId == null,
                     onClick = { viewModel.selectRoutine(null) },

@@ -1,6 +1,7 @@
 package com.lsing.timego.domain
 
 import com.lsing.timego.data.Exercise
+import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.WorkoutSession
 import java.time.LocalDate
@@ -29,21 +30,33 @@ fun workoutVolumeRatios(sessions: List<WorkoutSession>, sets: List<SetLog>): Map
 
 enum class PrType { HEAVIEST_WEIGHT, MOST_REPS, BEST_VOLUME }
 
-data class PersonalRecord(val type: PrType, val value: Double, val achievedOn: LocalDate)
+data class PersonalRecord(val exerciseId: Long, val type: PrType, val value: Double, val achievedOn: LocalDate)
 
 /** Computed fresh from full history each time (not incrementally tracked) -- simpler and correct
  *  by construction; history sizes here are small enough (one person's own lifts) that this is
- *  cheap even called on every Progress screen load. */
-fun personalRecords(history: List<SetLog>, sessionDateById: Map<Long, LocalDate>): List<PersonalRecord> {
-    if (history.isEmpty()) return emptyList()
-    val heaviest = history.maxBy { it.weightKg }
-    val mostReps = history.maxBy { it.reps }
-    val bestVolume = history.maxBy { it.weightKg * it.reps }
-    return listOfNotNull(
-        sessionDateById[heaviest.sessionId]?.let { PersonalRecord(PrType.HEAVIEST_WEIGHT, heaviest.weightKg, it) },
-        sessionDateById[mostReps.sessionId]?.let { PersonalRecord(PrType.MOST_REPS, mostReps.reps.toDouble(), it) },
-        sessionDateById[bestVolume.sessionId]?.let { PersonalRecord(PrType.BEST_VOLUME, bestVolume.weightKg * bestVolume.reps, it) },
-    )
+ *  cheap even called on every Progress screen load. Grouped per exercise -- a global "heaviest
+ *  weight across everything" would mix e.g. a squat and a bicep curl together, which is
+ *  meaningless. CARDIO/WARMUP sets are excluded entirely: their weightKg/reps are 0.0/0
+ *  sentinels (see SetLog), not real values worth ranking. */
+fun personalRecords(
+    history: List<SetLog>,
+    sessionDateById: Map<Long, LocalDate>,
+    exercisesById: Map<Long, Exercise>,
+): List<PersonalRecord> {
+    val strengthCategories = setOf(ExerciseCategory.STRENGTH.name, ExerciseCategory.CALISTHENICS.name)
+    return history
+        .filter { log -> exercisesById[log.exerciseId]?.category in strengthCategories }
+        .groupBy { it.exerciseId }
+        .flatMap { (exerciseId, sets) ->
+            val heaviest = sets.maxBy { it.weightKg }
+            val mostReps = sets.maxBy { it.reps }
+            val bestVolume = sets.maxBy { it.weightKg * it.reps }
+            listOfNotNull(
+                sessionDateById[heaviest.sessionId]?.let { PersonalRecord(exerciseId, PrType.HEAVIEST_WEIGHT, heaviest.weightKg, it) },
+                sessionDateById[mostReps.sessionId]?.let { PersonalRecord(exerciseId, PrType.MOST_REPS, mostReps.reps.toDouble(), it) },
+                sessionDateById[bestVolume.sessionId]?.let { PersonalRecord(exerciseId, PrType.BEST_VOLUME, bestVolume.weightKg * bestVolume.reps, it) },
+            )
+        }
 }
 
 /** Best estimated-1RM per date among sets logged for any exercise tagged with [muscleGroup] --

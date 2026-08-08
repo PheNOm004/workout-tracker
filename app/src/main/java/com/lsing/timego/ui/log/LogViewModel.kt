@@ -46,7 +46,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            repository.seedExercisesIfEmpty(SEED_EXERCISES)
+            repository.seedMissingExercises(SEED_EXERCISES)
             repository.exercises.collect { list ->
                 allExercises = list
                 refreshSuggestions(list)

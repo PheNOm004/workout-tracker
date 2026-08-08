@@ -1,9 +1,11 @@
 package com.lsing.timego.ui.routines
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -68,7 +70,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                 modifier = Modifier.fillMaxWidth(),
             )
             Text("Days", modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                 DayOfWeek.entries.forEach { day ->
                     val checked = day.name in selectedDays.value
                     FilterChip(

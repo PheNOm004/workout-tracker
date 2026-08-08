@@ -15,8 +15,14 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
      *  computation, not a live collector). */
     suspend fun allSessions(): List<WorkoutSession> = sessions.first()
 
-    suspend fun seedExercisesIfEmpty(seed: List<Exercise>) {
-        if (db.exerciseDao().count() == 0) db.exerciseDao().insertAll(seed)
+    /** Inserts any [seed] exercise whose name isn't already present -- NOT gated on the table
+     *  being totally empty, since expanding the seed list (Update 1.1: 12 -> 119) must still
+     *  reach devices that already have some exercises logged. Matches by name rather than id,
+     *  since seed entries have no stable id across app versions. */
+    suspend fun seedMissingExercises(seed: List<Exercise>) {
+        val existingNames = exercises.first().map { it.name }.toSet()
+        val missing = seed.filter { it.name !in existingNames }
+        if (missing.isNotEmpty()) db.exerciseDao().insertAll(missing)
     }
 
     suspend fun addCustomExercise(name: String, muscleGroups: List<String>, category: String): Long =

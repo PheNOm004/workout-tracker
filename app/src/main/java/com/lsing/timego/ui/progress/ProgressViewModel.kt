@@ -15,6 +15,7 @@ import com.lsing.timego.domain.workoutVolumeRatios
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -53,7 +54,8 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                 val allSets = repository.allSetLogs()
                 _volumeRatios.value = workoutVolumeRatios(sessions, allSets)
                 val sessionDateById = sessions.associate { it.id to it.date }
-                _records.value = personalRecords(allSets, sessionDateById)
+                val exercisesById = repository.exercises.first().associateBy { it.id }
+                _records.value = personalRecords(allSets, sessionDateById, exercisesById)
             }
         }
         viewModelScope.launch {

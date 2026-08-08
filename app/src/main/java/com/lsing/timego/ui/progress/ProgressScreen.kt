@@ -1,7 +1,8 @@
 package com.lsing.timego.ui.progress
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,6 +32,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.MuscleGroup
+import com.lsing.timego.domain.PersonalRecord
+import com.lsing.timego.domain.PrType
 import com.lsing.timego.ui.common.HeatmapGrid
 import com.lsing.timego.ui.common.formatEnumLabel
 import java.time.LocalDate
@@ -72,11 +75,15 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             }
         }
         items(records) { record ->
+            val exerciseName = exercises.firstOrNull { it.id == record.exerciseId }?.name ?: "Unknown exercise"
             Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                Text(
-                    "${formatEnumLabel(record.type.name)}: ${record.value} on ${record.achievedOn}",
-                    modifier = Modifier.padding(12.dp),
-                )
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(exerciseName, style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "${formatEnumLabel(record.type.name)}: ${formatRecordValue(record)} on ${record.achievedOn}",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             }
         }
         item {
@@ -97,20 +104,21 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             }
         }
         if (curveMode == CurveMode.EXERCISE) {
-            items(exercises, key = { it.id }) { exercise ->
-                Text(
-                    exercise.name,
-                    style = if (exercise.id == selectedExerciseId) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium,
-                    color = if (exercise.id == selectedExerciseId) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.selectExercise(exercise.id) }
-                        .padding(vertical = 4.dp),
-                )
+            item {
+                FlowRow(modifier = Modifier.fillMaxWidth()) {
+                    exercises.forEach { exercise ->
+                        FilterChip(
+                            selected = exercise.id == selectedExerciseId,
+                            onClick = { viewModel.selectExercise(exercise.id) },
+                            label = { Text(exercise.name) },
+                            modifier = Modifier.padding(end = 4.dp, bottom = 4.dp),
+                        )
+                    }
+                }
             }
         } else {
             item {
-                Row(modifier = Modifier.fillMaxWidth()) {
+                FlowRow(modifier = Modifier.fillMaxWidth()) {
                     MuscleGroup.entries.forEach { group ->
                         FilterChip(
                             selected = selectedMuscleGroup == group.name,
@@ -162,6 +170,12 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             Text("${metric.date}: ${metric.weightKg?.let { "${it}kg" } ?: "--"} / ${metric.waistCm?.let { "${it}cm" } ?: "--"}")
         }
     }
+}
+
+private fun formatRecordValue(record: PersonalRecord): String = when (record.type) {
+    PrType.HEAVIEST_WEIGHT -> "${record.value}kg"
+    PrType.MOST_REPS -> "${record.value.toInt()} reps"
+    PrType.BEST_VOLUME -> "${record.value}kg total"
 }
 
 /** Plain Canvas line chart -- no charting library dependency, same "draw it yourself" approach
