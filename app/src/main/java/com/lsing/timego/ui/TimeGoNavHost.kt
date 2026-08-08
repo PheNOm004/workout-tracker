@@ -59,7 +59,7 @@ fun TimeGoNavHost() {
             modifier = Modifier.padding(innerPadding),
         ) {
             composable("log") { com.lsing.timego.ui.log.LogScreen() }
-            composable("progress") { Text("Progress screen -- Task 11") }
+            composable("progress") { com.lsing.timego.ui.progress.ProgressScreen() }
             composable("routines") { Text("Routines screen -- Task 12") }
         }
     }
