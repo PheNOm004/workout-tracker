@@ -11,19 +11,23 @@ import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.OverloadSuggestion
 import com.lsing.timego.domain.RuleBasedOverloadSuggester
 import com.lsing.timego.domain.SetPerformance
+import com.lsing.timego.domain.routinesForToday
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /** [selectedRoutineId] null means freeform (all exercises shown, sessions logged with no routine
  *  link); non-null filters [displayedExercises] to that routine's exercises and tags logged
- *  sessions with it -- this is what makes a session "routine-based" vs. "freeform" per the spec. */
+ *  sessions with it. On first load, if today has a scheduled routine, it's auto-selected instead
+ *  of defaulting to freeform -- that's the whole point of routine scheduling (Update 1.1). */
 class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
     private val suggester = RuleBasedOverloadSuggester()
 
     private var allExercises: List<Exercise> = emptyList()
+    private var hasAutoSelectedTodaysRoutine = false
 
     private val _displayedExercises = MutableStateFlow<List<Exercise>>(emptyList())
     val displayedExercises: StateFlow<List<Exercise>> = _displayedExercises.asStateFlow()
@@ -37,6 +41,9 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedRoutineId = MutableStateFlow<Long?>(null)
     val selectedRoutineId: StateFlow<Long?> = _selectedRoutineId.asStateFlow()
 
+    private val _latestBodyWeightKg = MutableStateFlow<Double?>(null)
+    val latestBodyWeightKg: StateFlow<Double?> = _latestBodyWeightKg.asStateFlow()
+
     init {
         viewModelScope.launch {
             repository.seedExercisesIfEmpty(SEED_EXERCISES)
@@ -47,7 +54,18 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         viewModelScope.launch {
-            repository.routines.collect { _routines.value = it }
+            repository.routines.collect { routineList ->
+                _routines.value = routineList
+                if (!hasAutoSelectedTodaysRoutine) {
+                    hasAutoSelectedTodaysRoutine = true
+                    routinesForToday(routineList, LocalDate.now().dayOfWeek).firstOrNull()?.let {
+                        selectRoutine(it.id)
+                    }
+                }
+            }
+        }
+        viewModelScope.launch {
+            _latestBodyWeightKg.value = repository.latestBodyWeightKg()
         }
     }
 
@@ -84,9 +102,16 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addCustomExercise(name: String, muscleGroups: List<String>) {
+    fun logCardioSet(exerciseId: Long, durationMinutes: Double, distanceKm: Double?) {
         viewModelScope.launch {
-            repository.addCustomExercise(name, muscleGroups)
+            val session = repository.startOrGetTodaySession(routineId = _selectedRoutineId.value)
+            repository.logCardioSet(session.id, exerciseId, durationMinutes, distanceKm)
+        }
+    }
+
+    fun addCustomExercise(name: String, muscleGroups: List<String>, category: String) {
+        viewModelScope.launch {
+            repository.addCustomExercise(name, muscleGroups, category)
         }
     }
 }
