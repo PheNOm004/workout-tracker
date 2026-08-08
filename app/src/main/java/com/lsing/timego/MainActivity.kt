@@ -1,0 +1,25 @@
+package com.lsing.timego
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import com.lsing.timego.ui.theme.TimeGoTheme
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            TimeGoTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    // TODO: replace with TimeGoNavHost() once the nav graph is built out
+                    // (see the implementation plan for screen order).
+                }
+            }
+        }
+    }
+}
