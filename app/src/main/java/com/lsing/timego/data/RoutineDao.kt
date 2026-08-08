@@ -1,0 +1,21 @@
+package com.lsing.timego.data
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface RoutineDao {
+    @Insert
+    suspend fun insertRoutine(routine: Routine): Long
+
+    @Insert
+    suspend fun insertRoutineExercise(routineExercise: RoutineExercise): Long
+
+    @Query("SELECT * FROM routines ORDER BY name")
+    fun observeRoutines(): Flow<List<Routine>>
+
+    @Query("SELECT * FROM routine_exercises WHERE routineId = :routineId ORDER BY orderIndex")
+    suspend fun exercisesForRoutine(routineId: Long): List<RoutineExercise>
+}
