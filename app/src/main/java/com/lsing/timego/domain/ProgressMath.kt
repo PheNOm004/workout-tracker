@@ -1,5 +1,6 @@
 package com.lsing.timego.domain
 
+import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.WorkoutSession
 import java.time.LocalDate
@@ -43,4 +44,24 @@ fun personalRecords(history: List<SetLog>, sessionDateById: Map<Long, LocalDate>
         sessionDateById[mostReps.sessionId]?.let { PersonalRecord(PrType.MOST_REPS, mostReps.reps.toDouble(), it) },
         sessionDateById[bestVolume.sessionId]?.let { PersonalRecord(PrType.BEST_VOLUME, bestVolume.weightKg * bestVolume.reps, it) },
     )
+}
+
+/** Best estimated-1RM per date among sets logged for any exercise tagged with [muscleGroup] --
+ *  an aggregate view across e.g. every QUADS exercise, not just one. */
+fun muscleGroupStrengthCurve(
+    history: List<SetLog>,
+    exercisesById: Map<Long, Exercise>,
+    sessionDateById: Map<Long, LocalDate>,
+    muscleGroup: String,
+): List<Pair<LocalDate, Double>> {
+    val bestByDate = mutableMapOf<LocalDate, Double>()
+    for (log in history) {
+        val exercise = exercisesById[log.exerciseId] ?: continue
+        if (muscleGroup !in exercise.muscleGroups) continue
+        val date = sessionDateById[log.sessionId] ?: continue
+        val oneRepMax = estimatedOneRepMax(log.weightKg, log.reps)
+        val current = bestByDate[date]
+        if (current == null || oneRepMax > current) bestByDate[date] = oneRepMax
+    }
+    return bestByDate.entries.sortedBy { it.key }.map { it.key to it.value }
 }

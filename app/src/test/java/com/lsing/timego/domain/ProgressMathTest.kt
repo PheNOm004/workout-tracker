@@ -58,4 +58,21 @@ class ProgressMathTest {
         assertEquals(10.0, records.first { it.type == PrType.MOST_REPS }.value, 0.001)
         assertEquals(800.0, records.first { it.type == PrType.BEST_VOLUME }.value, 0.001)
     }
+
+    @Test
+    fun `muscleGroupStrengthCurve takes the best 1RM per date among tagged exercises`() {
+        val squat = com.lsing.timego.data.Exercise(id = 1, name = "Squat", muscleGroups = listOf("QUADS"), isCustom = false, category = "STRENGTH")
+        val legPress = com.lsing.timego.data.Exercise(id = 2, name = "Leg Press", muscleGroups = listOf("QUADS"), isCustom = false, category = "STRENGTH")
+        val logs = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 1, exerciseId = 2, weightKg = 150.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+        )
+        val exercisesById = mapOf(1L to squat, 2L to legPress)
+        val sessionDateById = mapOf(1L to LocalDate.of(2026, 8, 1))
+
+        val curve = muscleGroupStrengthCurve(logs, exercisesById, sessionDateById, "QUADS")
+
+        assertEquals(1, curve.size)
+        assertEquals(estimatedOneRepMax(150.0, 5), curve[0].second, 0.001)
+    }
 }
