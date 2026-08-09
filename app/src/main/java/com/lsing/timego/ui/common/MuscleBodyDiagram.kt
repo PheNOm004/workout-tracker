@@ -55,7 +55,11 @@ private fun hexToColor(hex: String): Color {
  *  color per group. */
 @Composable
 fun MuscleBodyDiagram(intensities: Map<String, Float>, modifier: Modifier = Modifier) {
-    val outlineColor = MaterialTheme.colorScheme.onSurface
+    // Fixed black rather than a theme token (MaterialTheme.colorScheme.onSurface would go
+    // near-white in dark mode) -- the traced art's silhouette reads as a body outline only in a
+    // dark color, on either theme, so this one is a deliberate exception to the usual
+    // theme-everything rule.
+    val outlineColor = Color.Black
     val detailColor = MaterialTheme.colorScheme.surfaceVariant
 
     val frontShapes = remember { buildShapes(FRONT_BODY_PATHS, FRONT_BODY_VIEWBOX) }
