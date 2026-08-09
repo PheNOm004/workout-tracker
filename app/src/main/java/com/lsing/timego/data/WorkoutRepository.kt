@@ -64,12 +64,14 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
 
     suspend fun latestBodyWeightKg(): Double? = bodyMetrics.first().lastOrNull { it.weightKg != null }?.weightKg
 
+    suspend fun latestHeightCm(): Double? = bodyMetrics.first().lastOrNull { it.heightCm != null }?.heightCm
+
     suspend fun historyForExercise(exerciseId: Long): List<SetLog> = db.setLogDao().historyForExercise(exerciseId)
 
     suspend fun allSetLogs(): List<SetLog> = db.setLogDao().getAll()
 
-    suspend fun logBodyMetric(date: LocalDate, weightKg: Double?, waistCm: Double?) {
-        db.bodyMetricDao().insert(BodyMetric(date = date, weightKg = weightKg, waistCm = waistCm))
+    suspend fun logBodyMetric(date: LocalDate, weightKg: Double?, waistCm: Double?, heightCm: Double?) {
+        db.bodyMetricDao().insert(BodyMetric(date = date, weightKg = weightKg, waistCm = waistCm, heightCm = heightCm))
     }
 
     suspend fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>): Long {
@@ -78,6 +80,11 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
             db.routineDao().insertRoutineExercise(RoutineExercise(routineId = routineId, exerciseId = exerciseId, orderIndex = index))
         }
         return routineId
+    }
+
+    suspend fun deleteRoutine(routineId: Long) {
+        db.routineDao().deleteRoutineExercises(routineId)
+        db.routineDao().deleteRoutine(routineId)
     }
 
     suspend fun exercisesForRoutine(routineId: Long): List<RoutineExercise> = db.routineDao().exercisesForRoutine(routineId)

@@ -7,9 +7,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -73,7 +77,16 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
         items(routines, key = { it.id }) { routine ->
             Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 Column {
-                    Text(routine.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(12.dp, 12.dp, 12.dp, 4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            routine.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.weight(1f).padding(12.dp, 12.dp, 12.dp, 4.dp),
+                        )
+                        IconButton(onClick = { viewModel.deleteRoutine(routine.id) }) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Delete ${routine.name}")
+                        }
+                    }
                     if (routine.daysOfWeek.isEmpty()) {
                         Text(
                             "No days set",

@@ -9,6 +9,7 @@ import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.PersonalRecord
+import com.lsing.timego.domain.bodyMassIndex
 import com.lsing.timego.domain.muscleGroupStrengthCurve
 import com.lsing.timego.domain.personalRecords
 import com.lsing.timego.domain.strengthCurve
@@ -57,6 +58,12 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _historyForSelectedDate = MutableStateFlow<List<DayHistoryEntry>>(emptyList())
     val historyForSelectedDate: StateFlow<List<DayHistoryEntry>> = _historyForSelectedDate.asStateFlow()
 
+    private val _weightCurve = MutableStateFlow<List<Pair<LocalDate, Double>>>(emptyList())
+    val weightCurve: StateFlow<List<Pair<LocalDate, Double>>> = _weightCurve.asStateFlow()
+
+    private val _currentBmi = MutableStateFlow<Double?>(null)
+    val currentBmi: StateFlow<Double?> = _currentBmi.asStateFlow()
+
     init {
         viewModelScope.launch {
             repository.sessions.collect { sessions ->
@@ -68,7 +75,17 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
             }
         }
         viewModelScope.launch {
-            repository.bodyMetrics.collect { _bodyMetrics.value = it }
+            repository.bodyMetrics.collect { metrics ->
+                _bodyMetrics.value = metrics
+                _weightCurve.value = metrics.mapNotNull { metric -> metric.weightKg?.let { metric.date to it } }
+                val latestWeight = metrics.lastOrNull { it.weightKg != null }?.weightKg
+                val latestHeight = metrics.lastOrNull { it.heightCm != null }?.heightCm
+                _currentBmi.value = if (latestWeight != null && latestHeight != null) {
+                    bodyMassIndex(latestWeight, latestHeight)
+                } else {
+                    null
+                }
+            }
         }
         viewModelScope.launch {
             repository.exercises.collect { exerciseList ->
@@ -101,9 +118,9 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun logBodyMetric(weightKg: Double?, waistCm: Double?) {
+    fun logBodyMetric(weightKg: Double?, waistCm: Double?, heightCm: Double?) {
         viewModelScope.launch {
-            repository.logBodyMetric(LocalDate.now(), weightKg, waistCm)
+            repository.logBodyMetric(LocalDate.now(), weightKg, waistCm, heightCm)
         }
     }
 

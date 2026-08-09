@@ -50,4 +50,8 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) {
         viewModelScope.launch { repository.createRoutine(name, exerciseIds, daysOfWeek) }
     }
+
+    fun deleteRoutine(routineId: Long) {
+        viewModelScope.launch { repository.deleteRoutine(routineId) }
+    }
 }

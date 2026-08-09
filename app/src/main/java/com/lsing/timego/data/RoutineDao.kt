@@ -18,4 +18,10 @@ interface RoutineDao {
 
     @Query("SELECT * FROM routine_exercises WHERE routineId = :routineId ORDER BY orderIndex")
     suspend fun exercisesForRoutine(routineId: Long): List<RoutineExercise>
+
+    @Query("DELETE FROM routines WHERE id = :routineId")
+    suspend fun deleteRoutine(routineId: Long)
+
+    @Query("DELETE FROM routine_exercises WHERE routineId = :routineId")
+    suspend fun deleteRoutineExercises(routineId: Long)
 }

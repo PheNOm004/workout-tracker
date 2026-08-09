@@ -1,6 +1,5 @@
 package com.lsing.timego.ui.progress
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -31,23 +30,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.domain.PersonalRecord
 import com.lsing.timego.domain.PrType
+import com.lsing.timego.domain.BmiCategory
+import com.lsing.timego.domain.bmiCategory
 import com.lsing.timego.ui.common.HeatmapGrid
+import com.lsing.timego.ui.common.SparklineChart
 import com.lsing.timego.ui.common.formatEnumLabel
 import java.time.LocalDate
 
@@ -62,9 +55,12 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val selectedMuscleGroup by viewModel.selectedMuscleGroup.collectAsState()
     val strengthCurve by viewModel.strengthCurve.collectAsState()
     val bodyMetrics by viewModel.bodyMetrics.collectAsState()
+    val weightCurve by viewModel.weightCurve.collectAsState()
+    val currentBmi by viewModel.currentBmi.collectAsState()
 
     var weightText by remember { mutableStateOf("") }
     var waistText by remember { mutableStateOf("") }
+    var heightText by remember { mutableStateOf("") }
 
     val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsState()
     val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsState()
@@ -182,11 +178,31 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             if (strengthCurve.isEmpty()) {
                 Text("No logged sets yet for this selection.", style = MaterialTheme.typography.bodySmall)
             } else {
-                StrengthCurveChart(strengthCurve, modifier = Modifier.fillMaxWidth().height(160.dp).padding(vertical = 8.dp))
+                SparklineChart(strengthCurve, modifier = Modifier.fillMaxWidth().height(160.dp).padding(vertical = 8.dp))
             }
         }
         item {
             Text("Body Metrics", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+            if (currentBmi != null) {
+                val category = bmiCategory(currentBmi!!)
+                Text(
+                    "BMI: %.1f (${formatEnumLabel(category.name)})".format(currentBmi),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (category == BmiCategory.NORMAL) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            } else {
+                Text(
+                    "Log a weight and height to see your BMI.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            if (weightCurve.isNotEmpty()) {
+                Text("Weight trend", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 12.dp))
+                SparklineChart(weightCurve, modifier = Modifier.fillMaxWidth().height(140.dp).padding(vertical = 8.dp))
+            }
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -205,10 +221,23 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f).padding(end = 8.dp),
                 )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = heightText,
+                    onValueChange = { heightText = it },
+                    label = { Text("Height (cm, optional)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                )
                 Button(onClick = {
-                    viewModel.logBodyMetric(weightText.toDoubleOrNull(), waistText.toDoubleOrNull())
+                    viewModel.logBodyMetric(weightText.toDoubleOrNull(), waistText.toDoubleOrNull(), heightText.toDoubleOrNull())
                     weightText = ""
                     waistText = ""
+                    heightText = ""
                 }) {
                     Text("Log")
                 }
@@ -254,92 +283,4 @@ private fun formatRecordValue(record: PersonalRecord): String = when (record.typ
     PrType.HEAVIEST_WEIGHT -> "${record.value}kg"
     PrType.MOST_REPS -> "${record.value.toInt()} reps"
     PrType.BEST_VOLUME -> "${record.value}kg total"
-}
-
-/** Plain Canvas line chart -- no charting library dependency, same "draw it yourself" approach
- *  HeatP used for its WeeklyBarChart. A dotted average-value reference line (sparkline style,
- *  inspired by mobile strength-tracking apps' per-muscle trend rows) gives the curve context
- *  without needing full axis chrome; min/max/date labels anchor it further. Padding keeps the
- *  end points and labels from clipping against the canvas edge. */
-@Composable
-private fun StrengthCurveChart(points: List<Pair<LocalDate, Double>>, modifier: Modifier = Modifier) {
-    val lineColor = MaterialTheme.colorScheme.primary
-    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val averageLineColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val labelTextSizePx = with(density) { 12.sp.toPx() }
-    val horizontalPaddingPx = with(density) { 8.dp.toPx() }
-    val topPaddingPx = with(density) { 12.dp.toPx() }
-    val bottomPaddingPx = with(density) { 28.dp.toPx() }
-
-    Canvas(modifier = modifier) {
-        if (points.isEmpty()) {
-            return@Canvas
-        }
-        if (points.size == 1) {
-            // A single data point (e.g. every logged set for this muscle group so far falls on
-            // one calendar day) can't draw a line, but showing nothing reads as a bug, not "not
-            // enough data yet" -- draw the one point plus its value so there's something to see.
-            val (date, value) = points.first()
-            val y = size.height / 2f
-            drawCircle(color = lineColor, radius = 6f, center = Offset(size.width / 2f, y))
-            val nativePaint = android.graphics.Paint().apply {
-                color = labelColor.toArgb()
-                textSize = labelTextSizePx
-                isAntiAlias = true
-                textAlign = android.graphics.Paint.Align.CENTER
-            }
-            drawContext.canvas.nativeCanvas.drawText(
-                "$date: %.1f".format(value),
-                size.width / 2f,
-                y - 16f,
-                nativePaint,
-            )
-            return@Canvas
-        }
-        val maxValue = points.maxOf { it.second }
-        val minValue = points.minOf { it.second }
-        val average = points.map { it.second }.average()
-        val range = (maxValue - minValue).coerceAtLeast(1.0)
-        val plotWidth = size.width - horizontalPaddingPx * 2
-        val plotHeight = size.height - topPaddingPx - bottomPaddingPx
-        val stepX = plotWidth / (points.size - 1)
-
-        fun xFor(index: Int) = horizontalPaddingPx + stepX * index
-        fun yFor(value: Double) = topPaddingPx + plotHeight - ((value - minValue) / range * plotHeight).toFloat()
-
-        val averageY = yFor(average)
-        drawLine(
-            color = averageLineColor.copy(alpha = 0.4f),
-            start = Offset(horizontalPaddingPx, averageY),
-            end = Offset(size.width - horizontalPaddingPx, averageY),
-            strokeWidth = 2f,
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f)),
-        )
-
-        val path = Path()
-        points.forEachIndexed { index, (_, value) ->
-            val x = xFor(index)
-            val y = yFor(value)
-            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-        }
-        drawPath(path, color = lineColor, style = Stroke(width = 4f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-        points.forEachIndexed { index, (_, value) ->
-            drawCircle(color = lineColor, radius = 5f, center = Offset(xFor(index), yFor(value)))
-        }
-
-        val nativePaint = android.graphics.Paint().apply {
-            color = labelColor.toArgb()
-            textSize = labelTextSizePx
-            isAntiAlias = true
-        }
-        drawContext.canvas.nativeCanvas.apply {
-            nativePaint.textAlign = android.graphics.Paint.Align.LEFT
-            drawText(points.first().first.toString(), horizontalPaddingPx, size.height - 8f, nativePaint)
-            nativePaint.textAlign = android.graphics.Paint.Align.RIGHT
-            drawText(points.last().first.toString(), size.width - horizontalPaddingPx, size.height - 8f, nativePaint)
-            nativePaint.textAlign = android.graphics.Paint.Align.LEFT
-            drawText("avg %.1f".format(average), horizontalPaddingPx, averageY - 8f, nativePaint)
-        }
-    }
 }
