@@ -97,6 +97,8 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                         StrengthLogRow(
                             exerciseName = exercise.name,
                             suggestion = suggestions[exercise.id],
+                            isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
+                            latestBodyWeightKg = latestBodyWeightKg,
                             onLog = { weight, reps, target -> viewModel.logSet(exercise.id, weight, reps, target) },
                         )
                     }
@@ -135,10 +137,17 @@ private fun ExerciseRowHeader(exerciseName: String, expanded: Boolean, onToggle:
 private fun StrengthLogRow(
     exerciseName: String,
     suggestion: com.lsing.timego.domain.OverloadSuggestion?,
+    isBodyweight: Boolean,
+    latestBodyWeightKg: Double?,
     onLog: (weightKg: Double, reps: Int, targetReps: Int) -> Unit,
 ) {
     var expanded by remember(exerciseName) { mutableStateOf(false) }
-    var weightText by remember(exerciseName) { mutableStateOf("") }
+    // Bodyweight exercises (Pull-Up, Push-Up, Dip, ...) pre-fill kg with the user's latest logged
+    // body weight rather than leaving it blank/0 -- an unedited bodyweight set is still real load,
+    // and 0 would flatten estimatedOneRepMax to zero forever regardless of actual rep progress.
+    var weightText by remember(exerciseName) {
+        mutableStateOf(if (isBodyweight) latestBodyWeightKg?.toString().orEmpty() else "")
+    }
     var repsText by remember(exerciseName) { mutableStateOf("") }
 
     Card(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 8.dp)) {
@@ -160,6 +169,7 @@ private fun StrengthLogRow(
                     value = weightText,
                     onValueChange = { weightText = it },
                     label = { Text("kg") },
+                    placeholder = if (isBodyweight) { { Text("BW") } } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f).padding(end = 8.dp),
                 )
