@@ -25,6 +25,10 @@ fun parsePathVertices(d: String): List<Pair<Float, Float>> {
             'M', 'm' -> {
                 x = t.toFloat(); y = tokens[i + 1].toFloat(); i += 2
                 points.add(x to y)
+                // SVG spec: a moveto followed by further bare coordinate pairs treats them as
+                // implicit linetos, relative because every moveto here was originally relative
+                // ("m") before baking swapped just the first one to absolute for self-containment.
+                cmd = 'l'
             }
             'l' -> {
                 x += t.toFloat(); y += tokens[i + 1].toFloat(); i += 2

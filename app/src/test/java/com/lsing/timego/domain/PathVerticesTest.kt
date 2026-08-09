@@ -12,6 +12,17 @@ class PathVerticesTest {
     }
 
     @Test
+    fun `bare coordinate pairs right after moveto are implicit relative linetos`() {
+        // This is the real bug: almost every traced muscle path looks like "M185,930 5 3 3 21..."
+        // -- no letter between the initial moveto and the pairs that follow. Per SVG spec those
+        // pairs are implicit linetos, relative because the source moveto was relative ("m"), even
+        // though the baked data always starts with an absolute "M". Getting this wrong turns the
+        // second point into another absolute jump instead of an offset from the first.
+        val points = parsePathVertices("M185,930 5 3 3 21")
+        assertEquals(listOf(185f to 930f, 190f to 933f, 193f to 954f), points)
+    }
+
+    @Test
     fun `implicit repeated lineto pairs after a single l command all get consumed`() {
         val points = parsePathVertices("M0,0l1 1 2 2 3 3")
         assertEquals(listOf(0f to 0f, 1f to 1f, 3f to 3f, 6f to 6f), points)
