@@ -29,8 +29,10 @@ fun workoutVolumeRatios(sessions: List<WorkoutSession>, sets: List<SetLog>): Map
 }
 
 /** Categories whose weightKg/reps are real logged values, not the 0.0/0 sentinels CARDIO/WARMUP
- *  sets use (see SetLog) -- shared by every function here that ranks or trends weight/reps. */
-private val STRENGTH_CATEGORIES = setOf(ExerciseCategory.STRENGTH.name, ExerciseCategory.CALISTHENICS.name)
+ *  sets use (see SetLog) -- shared by every function in this package that ranks or trends
+ *  weight/reps (not `private` since MuscleDistribution.kt, a separate file in this package, also
+ *  needs it -- Kotlin's top-level `private` is file-scoped, not package-scoped). */
+internal val STRENGTH_CATEGORIES = setOf(ExerciseCategory.STRENGTH.name, ExerciseCategory.CALISTHENICS.name)
 
 enum class PrType { HEAVIEST_WEIGHT, MOST_REPS, BEST_VOLUME }
 

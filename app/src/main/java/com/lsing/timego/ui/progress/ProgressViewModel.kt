@@ -9,10 +9,13 @@ import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.PersonalRecord
+import com.lsing.timego.domain.TrainingStats
 import com.lsing.timego.domain.bodyMassIndex
 import com.lsing.timego.domain.muscleGroupStrengthCurve
+import com.lsing.timego.domain.muscleGroupVolumeDistribution
 import com.lsing.timego.domain.personalRecords
 import com.lsing.timego.domain.strengthCurve
+import com.lsing.timego.domain.trainingStats
 import com.lsing.timego.domain.workoutVolumeRatios
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -64,6 +67,12 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _currentBmi = MutableStateFlow<Double?>(null)
     val currentBmi: StateFlow<Double?> = _currentBmi.asStateFlow()
 
+    private val _muscleDistribution = MutableStateFlow<Map<String, Float>>(emptyMap())
+    val muscleDistribution: StateFlow<Map<String, Float>> = _muscleDistribution.asStateFlow()
+
+    private val _trainingStats = MutableStateFlow(TrainingStats(0, 0.0, 0.0, 0))
+    val trainingStats: StateFlow<TrainingStats> = _trainingStats.asStateFlow()
+
     init {
         viewModelScope.launch {
             repository.sessions.collect { sessions ->
@@ -72,6 +81,16 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                 val sessionDateById = sessions.associate { it.id to it.date }
                 val exercisesById = repository.exercises.first().associateBy { it.id }
                 _records.value = personalRecords(allSets, sessionDateById, exercisesById)
+
+                val since = LocalDate.now().minusDays(30)
+                _trainingStats.value = trainingStats(sessions, allSets, since)
+                val rawDistribution = muscleGroupVolumeDistribution(allSets, exercisesById, sessionDateById, since)
+                val maxVolume = rawDistribution.values.maxOrNull() ?: 0.0
+                _muscleDistribution.value = if (maxVolume > 0.0) {
+                    rawDistribution.mapValues { (_, volume) -> (volume / maxVolume).toFloat() }
+                } else {
+                    emptyMap()
+                }
             }
         }
         viewModelScope.launch {

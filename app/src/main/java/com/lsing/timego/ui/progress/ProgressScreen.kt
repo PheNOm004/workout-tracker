@@ -11,11 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -40,11 +35,12 @@ import com.lsing.timego.domain.PrType
 import com.lsing.timego.domain.BmiCategory
 import com.lsing.timego.domain.bmiCategory
 import com.lsing.timego.ui.common.HeatmapGrid
+import com.lsing.timego.ui.common.HorizontalWheelPicker
+import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SparklineChart
 import com.lsing.timego.ui.common.formatEnumLabel
 import java.time.LocalDate
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val volumeRatios by viewModel.volumeRatios.collectAsState()
@@ -57,6 +53,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val bodyMetrics by viewModel.bodyMetrics.collectAsState()
     val weightCurve by viewModel.weightCurve.collectAsState()
     val currentBmi by viewModel.currentBmi.collectAsState()
+    val muscleDistribution by viewModel.muscleDistribution.collectAsState()
+    val trainingStats by viewModel.trainingStats.collectAsState()
 
     var weightText by remember { mutableStateOf("") }
     var waistText by remember { mutableStateOf("") }
@@ -82,6 +80,28 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 darkColor = Color(0xFF1B5E3A),
                 onDateClick = { date -> viewModel.selectHistoryDate(date) },
             )
+        }
+        item {
+            Text("Muscle Distribution (last 30 days)", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+            if (muscleDistribution.isEmpty()) {
+                Text(
+                    "No strength sets logged in the last 30 days yet.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
+            } else {
+                RadarChart(
+                    values = muscleDistribution.mapKeys { (group, _) -> formatEnumLabel(group) },
+                    modifier = Modifier.fillMaxWidth().height(220.dp).padding(vertical = 8.dp),
+                )
+            }
+            FlowRow(modifier = Modifier.fillMaxWidth()) {
+                StatTile("Workouts", trainingStats.workouts.toString())
+                StatTile("Duration", "${trainingStats.totalDurationMinutes.toInt()} min")
+                StatTile("Volume", "${trainingStats.totalVolumeKg.toInt()} kg")
+                StatTile("Sets", trainingStats.totalSets.toString())
+            }
         }
         item {
             Text("Personal Records", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
@@ -130,34 +150,14 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         }
         if (curveMode == CurveMode.EXERCISE) {
             item {
-                val selectedExerciseName = exercises.firstOrNull { it.id == selectedExerciseId }?.name ?: "Choose an exercise"
-                var dropdownExpanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = dropdownExpanded,
-                    onExpandedChange = { dropdownExpanded = it },
-                ) {
-                    OutlinedTextField(
-                        value = selectedExerciseName,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Exercise") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                if (exercises.isNotEmpty()) {
+                    val selectedIndex = exercises.indexOfFirst { it.id == selectedExerciseId }.coerceAtLeast(0)
+                    HorizontalWheelPicker(
+                        items = exercises.map { it.name },
+                        selectedIndex = selectedIndex,
+                        onSelectedIndexChange = { index -> viewModel.selectExercise(exercises[index].id) },
+                        modifier = Modifier.padding(vertical = 4.dp),
                     )
-                    DropdownMenu(
-                        expanded = dropdownExpanded,
-                        onDismissRequest = { dropdownExpanded = false },
-                    ) {
-                        exercises.forEach { exercise ->
-                            DropdownMenuItem(
-                                text = { Text(exercise.name) },
-                                onClick = {
-                                    viewModel.selectExercise(exercise.id)
-                                    dropdownExpanded = false
-                                },
-                            )
-                        }
-                    }
                 }
             }
         } else {
@@ -283,4 +283,14 @@ private fun formatRecordValue(record: PersonalRecord): String = when (record.typ
     PrType.HEAVIEST_WEIGHT -> "${record.value}kg"
     PrType.MOST_REPS -> "${record.value.toInt()} reps"
     PrType.BEST_VOLUME -> "${record.value}kg total"
+}
+
+@Composable
+private fun StatTile(label: String, value: String) {
+    Card(modifier = Modifier.padding(4.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.titleMedium)
+        }
+    }
 }

@@ -1,0 +1,60 @@
+package com.lsing.timego.domain
+
+import com.lsing.timego.data.Exercise
+import com.lsing.timego.data.SetLog
+import com.lsing.timego.data.WorkoutSession
+import org.junit.Assert.assertEquals
+import org.junit.Test
+import java.time.LocalDate
+
+class MuscleDistributionTest {
+    @Test
+    fun `muscleGroupVolumeDistribution sums volume per muscle group, excluding sets before the cutoff`() {
+        val squat = Exercise(id = 1, name = "Squat", muscleGroups = listOf("QUADS", "GLUTES"), isCustom = false, category = "STRENGTH")
+        val curl = Exercise(id = 2, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
+        val sets = listOf(
+            // 100kg x 5 = 500 volume, on/after cutoff -- counts
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            // Before cutoff -- excluded
+            SetLog(id = 2, sessionId = 2, exerciseId = 2, weightKg = 20.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0),
+        )
+        val exercisesById = mapOf(1L to squat, 2L to curl)
+        val sessionDateById = mapOf(1L to LocalDate.of(2026, 8, 10), 2L to LocalDate.of(2026, 7, 1))
+
+        val distribution = muscleGroupVolumeDistribution(sets, exercisesById, sessionDateById, since = LocalDate.of(2026, 8, 1))
+
+        assertEquals(500.0, distribution["QUADS"]!!, 0.001)
+        assertEquals(500.0, distribution["GLUTES"]!!, 0.001)
+        assertEquals(null, distribution["BICEPS"])
+    }
+
+    @Test
+    fun `muscleGroupVolumeDistribution excludes cardio and warmup sets`() {
+        val run = Exercise(id = 3, name = "Running", muscleGroups = listOf("QUADS"), isCustom = false, category = "CARDIO")
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 3, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0, durationMinutes = 30.0),
+        )
+        val exercisesById = mapOf(3L to run)
+        val sessionDateById = mapOf(1L to LocalDate.of(2026, 8, 10))
+
+        val distribution = muscleGroupVolumeDistribution(sets, exercisesById, sessionDateById, since = LocalDate.of(2026, 8, 1))
+
+        assertEquals(emptyMap<String, Double>(), distribution)
+    }
+
+    @Test
+    fun `trainingStats counts workouts, sets, volume, and estimates duration from set timestamps`() {
+        val sessions = listOf(WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 10), routineId = null))
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 600_000),
+        )
+
+        val stats = trainingStats(sessions, sets, since = LocalDate.of(2026, 8, 1))
+
+        assertEquals(1, stats.workouts)
+        assertEquals(2, stats.totalSets)
+        assertEquals(1000.0, stats.totalVolumeKg, 0.001)
+        assertEquals(10.0, stats.totalDurationMinutes, 0.001)
+    }
+}
