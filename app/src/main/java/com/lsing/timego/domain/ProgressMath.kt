@@ -28,6 +28,10 @@ fun workoutVolumeRatios(sessions: List<WorkoutSession>, sets: List<SetLog>): Map
     return volumeByDate.mapValues { (_, volume) -> (volume / maxVolume).toFloat().coerceIn(0f, 1f) }
 }
 
+/** Categories whose weightKg/reps are real logged values, not the 0.0/0 sentinels CARDIO/WARMUP
+ *  sets use (see SetLog) -- shared by every function here that ranks or trends weight/reps. */
+private val STRENGTH_CATEGORIES = setOf(ExerciseCategory.STRENGTH.name, ExerciseCategory.CALISTHENICS.name)
+
 enum class PrType { HEAVIEST_WEIGHT, MOST_REPS, BEST_VOLUME }
 
 data class PersonalRecord(val exerciseId: Long, val type: PrType, val value: Double, val achievedOn: LocalDate)
@@ -43,9 +47,8 @@ fun personalRecords(
     sessionDateById: Map<Long, LocalDate>,
     exercisesById: Map<Long, Exercise>,
 ): List<PersonalRecord> {
-    val strengthCategories = setOf(ExerciseCategory.STRENGTH.name, ExerciseCategory.CALISTHENICS.name)
     return history
-        .filter { log -> exercisesById[log.exerciseId]?.category in strengthCategories }
+        .filter { log -> exercisesById[log.exerciseId]?.category in STRENGTH_CATEGORIES }
         .groupBy { it.exerciseId }
         .flatMap { (exerciseId, sets) ->
             val heaviest = sets.maxBy { it.weightKg }
@@ -59,8 +62,11 @@ fun personalRecords(
         }
 }
 
-/** Best estimated-1RM per date among sets logged for any exercise tagged with [muscleGroup] --
- *  an aggregate view across e.g. every QUADS exercise, not just one. */
+/** Best estimated-1RM per date among sets logged for any STRENGTH/CALISTHENICS exercise tagged
+ *  with [muscleGroup] -- an aggregate view across e.g. every QUADS exercise, not just one.
+ *  CARDIO/WARMUP exercises are excluded even if tagged with the group (e.g. Cycling is tagged
+ *  QUADS for the muscle-nudge feature) since their weightKg/reps are 0.0/0 sentinels, not real
+ *  values -- including them would corrupt the curve with fake near-zero 1RM points. */
 fun muscleGroupStrengthCurve(
     history: List<SetLog>,
     exercisesById: Map<Long, Exercise>,
@@ -70,6 +76,7 @@ fun muscleGroupStrengthCurve(
     val bestByDate = mutableMapOf<LocalDate, Double>()
     for (log in history) {
         val exercise = exercisesById[log.exerciseId] ?: continue
+        if (exercise.category !in STRENGTH_CATEGORIES) continue
         if (muscleGroup !in exercise.muscleGroups) continue
         val date = sessionDateById[log.sessionId] ?: continue
         val oneRepMax = estimatedOneRepMax(log.weightKg, log.reps)

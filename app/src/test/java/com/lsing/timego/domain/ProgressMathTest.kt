@@ -96,4 +96,24 @@ class ProgressMathTest {
         assertEquals(1, curve.size)
         assertEquals(estimatedOneRepMax(150.0, 5), curve[0].second, 0.001)
     }
+
+    @Test
+    fun `muscleGroupStrengthCurve excludes cardio sets even when tagged with the muscle group`() {
+        // Cycling is seeded tagged QUADS/HAMSTRINGS for the muscle-nudge feature's benefit, but
+        // its weightKg/reps are 0.0/0 sentinels (see SetLog) -- including it here would corrupt
+        // a real strength curve with a fake near-zero 1RM data point.
+        val squat = com.lsing.timego.data.Exercise(id = 1, name = "Squat", muscleGroups = listOf("QUADS"), isCustom = false, category = "STRENGTH")
+        val cycling = com.lsing.timego.data.Exercise(id = 2, name = "Cycling", muscleGroups = listOf("QUADS"), isCustom = false, category = "CARDIO")
+        val logs = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 2, exerciseId = 2, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0, durationMinutes = 30.0, distanceKm = 10.0),
+        )
+        val exercisesById = mapOf(1L to squat, 2L to cycling)
+        val sessionDateById = mapOf(1L to LocalDate.of(2026, 8, 1), 2L to LocalDate.of(2026, 8, 2))
+
+        val curve = muscleGroupStrengthCurve(logs, exercisesById, sessionDateById, "QUADS")
+
+        assertEquals(1, curve.size)
+        assertEquals(LocalDate.of(2026, 8, 1), curve[0].first)
+    }
 }

@@ -273,7 +273,28 @@ private fun StrengthCurveChart(points: List<Pair<LocalDate, Double>>, modifier: 
     val bottomPaddingPx = with(density) { 28.dp.toPx() }
 
     Canvas(modifier = modifier) {
-        if (points.size < 2) {
+        if (points.isEmpty()) {
+            return@Canvas
+        }
+        if (points.size == 1) {
+            // A single data point (e.g. every logged set for this muscle group so far falls on
+            // one calendar day) can't draw a line, but showing nothing reads as a bug, not "not
+            // enough data yet" -- draw the one point plus its value so there's something to see.
+            val (date, value) = points.first()
+            val y = size.height / 2f
+            drawCircle(color = lineColor, radius = 6f, center = Offset(size.width / 2f, y))
+            val nativePaint = android.graphics.Paint().apply {
+                color = labelColor.toArgb()
+                textSize = labelTextSizePx
+                isAntiAlias = true
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+            drawContext.canvas.nativeCanvas.drawText(
+                "$date: %.1f".format(value),
+                size.width / 2f,
+                y - 16f,
+                nativePaint,
+            )
             return@Canvas
         }
         val maxValue = points.maxOf { it.second }

@@ -3,19 +3,24 @@ package com.lsing.timego.ui.log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -52,45 +57,54 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
         )
     }
 
-    LazyColumn(modifier = Modifier.padding(16.dp)) {
-        item {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Session type", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                Button(onClick = { showAddDialog = true }) { Text("+ Add exercise") }
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAddDialog = true }) {
+                Icon(Icons.Filled.Add, contentDescription = "Add custom exercise")
             }
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).horizontalScroll(rememberScrollState())) {
-                FilterChip(
-                    selected = selectedRoutineId == null,
-                    onClick = { viewModel.selectRoutine(null) },
-                    label = { Text("Freeform") },
-                    modifier = Modifier.padding(end = 8.dp),
-                )
-                routines.forEach { routine ->
+        },
+    ) { fabPadding ->
+        LazyColumn(modifier = Modifier.padding(16.dp).padding(fabPadding)) {
+            item {
+                Text("Session type", style = MaterialTheme.typography.titleMedium)
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).horizontalScroll(rememberScrollState())) {
                     FilterChip(
-                        selected = selectedRoutineId == routine.id,
-                        onClick = { viewModel.selectRoutine(routine.id) },
-                        label = { Text(routine.name) },
+                        selected = selectedRoutineId == null,
+                        onClick = { viewModel.selectRoutine(null) },
+                        label = { Text("Freeform") },
                         modifier = Modifier.padding(end = 8.dp),
                     )
+                    routines.forEach { routine ->
+                        FilterChip(
+                            selected = selectedRoutineId == routine.id,
+                            onClick = { viewModel.selectRoutine(routine.id) },
+                            label = { Text(routine.name) },
+                            modifier = Modifier.padding(end = 8.dp),
+                        )
+                    }
                 }
             }
-        }
-        item {
-            ExerciseSections(exercises = exercises) { exercise ->
-                if (exercise.category == ExerciseCategory.CARDIO.name || exercise.category == ExerciseCategory.WARMUP.name) {
-                    CardioLogRow(
-                        exerciseName = exercise.name,
-                        met = if (exercise.category == ExerciseCategory.CARDIO.name) MET_CARDIO else MET_WARMUP,
-                        bodyWeightKg = latestBodyWeightKg,
-                        onLog = { duration, distance -> viewModel.logCardioSet(exercise.id, duration, distance) },
-                    )
-                } else {
-                    StrengthLogRow(
-                        exerciseName = exercise.name,
-                        suggestion = suggestions[exercise.id],
-                        onLog = { weight, reps, target -> viewModel.logSet(exercise.id, weight, reps, target) },
-                    )
+            item {
+                ExerciseSections(exercises = exercises) { exercise ->
+                    if (exercise.category == ExerciseCategory.CARDIO.name || exercise.category == ExerciseCategory.WARMUP.name) {
+                        CardioLogRow(
+                            exerciseName = exercise.name,
+                            met = if (exercise.category == ExerciseCategory.CARDIO.name) MET_CARDIO else MET_WARMUP,
+                            bodyWeightKg = latestBodyWeightKg,
+                            onLog = { duration, distance -> viewModel.logCardioSet(exercise.id, duration, distance) },
+                        )
+                    } else {
+                        StrengthLogRow(
+                            exerciseName = exercise.name,
+                            suggestion = suggestions[exercise.id],
+                            onLog = { weight, reps, target -> viewModel.logSet(exercise.id, weight, reps, target) },
+                        )
+                    }
                 }
+            }
+            item {
+                // Bottom spacer so the last exercise card isn't hidden behind the FAB.
+                Spacer(modifier = Modifier.height(64.dp))
             }
         }
     }
