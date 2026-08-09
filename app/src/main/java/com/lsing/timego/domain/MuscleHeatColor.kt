@@ -16,6 +16,10 @@ private val HEAT_STOPS = listOf(
     "#EF4444", // high
 )
 
+/** The scale's stops in order, low to high -- exposed so UI code can render a matching legend
+ *  without duplicating this list. */
+fun heatStopHexes(): List<String> = HEAT_STOPS
+
 fun heatColor(intensity: Float): String {
     val clamped = intensity.coerceIn(0f, 1f)
     val span = clamped * (HEAT_STOPS.size - 1)
