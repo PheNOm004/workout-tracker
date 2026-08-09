@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.scale
 import com.lsing.timego.data.MuscleGroup
+import com.lsing.timego.domain.diagramZoneIntensity
 import com.lsing.timego.domain.heatColor
 import com.lsing.timego.domain.parsePathVertices
 import com.lsing.timego.domain.recolorByLightness
@@ -68,7 +69,7 @@ fun MuscleBodyDiagram(intensities: Map<String, Float>, modifier: Modifier = Modi
     fun colorFor(shape: BuiltMuscleShape): Color = when {
         shape.isOutline -> outlineColor
         shape.muscleGroup != null -> {
-            val intensity = intensities[shape.muscleGroup.name] ?: 0f
+            val intensity = diagramZoneIntensity(shape.muscleGroup, intensities)
             hexToColor(recolorByLightness(heatColor(intensity), shape.lightness))
         }
         else -> detailColor
