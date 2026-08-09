@@ -162,16 +162,14 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             }
         } else {
             item {
-                FlowRow(modifier = Modifier.fillMaxWidth()) {
-                    MuscleGroup.entries.forEach { group ->
-                        FilterChip(
-                            selected = selectedMuscleGroup == group.name,
-                            onClick = { viewModel.selectMuscleGroup(group.name) },
-                            label = { Text(formatEnumLabel(group.name)) },
-                            modifier = Modifier.padding(end = 4.dp, bottom = 4.dp),
-                        )
-                    }
-                }
+                val groupNames = MuscleGroup.entries.map { it.name }
+                val selectedIndex = groupNames.indexOf(selectedMuscleGroup).coerceAtLeast(0)
+                HorizontalWheelPicker(
+                    items = groupNames.map { formatEnumLabel(it) },
+                    selectedIndex = selectedIndex,
+                    onSelectedIndexChange = { index -> viewModel.selectMuscleGroup(groupNames[index]) },
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
             }
         }
         item {
