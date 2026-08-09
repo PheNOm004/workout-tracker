@@ -48,12 +48,14 @@ fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exerci
     )
 
     if (query.isNotBlank()) {
-        val matches = exercises.filter { it.name.contains(query, ignoreCase = true) }
+        val matches = remember(exercises, query) {
+            exercises.filter { it.name.contains(query, ignoreCase = true) }
+        }
         matches.forEach { exercise -> itemContent(exercise) }
         return
     }
 
-    val byCategory = exercises.groupBy { it.category }
+    val byCategory = remember(exercises) { exercises.groupBy { it.category } }
     ExerciseCategory.entries.forEach { category ->
         val inCategory = byCategory[category.name].orEmpty()
         if (inCategory.isEmpty()) return@forEach
@@ -77,8 +79,9 @@ fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exerci
                 // Sorted so iteration order is deterministic across recompositions -- a plain
                 // HashMap's order isn't guaranteed, and combined with key() below, an unstable
                 // order would still churn which composable slot each group lands in.
-                val byMuscleGroup = inCategory.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }
-                    .toSortedMap()
+                val byMuscleGroup = remember(inCategory) {
+                    inCategory.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }.toSortedMap()
+                }
                 byMuscleGroup.forEach { (group, groupExercises) ->
                     key(group) {
                         var groupExpanded by remember(category, group) { mutableStateOf(false) }

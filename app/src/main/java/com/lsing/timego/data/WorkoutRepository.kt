@@ -70,6 +70,8 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
 
     suspend fun allSetLogs(): List<SetLog> = db.setLogDao().getAll()
 
+    suspend fun allSetLogsOrderedByTime(): List<SetLog> = db.setLogDao().allOrderedByTime()
+
     suspend fun logBodyMetric(date: LocalDate, weightKg: Double?, waistCm: Double?, heightCm: Double?) {
         db.bodyMetricDao().insert(BodyMetric(date = date, weightKg = weightKg, waistCm = waistCm, heightCm = heightCm))
     }

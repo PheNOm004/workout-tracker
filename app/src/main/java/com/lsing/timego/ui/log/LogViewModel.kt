@@ -85,10 +85,12 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun refreshSuggestions(exerciseList: List<Exercise>) {
+        val historyByExercise = repository.allSetLogsOrderedByTime().groupBy { it.exerciseId }
         val map = mutableMapOf<Long, OverloadSuggestion>()
         for (exercise in exerciseList) {
-            val history = repository.historyForExercise(exercise.id)
-                .map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
+            val history = historyByExercise[exercise.id]
+                ?.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
+                ?: emptyList()
             suggester.suggestNext(history)?.let { map[exercise.id] = it }
         }
         _suggestions.value = map

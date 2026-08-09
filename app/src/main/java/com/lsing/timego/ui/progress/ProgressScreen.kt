@@ -241,7 +241,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 }
             }
         }
-        items(bodyMetrics) { metric ->
+        items(bodyMetrics, key = { it.id }) { metric ->
             Text("${metric.date}: ${metric.weightKg?.let { "${it}kg" } ?: "--"} / ${metric.waistCm?.let { "${it}cm" } ?: "--"}")
         }
     }

@@ -18,4 +18,7 @@ interface SetLogDao {
 
     @Query("SELECT * FROM set_logs")
     suspend fun getAll(): List<SetLog>
+
+    @Query("SELECT * FROM set_logs ORDER BY loggedAtEpochMillis")
+    suspend fun allOrderedByTime(): List<SetLog>
 }

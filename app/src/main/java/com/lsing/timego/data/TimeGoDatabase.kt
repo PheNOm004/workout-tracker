@@ -26,7 +26,7 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
 @Database(
     entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class],
     version = 3,
-    exportSchema = false,
+    exportSchema = true,
 )
 @TypeConverters(Converters::class)
 abstract class TimeGoDatabase : RoomDatabase() {
