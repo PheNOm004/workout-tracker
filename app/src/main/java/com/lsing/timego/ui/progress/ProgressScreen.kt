@@ -41,6 +41,7 @@ import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SparklineChart
 import com.lsing.timego.ui.common.formatEnumLabel
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
@@ -60,6 +61,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     var weightText by remember { mutableStateOf("") }
     var waistText by remember { mutableStateOf("") }
     var heightText by remember { mutableStateOf("") }
+    var selectedPrExerciseId by remember { mutableStateOf<Long?>(null) }
 
     val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsState()
     val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsState()
@@ -111,7 +113,9 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         item {
             Text("Personal Records", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
         }
-        if (records.isEmpty()) {
+        val recordsByExercise = records.groupBy { it.exerciseId }
+        val exercisesWithRecords = exercises.filter { it.id in recordsByExercise.keys }.sortedBy { it.name }
+        if (exercisesWithRecords.isEmpty()) {
             item {
                 Text(
                     "No personal records yet -- log a few sets to see them here.",
@@ -120,18 +124,30 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     modifier = Modifier.padding(vertical = 4.dp),
                 )
             }
-        }
-        val recordsByExercise = records.groupBy { it.exerciseId }
-        items(recordsByExercise.entries.toList(), key = { it.key }) { (exerciseId, exerciseRecords) ->
-            val exerciseName = exercises.firstOrNull { it.id == exerciseId }?.name ?: "Unknown exercise"
-            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(exerciseName, style = MaterialTheme.typography.titleSmall)
-                    exerciseRecords.forEach { record ->
-                        Text(
-                            "${formatEnumLabel(record.type.name)}: ${formatRecordValue(record)} on ${record.achievedOn}",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+        } else {
+            item {
+                val selectedIndex = exercisesWithRecords.indexOfFirst { it.id == selectedPrExerciseId }.coerceAtLeast(0)
+                HorizontalWheelPicker(
+                    items = exercisesWithRecords.map { it.name },
+                    selectedIndex = selectedIndex,
+                    onSelectedIndexChange = { index -> selectedPrExerciseId = exercisesWithRecords[index].id },
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
+                val selectedExercise = exercisesWithRecords[selectedIndex]
+                val exerciseRecords = recordsByExercise[selectedExercise.id].orEmpty()
+                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(selectedExercise.name, style = MaterialTheme.typography.titleSmall)
+                        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                            PrType.entries.forEach { type ->
+                                val record = exerciseRecords.firstOrNull { it.type == type }
+                                StatTile(
+                                    label = formatEnumLabel(type.name),
+                                    value = record?.let { formatRecordValue(it) } ?: "--",
+                                    caption = record?.achievedOn?.format(PR_DATE_FORMATTER),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -282,6 +298,8 @@ private fun DayHistoryDialog(date: LocalDate, entries: List<DayHistoryEntry>, on
     )
 }
 
+private val PR_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d")
+
 private fun formatRecordValue(record: PersonalRecord): String = when (record.type) {
     PrType.HEAVIEST_WEIGHT -> "${record.value}kg"
     PrType.MOST_REPS -> "${record.value.toInt()} reps"
@@ -289,11 +307,14 @@ private fun formatRecordValue(record: PersonalRecord): String = when (record.typ
 }
 
 @Composable
-private fun StatTile(label: String, value: String) {
+private fun StatTile(label: String, value: String, caption: String? = null) {
     Card(modifier = Modifier.padding(4.dp)) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.titleMedium)
+            if (caption != null) {
+                Text(caption, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
