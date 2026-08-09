@@ -8,7 +8,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -61,14 +60,17 @@ fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exerci
         key(category) {
             var expanded by remember(category) { mutableStateOf(false) }
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+                    .clickable { expanded = !expanded },
             ) {
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(
-                        if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
-                        contentDescription = if (expanded) "Collapse" else "Expand",
-                    )
-                }
+                Icon(
+                    if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    modifier = Modifier.padding(start = 8.dp, end = 4.dp),
+                )
                 Text(formatEnumLabel(category.name), style = MaterialTheme.typography.titleMedium)
             }
             if (expanded) {
@@ -84,13 +86,13 @@ fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exerci
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 40.dp, top = 8.dp)
+                                .padding(top = 8.dp)
                                 .clickable { groupExpanded = !groupExpanded },
                         ) {
                             Icon(
                                 if (groupExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
                                 contentDescription = if (groupExpanded) "Collapse" else "Expand",
-                                modifier = Modifier.padding(end = 4.dp),
+                                modifier = Modifier.padding(start = 32.dp, end = 4.dp),
                             )
                             Text(
                                 formatEnumLabel(group),
