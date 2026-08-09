@@ -14,7 +14,9 @@ fun habitHeatmapColorHexes(colorHex: String): Pair<String, String> {
     return light to dark
 }
 
-private fun hexToRgb(hex: String): Triple<Int, Int, Int> {
+/** Internal (not private) so MuscleHeatColor.kt can reuse this small hex/HSV toolkit rather than
+ *  duplicating it -- both files do the same "hex string in, hex string out" color math. */
+internal fun hexToRgb(hex: String): Triple<Int, Int, Int> {
     val clean = hex.removePrefix("#")
     val r = clean.substring(0, 2).toInt(16)
     val g = clean.substring(2, 4).toInt(16)
@@ -22,7 +24,7 @@ private fun hexToRgb(hex: String): Triple<Int, Int, Int> {
     return Triple(r, g, b)
 }
 
-private fun rgbToHsv(r: Int, g: Int, b: Int): Triple<Float, Float, Float> {
+internal fun rgbToHsv(r: Int, g: Int, b: Int): Triple<Float, Float, Float> {
     val rf = r / 255f
     val gf = g / 255f
     val bf = b / 255f
@@ -39,7 +41,7 @@ private fun rgbToHsv(r: Int, g: Int, b: Int): Triple<Float, Float, Float> {
     return Triple(h, s, max)
 }
 
-private fun hsvToHex(h: Float, s: Float, v: Float): String {
+internal fun hsvToHex(h: Float, s: Float, v: Float): String {
     val c = v * s
     val x = c * (1 - kotlin.math.abs((h / 60f).mod(2f) - 1))
     val m = v - c

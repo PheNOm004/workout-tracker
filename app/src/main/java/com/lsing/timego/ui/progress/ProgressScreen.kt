@@ -36,6 +36,7 @@ import com.lsing.timego.domain.BmiCategory
 import com.lsing.timego.domain.bmiCategory
 import com.lsing.timego.ui.common.HeatmapGrid
 import com.lsing.timego.ui.common.HorizontalWheelPicker
+import com.lsing.timego.ui.common.MuscleBodyDiagram
 import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SparklineChart
 import com.lsing.timego.ui.common.formatEnumLabel
@@ -94,6 +95,10 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 RadarChart(
                     values = muscleDistribution.mapKeys { (group, _) -> formatEnumLabel(group) },
                     modifier = Modifier.fillMaxWidth().height(220.dp).padding(vertical = 8.dp),
+                )
+                MuscleBodyDiagram(
+                    intensities = muscleDistribution,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 )
             }
             FlowRow(modifier = Modifier.fillMaxWidth()) {

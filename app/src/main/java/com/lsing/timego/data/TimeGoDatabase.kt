@@ -23,9 +23,20 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+/** No-op at the SQL level -- the underlying columns and their defaults already exist from
+ *  MIGRATION_1_2. This migration exists purely so Room re-stamps the schema identity hash after
+ *  Exercise.category/Routine.daysOfWeek gained @ColumnInfo(defaultValue=...) annotations: adding
+ *  that annotation changes the *computed* schema even though no DDL changed, and Room refuses to
+ *  open a database whose stored hash doesn't match unless the version number also moved. Skipping
+ *  this bump is exactly what broke every existing install (including this device) after that
+ *  annotation was added without a matching version bump. */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {}
+}
+
 @Database(
     entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -42,7 +53,7 @@ abstract class TimeGoDatabase : RoomDatabase() {
         fun getInstance(context: Context): TimeGoDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(context.applicationContext, TimeGoDatabase::class.java, "timego.db")
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { instance = it }
             }
