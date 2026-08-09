@@ -55,9 +55,9 @@ private fun hexToColor(hex: String): Color {
  *  color per group. */
 @Composable
 fun MuscleBodyDiagram(intensities: Map<String, Float>, modifier: Modifier = Modifier) {
-    // Theme-adaptive (white on dark backgrounds, black on light) rather than a fixed color --
-    // a hardcoded black outline disappears against a dark theme's near-black background.
-    val outlineColor = MaterialTheme.colorScheme.onSurface
+    // Theme-adaptive mid-grey rather than onSurface (too stark -- white on dark, black on
+    // light) or a fixed color (disappears against a same-toned background on one theme).
+    val outlineColor = MaterialTheme.colorScheme.onSurfaceVariant
     val detailColor = MaterialTheme.colorScheme.surfaceVariant
 
     val frontShapes = remember { buildShapes(FRONT_BODY_PATHS, FRONT_BODY_VIEWBOX) }
