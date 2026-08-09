@@ -78,7 +78,14 @@ val SEED_EXERCISES = listOf(
     strength("Good Morning", MuscleGroup.HAMSTRINGS, MuscleGroup.BACK),
     strength("Reverse Fly", MuscleGroup.SHOULDERS, MuscleGroup.BACK),
     strength("Shrugs", MuscleGroup.BACK, MuscleGroup.SHOULDERS),
-    strength("Wrist Curl", MuscleGroup.BICEPS),
+    // Strength -- Forearms
+    strength("Wrist Curl", MuscleGroup.FOREARMS),
+    strength("Reverse Wrist Curl", MuscleGroup.FOREARMS),
+    strength("Reverse Barbell Curl", MuscleGroup.FOREARMS, MuscleGroup.BICEPS),
+    strength("Zottman Curl", MuscleGroup.FOREARMS, MuscleGroup.BICEPS),
+    strength("Farmer's Carry", MuscleGroup.FOREARMS, MuscleGroup.CORE),
+    strength("Wrist Roller", MuscleGroup.FOREARMS),
+    strength("Plate Pinch Hold", MuscleGroup.FOREARMS),
 
     // Calisthenics
     calisthenics("Push-Up", MuscleGroup.CHEST, MuscleGroup.TRICEPS),
@@ -110,6 +117,7 @@ val SEED_EXERCISES = listOf(
     calisthenics("Australian Pull-Up", MuscleGroup.BACK, MuscleGroup.BICEPS),
     calisthenics("Donkey Kick", MuscleGroup.GLUTES),
     calisthenics("Flutter Kick", MuscleGroup.CORE),
+    calisthenics("Dead Hang", MuscleGroup.FOREARMS, MuscleGroup.BACK),
 
     // Warmup
     warmup("Arm Circles", MuscleGroup.SHOULDERS),
