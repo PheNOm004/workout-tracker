@@ -1,6 +1,7 @@
 package com.lsing.timego.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,9 +41,11 @@ import java.util.Locale
  *  Renders either "Last 18 weeks" (fills screen width, no scroll) or the full current calendar
  *  year (horizontally scrollable, auto-scrolled to today). Week columns are Monday-start.
  *  [lightColor]/[darkColor] color the completion lerp. A date absent from [ratios] (no session
- *  logged / before the app existed) renders the same neutral gray as a real 0% ratio. */
+ *  logged / before the app existed) renders the same neutral gray as a real 0% ratio.
+ *  [onDateClick], when non-null, makes every past/today dot tappable (future dates never are,
+ *  there's nothing to show) -- lets a caller show that day's detailed workout history. */
 @Composable
-fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Color) {
+fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Color, onDateClick: ((LocalDate) -> Unit)? = null) {
     var showFullYear by remember { mutableStateOf(false) }
     val today = LocalDate.now()
     val currentWeekMonday = today.minusDays((today.dayOfWeek.value - 1).toLong())
@@ -79,7 +82,7 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
                         for (week in 0 until weeksInYear) {
                             val weekStart = yearStartMonday.plusWeeks(week.toLong())
                             Column(verticalArrangement = Arrangement.spacedBy(spacing)) {
-                                HeatmapWeekDots(weekStart, today, ratios, lightColor, darkColor, Modifier.size(dotSize))
+                                HeatmapWeekDots(weekStart, today, ratios, lightColor, darkColor, Modifier.size(dotSize), onDateClick)
                             }
                         }
                     }
@@ -107,7 +110,7 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
                     for (week in 0 until 18) {
                         val weekStart = currentWeekMonday.minusWeeks(17).plusWeeks(week.toLong())
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(spacing)) {
-                            HeatmapWeekDots(weekStart, today, ratios, lightColor, darkColor, Modifier.fillMaxWidth().aspectRatio(1f))
+                            HeatmapWeekDots(weekStart, today, ratios, lightColor, darkColor, Modifier.fillMaxWidth().aspectRatio(1f), onDateClick)
                         }
                     }
                 }
@@ -127,19 +130,26 @@ private fun HeatmapWeekDots(
     lightColor: Color,
     darkColor: Color,
     dotModifier: Modifier,
+    onDateClick: ((LocalDate) -> Unit)? = null,
 ) {
     for (dayOffset in 0 until 7) {
         val date = weekStart.plusDays(dayOffset.toLong())
         val ratio = ratios[date]
+        val clickModifier = if (onDateClick != null && !date.isAfter(today)) {
+            Modifier.clickable { onDateClick(date) }
+        } else {
+            Modifier
+        }
         if (date.isAfter(today) || ratio == null || ratio <= 0f) {
             Box(
                 modifier = dotModifier
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    .then(clickModifier),
             )
         } else {
             val cellColor = lerp(darkColor, lightColor, ratio.coerceIn(0f, 1f))
-            Box(modifier = dotModifier.clip(CircleShape).background(cellColor))
+            Box(modifier = dotModifier.clip(CircleShape).background(cellColor).then(clickModifier))
         }
     }
 }

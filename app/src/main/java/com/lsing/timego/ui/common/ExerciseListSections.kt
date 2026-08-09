@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.common
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,9 +14,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lsing.timego.data.Exercise
@@ -55,28 +58,51 @@ fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exerci
     ExerciseCategory.entries.forEach { category ->
         val inCategory = byCategory[category.name].orEmpty()
         if (inCategory.isEmpty()) return@forEach
-        var expanded by remember(category) { mutableStateOf(true) }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-        ) {
-            IconButton(onClick = { expanded = !expanded }) {
-                Icon(
-                    if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
-                )
+        key(category) {
+            var expanded by remember(category) { mutableStateOf(false) }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            ) {
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(
+                        if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
+                        contentDescription = if (expanded) "Collapse" else "Expand",
+                    )
+                }
+                Text(formatEnumLabel(category.name), style = MaterialTheme.typography.titleMedium)
             }
-            Text(formatEnumLabel(category.name), style = MaterialTheme.typography.titleMedium)
-        }
-        if (expanded) {
-            val byMuscleGroup = inCategory.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }
-            byMuscleGroup.forEach { (group, groupExercises) ->
-                Text(
-                    formatEnumLabel(group),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 48.dp, top = 8.dp),
-                )
-                groupExercises.forEach { exercise -> itemContent(exercise) }
+            if (expanded) {
+                // Sorted so iteration order is deterministic across recompositions -- a plain
+                // HashMap's order isn't guaranteed, and combined with key() below, an unstable
+                // order would still churn which composable slot each group lands in.
+                val byMuscleGroup = inCategory.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }
+                    .toSortedMap()
+                byMuscleGroup.forEach { (group, groupExercises) ->
+                    key(group) {
+                        var groupExpanded by remember(category, group) { mutableStateOf(false) }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 40.dp, top = 8.dp)
+                                .clickable { groupExpanded = !groupExpanded },
+                        ) {
+                            Icon(
+                                if (groupExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
+                                contentDescription = if (groupExpanded) "Collapse" else "Expand",
+                                modifier = Modifier.padding(end = 4.dp),
+                            )
+                            Text(
+                                formatEnumLabel(group),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (groupExpanded) {
+                            groupExercises.forEach { exercise -> itemContent(exercise) }
+                        }
+                    }
+                }
             }
         }
     }

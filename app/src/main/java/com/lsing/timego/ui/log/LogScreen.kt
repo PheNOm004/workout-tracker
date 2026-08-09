@@ -1,14 +1,19 @@
 package com.lsing.timego.ui.log
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -91,53 +96,77 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     }
 }
 
+/** A one-line header (just the exercise name) that expands into the actual logging inputs when
+ *  tapped. Defaults to collapsed -- rendering full input rows for every exercise in a 119-strong
+ *  library at once was both visually overwhelming and wasteful, per user feedback. */
+@Composable
+private fun ExerciseRowHeader(exerciseName: String, expanded: Boolean, onToggle: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(12.dp),
+    ) {
+        Icon(
+            if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
+            contentDescription = if (expanded) "Collapse" else "Expand",
+            modifier = Modifier.padding(end = 4.dp),
+        )
+        Text(exerciseName, style = MaterialTheme.typography.titleSmall)
+    }
+}
+
 @Composable
 private fun StrengthLogRow(
     exerciseName: String,
     suggestion: com.lsing.timego.domain.OverloadSuggestion?,
     onLog: (weightKg: Double, reps: Int, targetReps: Int) -> Unit,
 ) {
+    var expanded by remember(exerciseName) { mutableStateOf(false) }
     var weightText by remember(exerciseName) { mutableStateOf("") }
     var repsText by remember(exerciseName) { mutableStateOf("") }
 
     Card(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 8.dp)) {
-        Text(exerciseName, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(12.dp, 12.dp, 12.dp, 0.dp))
-        if (suggestion != null) {
-            Text(
-                "Suggested: ${suggestion.weightKg}kg x ${suggestion.reps} -- ${suggestion.note}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 12.dp),
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = weightText,
-                onValueChange = { weightText = it },
-                label = { Text("kg") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.weight(1f).padding(end = 8.dp),
-            )
-            OutlinedTextField(
-                value = repsText,
-                onValueChange = { repsText = it },
-                label = { Text("reps") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(1f).padding(end = 8.dp),
-            )
-            Button(onClick = {
-                val weight = weightText.toDoubleOrNull()
-                val reps = repsText.toIntOrNull()
-                if (weight != null && reps != null) {
-                    onLog(weight, reps, suggestion?.reps ?: reps)
-                    weightText = ""
-                    repsText = ""
+        ExerciseRowHeader(exerciseName, expanded) { expanded = !expanded }
+        if (expanded) {
+            if (suggestion != null) {
+                Text(
+                    "Suggested: ${suggestion.weightKg}kg x ${suggestion.reps} -- ${suggestion.note}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = weightText,
+                    onValueChange = { weightText = it },
+                    label = { Text("kg") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                )
+                OutlinedTextField(
+                    value = repsText,
+                    onValueChange = { repsText = it },
+                    label = { Text("reps") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                )
+                Button(onClick = {
+                    val weight = weightText.toDoubleOrNull()
+                    val reps = repsText.toIntOrNull()
+                    if (weight != null && reps != null) {
+                        onLog(weight, reps, suggestion?.reps ?: reps)
+                        weightText = ""
+                        repsText = ""
+                    }
+                }) {
+                    Text("Log set")
                 }
-            }) {
-                Text("Log set")
             }
         }
     }
@@ -150,50 +179,53 @@ private fun CardioLogRow(
     bodyWeightKg: Double?,
     onLog: (durationMinutes: Double, distanceKm: Double?) -> Unit,
 ) {
+    var expanded by remember(exerciseName) { mutableStateOf(false) }
     var durationText by remember(exerciseName) { mutableStateOf("") }
     var distanceText by remember(exerciseName) { mutableStateOf("") }
     val duration = durationText.toDoubleOrNull()
     val distance = distanceText.toDoubleOrNull()
 
     Card(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 8.dp)) {
-        Text(exerciseName, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(12.dp, 12.dp, 12.dp, 0.dp))
-        if (duration != null && duration > 0) {
-            val pace = distance?.let { averagePaceMinPerKm(duration, it) }
-            val calories = bodyWeightKg?.let { estimatedCalorieBurn(met, it, duration) }
-            val details = listOfNotNull(
-                pace?.let { "Pace: ${"%.1f".format(it)} min/km" },
-                calories?.let { "~${it.toInt()} kcal" },
-            ).joinToString(" -- ")
-            if (details.isNotEmpty()) {
-                Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 12.dp))
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = durationText,
-                onValueChange = { durationText = it },
-                label = { Text("minutes") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.weight(1f).padding(end = 8.dp),
-            )
-            OutlinedTextField(
-                value = distanceText,
-                onValueChange = { distanceText = it },
-                label = { Text("km (optional)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.weight(1f).padding(end = 8.dp),
-            )
-            Button(onClick = {
-                if (duration != null && duration > 0) {
-                    onLog(duration, distance)
-                    durationText = ""
-                    distanceText = ""
+        ExerciseRowHeader(exerciseName, expanded) { expanded = !expanded }
+        if (expanded) {
+            if (duration != null && duration > 0) {
+                val pace = distance?.let { averagePaceMinPerKm(duration, it) }
+                val calories = bodyWeightKg?.let { estimatedCalorieBurn(met, it, duration) }
+                val details = listOfNotNull(
+                    pace?.let { "Pace: ${"%.1f".format(it)} min/km" },
+                    calories?.let { "~${it.toInt()} kcal" },
+                ).joinToString(" -- ")
+                if (details.isNotEmpty()) {
+                    Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 12.dp))
                 }
-            }) {
-                Text("Log")
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = durationText,
+                    onValueChange = { durationText = it },
+                    label = { Text("minutes") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                )
+                OutlinedTextField(
+                    value = distanceText,
+                    onValueChange = { distanceText = it },
+                    label = { Text("km (optional)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                )
+                Button(onClick = {
+                    if (duration != null && duration > 0) {
+                        onLog(duration, distance)
+                        durationText = ""
+                        distanceText = ""
+                    }
+                }) {
+                    Text("Log")
+                }
             }
         }
     }

@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lsing.timego.data.BodyMetric
 import com.lsing.timego.data.Exercise
+import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.PersonalRecord
@@ -20,6 +21,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 enum class CurveMode { EXERCISE, MUSCLE_GROUP }
+
+data class DayHistoryEntry(val exerciseName: String, val description: String)
 
 class ProgressViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
@@ -47,6 +50,12 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
 
     private val _strengthCurve = MutableStateFlow<List<Pair<LocalDate, Double>>>(emptyList())
     val strengthCurve: StateFlow<List<Pair<LocalDate, Double>>> = _strengthCurve.asStateFlow()
+
+    private val _selectedHistoryDate = MutableStateFlow<LocalDate?>(null)
+    val selectedHistoryDate: StateFlow<LocalDate?> = _selectedHistoryDate.asStateFlow()
+
+    private val _historyForSelectedDate = MutableStateFlow<List<DayHistoryEntry>>(emptyList())
+    val historyForSelectedDate: StateFlow<List<DayHistoryEntry>> = _historyForSelectedDate.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -95,6 +104,34 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     fun logBodyMetric(weightKg: Double?, waistCm: Double?) {
         viewModelScope.launch {
             repository.logBodyMetric(LocalDate.now(), weightKg, waistCm)
+        }
+    }
+
+    /** Populates [historyForSelectedDate] with every set logged on [date], across all sessions
+     *  that day (freeform and routine sessions are both just WorkoutSessions, so no special
+     *  casing needed) -- backs the heatmap's tap-to-see-workout-history feature. Pass null to
+     *  dismiss the detail view. */
+    fun selectHistoryDate(date: LocalDate?) {
+        _selectedHistoryDate.value = date
+        if (date == null) {
+            _historyForSelectedDate.value = emptyList()
+            return
+        }
+        viewModelScope.launch {
+            val sessionIds = repository.allSessions().filter { it.date == date }.map { it.id }.toSet()
+            val exercisesById = _exercises.value.associateBy { it.id }
+            _historyForSelectedDate.value = repository.allSetLogs()
+                .filter { it.sessionId in sessionIds }
+                .mapNotNull { log ->
+                    val exercise = exercisesById[log.exerciseId] ?: return@mapNotNull null
+                    val description = if (exercise.category == ExerciseCategory.CARDIO.name || exercise.category == ExerciseCategory.WARMUP.name) {
+                        val distance = log.distanceKm?.let { " -- ${it}km" } ?: ""
+                        "${log.durationMinutes ?: 0.0} min$distance"
+                    } else {
+                        "${log.weightKg}kg x ${log.reps}"
+                    }
+                    DayHistoryEntry(exercise.name, description)
+                }
         }
     }
 }
