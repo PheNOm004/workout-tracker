@@ -11,8 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.formatEnumLabel
-import com.lsing.timego.ui.theme.FrauncesEmphasis
+import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.Spacing
 
 @Composable
@@ -50,17 +49,13 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
         if (untrainedGroups.isNotEmpty()) {
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Large),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                ) {
-                    Text(
-                        "Not trained in a while: ${untrainedGroups.joinToString(", ") { formatEnumLabel(it) }}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(Spacing.Medium),
-                    )
-                }
+                Text(
+                    "Not trained in a while: ${untrainedGroups.joinToString(", ") { formatEnumLabel(it) }}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
         item {
@@ -80,40 +75,36 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             }
         }
         items(routines, key = { it.id }) { routine ->
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            ) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            routine.name,
-                            style = FrauncesEmphasis,
-                            modifier = Modifier.weight(1f).padding(Spacing.Medium, Spacing.Medium, Spacing.Medium, Spacing.ExtraSmall),
-                        )
-                        IconButton(onClick = { viewModel.deleteRoutine(routine.id) }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Delete ${routine.name}")
-                        }
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        routine.name,
+                        style = LedgerFigureEmphasis,
+                        modifier = Modifier.weight(1f).padding(Spacing.Medium, Spacing.Medium, Spacing.Medium, Spacing.ExtraSmall),
+                    )
+                    IconButton(onClick = { viewModel.deleteRoutine(routine.id) }) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Delete ${routine.name}")
                     }
-                    if (routine.daysOfWeek.isEmpty()) {
-                        Text(
-                            "No days set",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(Spacing.Medium, 0.dp, Spacing.Medium, Spacing.Medium),
-                        )
-                    } else {
-                        FlowRow(modifier = Modifier.padding(Spacing.Small, 0.dp, Spacing.Small, Spacing.Small)) {
-                            routine.daysOfWeek.forEach { day ->
-                                AssistChip(
-                                    onClick = {},
-                                    label = { Text(day.take(3).lowercase().replaceFirstChar(Char::uppercase)) },
-                                    modifier = Modifier.padding(Spacing.ExtraSmall),
-                                )
-                            }
+                }
+                if (routine.daysOfWeek.isEmpty()) {
+                    Text(
+                        "No days set",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(Spacing.Medium, 0.dp, Spacing.Medium, Spacing.Medium),
+                    )
+                } else {
+                    FlowRow(modifier = Modifier.padding(Spacing.Small, 0.dp, Spacing.Small, Spacing.Small)) {
+                        routine.daysOfWeek.forEach { day ->
+                            AssistChip(
+                                onClick = {},
+                                label = { Text(day.take(3).lowercase().replaceFirstChar(Char::uppercase)) },
+                                modifier = Modifier.padding(Spacing.ExtraSmall),
+                            )
                         }
                     }
                 }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
     }
