@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
-import com.lsing.timego.domain.PersonalRecord
 import com.lsing.timego.domain.PrType
 import com.lsing.timego.domain.BmiCategory
 import com.lsing.timego.domain.bmiCategory
@@ -171,18 +170,37 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                             modifier = Modifier.padding(top = 8.dp),
                         ) { exerciseId ->
                             val exerciseRecords = recordsByExercise[exerciseId].orEmpty()
-                            val type = if (selectedExercise.loggingType == LoggingType.HOLD.name) {
-                                PrType.LONGEST_HOLD
-                            } else {
-                                PrType.BEST_SET
-                            }
-                            val record = exerciseRecords.firstOrNull { it.type == type }
                             Row(modifier = Modifier.fillMaxWidth()) {
-                                StatTile(
-                                    label = if (type == PrType.LONGEST_HOLD) "Longest Hold" else "Best Set",
-                                    value = record?.let { formatRecordValue(it) } ?: "--",
-                                    caption = record?.achievedOn?.format(PR_DATE_FORMATTER),
-                                )
+                                if (selectedExercise.loggingType == LoggingType.HOLD.name) {
+                                    val record = exerciseRecords.firstOrNull { it.type == PrType.LONGEST_HOLD }
+                                    StatTile(
+                                        label = "Longest Hold",
+                                        value = record?.let { "${it.value.toInt()}s" } ?: "--",
+                                        caption = record?.achievedOn?.format(PR_DATE_FORMATTER),
+                                    )
+                                } else {
+                                    // All three tiles read off the same best-set record (weight, reps,
+                                    // weight*reps) -- they used to be independently maximized across
+                                    // different sets, which could report a heavy triple's weight next to
+                                    // a lighter high-rep set's reps as if one set did both.
+                                    val record = exerciseRecords.firstOrNull { it.type == PrType.BEST_SET }
+                                    val caption = record?.achievedOn?.format(PR_DATE_FORMATTER)
+                                    StatTile(
+                                        label = "Weight",
+                                        value = record?.let { "${it.value}kg" } ?: "--",
+                                        caption = caption,
+                                    )
+                                    StatTile(
+                                        label = "Reps",
+                                        value = record?.secondaryValue?.let { "${it.toInt()}" } ?: "--",
+                                        caption = caption,
+                                    )
+                                    StatTile(
+                                        label = "Total Weight",
+                                        value = record?.let { "${it.value * (it.secondaryValue ?: 0.0)}kg" } ?: "--",
+                                        caption = caption,
+                                    )
+                                }
                             }
                         }
                     }
@@ -350,11 +368,6 @@ private fun DayHistoryDialog(date: LocalDate, entries: List<DayHistoryEntry>, on
 }
 
 private val PR_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d")
-
-private fun formatRecordValue(record: PersonalRecord): String = when (record.type) {
-    PrType.BEST_SET -> "${record.value}kg x ${record.secondaryValue?.toInt()}"
-    PrType.LONGEST_HOLD -> "${record.value.toInt()}s"
-}
 
 @Composable
 private fun StatTile(label: String, value: String, caption: String? = null) {
