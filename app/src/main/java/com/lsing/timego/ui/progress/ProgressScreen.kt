@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -38,8 +39,11 @@ import com.lsing.timego.ui.common.HeatmapGrid
 import com.lsing.timego.ui.common.HorizontalWheelPicker
 import com.lsing.timego.ui.common.MuscleBodyDiagram
 import com.lsing.timego.ui.common.RadarChart
+import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SparklineChart
 import com.lsing.timego.ui.common.formatEnumLabel
+import com.lsing.timego.ui.theme.FrauncesStatValue
+import com.lsing.timego.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -74,9 +78,9 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         )
     }
 
-    LazyColumn(modifier = Modifier.padding(16.dp)) {
+    LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
         item {
-            Text("Consistency", style = MaterialTheme.typography.titleMedium)
+            SectionHeader("Consistency", topPadding = Spacing.ExtraSmall)
             HeatmapGrid(
                 ratios = volumeRatios,
                 lightColor = Color(0xFF7FD8A0),
@@ -85,7 +89,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             )
         }
         item {
-            Text("Muscle Distribution (last 30 days)", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+            SectionHeader("Muscle Distribution (last 30 days)")
             if (muscleDistribution.isEmpty()) {
                 Text(
                     "No strength sets logged in the last 30 days yet.",
@@ -111,7 +115,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             }
         }
         item {
-            Text("Personal Records", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+            SectionHeader("Personal Records")
         }
         val recordsByExercise = records.groupBy { it.exerciseId }
         val exercisesWithRecords = exercises.filter { it.id in recordsByExercise.keys }.sortedBy { it.name }
@@ -135,8 +139,11 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 )
                 val selectedExercise = exercisesWithRecords[selectedIndex]
                 val exerciseRecords = recordsByExercise[selectedExercise.id].orEmpty()
-                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                ) {
+                    Column(modifier = Modifier.padding(Spacing.Medium)) {
                         Text(selectedExercise.name, style = MaterialTheme.typography.titleSmall)
                         Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                             PrType.entries.forEach { type ->
@@ -153,7 +160,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             }
         }
         item {
-            Text("Strength Curve", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+            SectionHeader("Strength Curve")
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                 FilterChip(
                     selected = curveMode == CurveMode.EXERCISE,
@@ -201,7 +208,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             }
         }
         item {
-            Text("Body Metrics", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+            SectionHeader("Body Metrics")
             if (currentBmi != null) {
                 val category = bmiCategory(currentBmi!!)
                 Text(
@@ -308,10 +315,13 @@ private fun formatRecordValue(record: PersonalRecord): String = when (record.typ
 
 @Composable
 private fun StatTile(label: String, value: String, caption: String? = null) {
-    Card(modifier = Modifier.padding(4.dp)) {
-        Column(modifier = Modifier.padding(12.dp)) {
+    Card(
+        modifier = Modifier.padding(Spacing.ExtraSmall),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(modifier = Modifier.padding(Spacing.Medium)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.titleMedium)
+            Text(value, style = FrauncesStatValue)
             if (caption != null) {
                 Text(caption, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
