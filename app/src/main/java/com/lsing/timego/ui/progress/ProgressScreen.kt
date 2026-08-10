@@ -1,7 +1,8 @@
 package com.lsing.timego.ui.progress
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -161,8 +162,10 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                         AnimatedContent(
                             targetState = selectedExercise.id,
                             transitionSpec = {
-                                (fadeIn(tween(200)) + scaleIn(initialScale = 0.95f, animationSpec = tween(200))) togetherWith
-                                    (fadeOut(tween(150)) + scaleOut(targetScale = 0.95f, animationSpec = tween(150)))
+                                (fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
+                                    scaleIn(initialScale = 0.92f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))) togetherWith
+                                    (fadeOut(spring(stiffness = Spring.StiffnessHigh)) +
+                                        scaleOut(targetScale = 0.92f, animationSpec = spring(stiffness = Spring.StiffnessHigh)))
                             },
                             modifier = Modifier.padding(top = 8.dp),
                         ) { exerciseId ->
@@ -233,8 +236,10 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             AnimatedContent(
                 targetState = curveKey,
                 transitionSpec = {
-                    (fadeIn(tween(200)) + scaleIn(initialScale = 0.95f, animationSpec = tween(200))) togetherWith
-                        (fadeOut(tween(150)) + scaleOut(targetScale = 0.95f, animationSpec = tween(150)))
+                    (fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
+                        scaleIn(initialScale = 0.92f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))) togetherWith
+                        (fadeOut(spring(stiffness = Spring.StiffnessHigh)) +
+                            scaleOut(targetScale = 0.92f, animationSpec = spring(stiffness = Spring.StiffnessHigh)))
                 },
             ) {
                 if (strengthCurve.isEmpty()) {
