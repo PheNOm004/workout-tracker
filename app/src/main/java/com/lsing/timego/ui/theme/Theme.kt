@@ -1,5 +1,33 @@
 package com.lsing.timego.ui.theme
 
+/*
+ * IMPECCABLE DIRECTION CONTRACT (2026-08-11, redesign, seed ed48a011, MY PICK card)
+ *
+ * THESIS: TimeGo is the lifter's own logbook, not a fitness-brand dashboard — it refuses
+ * the category default of vibrant orange/green motivational-app chrome (explicitly declined
+ * once already) and the safe Material-defaults-with-icons pass that still read as generic.
+ *
+ * OWN-WORLD: A serious lifter's paper training ledger, rendered dark-first rather than the
+ * cream/parchment default: graphite graph-paper grid on a near-black page (dark) or bone
+ * paper (light, not the primary mode), tabular monospace numerals for every logged value,
+ * one committed red margin-rule accent (brick/ink red, not neon) carrying state and primary
+ * action, ruled horizontal lines standing in for card dividers.
+ *
+ * STORY: The lifter opens the app mid-set, sees today's page with suggested targets already
+ * penciled in, logs the set, and later flips back through past pages (Progress) to see the
+ * curve/PRs/heatmap as a ledger of what they've done — trustworthy, inspectable, personal.
+ *
+ * FIRST VIEWPORT: Log screen renders as a ruled ledger page — a graph-paper grid ground,
+ * today's date as a ledger header rule, exercise rows as ruled lines with tabular-numeral
+ * suggestion values pre-filled, the red rule marking the active/expanded row.
+ *
+ * FORM: Training Ledger — MY PICK card, chosen over the assigned direction (Street Rig
+ * Signage, seed ed48a011, candidate 4 of 7 grounded worlds ordered by resonance).
+ *
+ * FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review,
+ * the verdict, and DESIGN.md.
+ */
+
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
