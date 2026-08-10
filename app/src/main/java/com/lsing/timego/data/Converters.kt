@@ -20,7 +20,28 @@ class Converters {
     fun toStringList(value: String): List<String> =
         if (value.isBlank()) emptyList() else value.split(LIST_DELIMITER)
 
+    /** For Exercise.muscleWeights: MuscleGroup name -> 0-100 percentage contribution. One
+     *  delimiter level below the list delimiter (ASCII record separator 0x1E between entries,
+     *  unit separator 0x1F between an entry's group/weight pair), same non-printable-character
+     *  convention as [fromStringList] -- group names and weights can't contain either. */
+    @TypeConverter
+    fun fromMuscleWeights(value: Map<String, Int>): String =
+        value.entries.joinToString(ENTRY_DELIMITER) { (group, weight) -> "$group$PAIR_DELIMITER$weight" }
+
+    @TypeConverter
+    fun toMuscleWeights(value: String): Map<String, Int> =
+        if (value.isBlank()) {
+            emptyMap()
+        } else {
+            value.split(ENTRY_DELIMITER).associate { entry ->
+                val (group, weight) = entry.split(PAIR_DELIMITER)
+                group to weight.toInt()
+            }
+        }
+
     private companion object {
         const val LIST_DELIMITER = ""
+        const val ENTRY_DELIMITER = ""
+        const val PAIR_DELIMITER = ""
     }
 }
