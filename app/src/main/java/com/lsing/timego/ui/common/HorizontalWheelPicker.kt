@@ -1,10 +1,13 @@
 package com.lsing.timego.ui.common
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -20,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -28,7 +32,10 @@ import androidx.compose.ui.unit.dp
  *  scrolling settles. The side content padding is derived from the actual measured container
  *  width via BoxWithConstraints (not a hardcoded guess) so the centered item lands in the real
  *  visual center regardless of device screen width -- a hardcoded padding would only center
- *  correctly on whatever width it was eyeballed against. */
+ *  correctly on whatever width it was eyeballed against. A hairline center tick below the wheel
+ *  is the Training Ledger's one concrete addition here -- the wheel reads as a ruled instrument,
+ *  not a bare label carousel; everything else already re-themes automatically through
+ *  MaterialTheme's color/type roles. */
 @Composable
 fun HorizontalWheelPicker(
     items: List<String>,
@@ -62,30 +69,41 @@ fun HorizontalWheelPicker(
         }
     }
 
-    BoxWithConstraints(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        val sidePadding = ((maxWidth - itemWidth) / 2).coerceAtLeast(0.dp)
-        LazyRow(
-            state = listState,
-            flingBehavior = flingBehavior,
-            contentPadding = PaddingValues(horizontal = sidePadding),
-        ) {
-            itemsIndexed(items) { index, label ->
-                val isSelected = index == centeredIndex
-                Box(
-                    modifier = Modifier
-                        .width(itemWidth)
-                        .padding(vertical = 12.dp)
-                        .alpha(if (isSelected) 1f else 0.4f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        label,
-                        style = if (isSelected) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
+    Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            val sidePadding = ((maxWidth - itemWidth) / 2).coerceAtLeast(0.dp)
+            LazyRow(
+                state = listState,
+                flingBehavior = flingBehavior,
+                contentPadding = PaddingValues(horizontal = sidePadding),
+            ) {
+                itemsIndexed(items) { index, label ->
+                    val isSelected = index == centeredIndex
+                    Box(
+                        modifier = Modifier
+                            .width(itemWidth)
+                            .padding(vertical = 12.dp)
+                            .alpha(if (isSelected) 1f else 0.4f),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            label,
+                            style = if (isSelected) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
+        }
+        val tickColor = MaterialTheme.colorScheme.primary
+        Canvas(modifier = Modifier.width(2.dp).height(6.dp)) {
+            drawLine(
+                color = tickColor,
+                start = Offset(size.width / 2, 0f),
+                end = Offset(size.width / 2, size.height),
+                strokeWidth = size.width,
+            )
         }
     }
 }
