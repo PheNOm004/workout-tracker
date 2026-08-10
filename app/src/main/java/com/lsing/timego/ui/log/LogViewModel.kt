@@ -4,11 +4,15 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lsing.timego.data.Exercise
+import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.Routine
 import com.lsing.timego.data.SEED_EXERCISES
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
+import com.lsing.timego.domain.HoldPerformance
+import com.lsing.timego.domain.HoldSuggestion
 import com.lsing.timego.domain.OverloadSuggestion
+import com.lsing.timego.domain.RuleBasedHoldSuggester
 import com.lsing.timego.domain.RuleBasedOverloadSuggester
 import com.lsing.timego.domain.SetPerformance
 import com.lsing.timego.domain.routinesForToday
@@ -25,6 +29,7 @@ import java.time.LocalDate
 class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
     private val suggester = RuleBasedOverloadSuggester()
+    private val holdSuggester = RuleBasedHoldSuggester()
 
     private var allExercises: List<Exercise> = emptyList()
     private var hasAutoSelectedTodaysRoutine = false
@@ -34,6 +39,9 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _suggestions = MutableStateFlow<Map<Long, OverloadSuggestion>>(emptyMap())
     val suggestions: StateFlow<Map<Long, OverloadSuggestion>> = _suggestions.asStateFlow()
+
+    private val _holdSuggestions = MutableStateFlow<Map<Long, HoldSuggestion>>(emptyMap())
+    val holdSuggestions: StateFlow<Map<Long, HoldSuggestion>> = _holdSuggestions.asStateFlow()
 
     private val _routines = MutableStateFlow<List<Routine>>(emptyList())
     val routines: StateFlow<List<Routine>> = _routines.asStateFlow()
@@ -84,16 +92,26 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Splits suggestion computation by loggingType: WEIGHT_REPS exercises get a weight/reps
+     *  suggestion from [suggester], HOLD exercises get a duration suggestion from [holdSuggester]
+     *  -- an exercise can only produce one kind, so each history is built from the fields that
+     *  are real for that exercise (see SetLog's doc comment on its sentinel-field convention). */
     private suspend fun refreshSuggestions(exerciseList: List<Exercise>) {
         val historyByExercise = repository.allSetLogsOrderedByTime().groupBy { it.exerciseId }
         val map = mutableMapOf<Long, OverloadSuggestion>()
+        val holdMap = mutableMapOf<Long, HoldSuggestion>()
         for (exercise in exerciseList) {
-            val history = historyByExercise[exercise.id]
-                ?.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
-                ?: emptyList()
-            suggester.suggestNext(history)?.let { map[exercise.id] = it }
+            val history = historyByExercise[exercise.id].orEmpty()
+            if (exercise.loggingType == LoggingType.HOLD.name) {
+                val holdHistory = history.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
+                holdSuggester.suggestNext(holdHistory)?.let { holdMap[exercise.id] = it }
+            } else {
+                val performanceHistory = history.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
+                suggester.suggestNext(performanceHistory)?.let { map[exercise.id] = it }
+            }
         }
         _suggestions.value = map
+        _holdSuggestions.value = holdMap
     }
 
     fun logSet(exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int) {
@@ -108,6 +126,14 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val session = repository.startOrGetTodaySession(routineId = _selectedRoutineId.value)
             repository.logCardioSet(session.id, exerciseId, durationMinutes, distanceKm)
+        }
+    }
+
+    fun logHoldSet(exerciseId: Long, durationSeconds: Int, targetDurationSeconds: Int) {
+        viewModelScope.launch {
+            val session = repository.startOrGetTodaySession(routineId = _selectedRoutineId.value)
+            repository.logHoldSet(session.id, exerciseId, durationSeconds, targetDurationSeconds)
+            refreshSuggestions(allExercises)
         }
     }
 
