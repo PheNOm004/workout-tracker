@@ -5,7 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lsing.timego.data.BodyMetric
 import com.lsing.timego.data.Exercise
-import com.lsing.timego.data.ExerciseCategory
+import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.PersonalRecord
@@ -160,11 +160,13 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                 .filter { it.sessionId in sessionIds }
                 .mapNotNull { log ->
                     val exercise = exercisesById[log.exerciseId] ?: return@mapNotNull null
-                    val description = if (exercise.category == ExerciseCategory.CARDIO.name || exercise.category == ExerciseCategory.WARMUP.name) {
-                        val distance = log.distanceKm?.let { " -- ${it}km" } ?: ""
-                        "${log.durationMinutes ?: 0.0} min$distance"
-                    } else {
-                        "${log.weightKg}kg x ${log.reps}"
+                    val description = when (exercise.loggingType) {
+                        LoggingType.DURATION_DISTANCE.name -> {
+                            val distance = log.distanceKm?.let { " -- ${it}km" } ?: ""
+                            "${log.durationMinutes ?: 0.0} min$distance"
+                        }
+                        LoggingType.HOLD.name -> "${log.holdSeconds ?: 0}s hold"
+                        else -> "${log.weightKg}kg x ${log.reps}"
                     }
                     DayHistoryEntry(exercise.name, description)
                 }

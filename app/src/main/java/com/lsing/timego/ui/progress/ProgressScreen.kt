@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.domain.PersonalRecord
 import com.lsing.timego.domain.PrType
@@ -146,7 +147,12 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     Column(modifier = Modifier.padding(Spacing.Medium)) {
                         Text(selectedExercise.name, style = MaterialTheme.typography.titleSmall)
                         Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                            PrType.entries.forEach { type ->
+                            val applicableTypes = if (selectedExercise.loggingType == LoggingType.HOLD.name) {
+                                listOf(PrType.LONGEST_HOLD)
+                            } else {
+                                listOf(PrType.HEAVIEST_WEIGHT, PrType.MOST_REPS, PrType.BEST_VOLUME)
+                            }
+                            applicableTypes.forEach { type ->
                                 val record = exerciseRecords.firstOrNull { it.type == type }
                                 StatTile(
                                     label = formatEnumLabel(type.name),
@@ -311,6 +317,7 @@ private fun formatRecordValue(record: PersonalRecord): String = when (record.typ
     PrType.HEAVIEST_WEIGHT -> "${record.value}kg"
     PrType.MOST_REPS -> "${record.value.toInt()} reps"
     PrType.BEST_VOLUME -> "${record.value}kg total"
+    PrType.LONGEST_HOLD -> "${record.value.toInt()}s"
 }
 
 @Composable
