@@ -28,9 +28,12 @@ fun workoutVolumeRatios(sessions: List<WorkoutSession>, sets: List<SetLog>): Map
     return volumeByDate.mapValues { (_, volume) -> (volume / maxVolume).toFloat().coerceIn(0f, 1f) }
 }
 
-enum class PrType { HEAVIEST_WEIGHT, MOST_REPS, BEST_VOLUME, LONGEST_HOLD }
+enum class PrType { BEST_SET, LONGEST_HOLD }
 
-data class PersonalRecord(val exerciseId: Long, val type: PrType, val value: Double, val achievedOn: LocalDate)
+/** [secondaryValue] carries reps alongside [value]'s weight for a BEST_SET record (null for
+ *  LONGEST_HOLD, which is single-valued) -- a "best set" is inherently a weight+reps pair, not a
+ *  single number, so both travel together rather than being reported as separate records. */
+data class PersonalRecord(val exerciseId: Long, val type: PrType, val value: Double, val secondaryValue: Double? = null, val achievedOn: LocalDate)
 
 /** Computed fresh from full history each time (not incrementally tracked) -- simpler and correct
  *  by construction; history sizes here are small enough (one person's own lifts) that this is
@@ -39,7 +42,13 @@ data class PersonalRecord(val exerciseId: Long, val type: PrType, val value: Dou
  *  meaningless. CARDIO/WARMUP sets are excluded entirely via the loggingType check: their
  *  weightKg/reps are 0.0/0 sentinels (see SetLog), not real values worth ranking. HOLD exercises
  *  get their own LONGEST_HOLD record computed separately, since weightKg/reps are sentinels for
- *  them too but holdSeconds is real. */
+ *  them too but holdSeconds is real.
+ *
+ *  BEST_SET replaces the earlier three-way HEAVIEST_WEIGHT/MOST_REPS/BEST_VOLUME split -- those
+ *  independently-maximized numbers usually didn't come from the same set at all (a heavy triple
+ *  and a light-weight high-rep set could both "win" separately), which didn't answer "what's the
+ *  best I've actually done." One set wins by estimated 1RM (already the app's standard strength
+ *  metric, used for the strength curve too), and both its weight and reps are reported together. */
 fun personalRecords(
     history: List<SetLog>,
     sessionDateById: Map<Long, LocalDate>,
@@ -48,15 +57,11 @@ fun personalRecords(
     val weightRepsRecords = history
         .filter { log -> exercisesById[log.exerciseId]?.loggingType == LoggingType.WEIGHT_REPS.name }
         .groupBy { it.exerciseId }
-        .flatMap { (exerciseId, sets) ->
-            val heaviest = sets.maxBy { it.weightKg }
-            val mostReps = sets.maxBy { it.reps }
-            val bestVolume = sets.maxBy { it.weightKg * it.reps }
-            listOfNotNull(
-                sessionDateById[heaviest.sessionId]?.let { PersonalRecord(exerciseId, PrType.HEAVIEST_WEIGHT, heaviest.weightKg, it) },
-                sessionDateById[mostReps.sessionId]?.let { PersonalRecord(exerciseId, PrType.MOST_REPS, mostReps.reps.toDouble(), it) },
-                sessionDateById[bestVolume.sessionId]?.let { PersonalRecord(exerciseId, PrType.BEST_VOLUME, bestVolume.weightKg * bestVolume.reps, it) },
-            )
+        .mapNotNull { (exerciseId, sets) ->
+            val bestSet = sets.maxBy { estimatedOneRepMax(it.weightKg, it.reps) }
+            sessionDateById[bestSet.sessionId]?.let {
+                PersonalRecord(exerciseId, PrType.BEST_SET, bestSet.weightKg, bestSet.reps.toDouble(), it)
+            }
         }
     val holdRecords = history
         .filter { log -> exercisesById[log.exerciseId]?.loggingType == LoggingType.HOLD.name }
@@ -64,7 +69,7 @@ fun personalRecords(
         .flatMap { (exerciseId, sets) ->
             val longest = sets.maxBy { it.holdSeconds ?: 0 }
             listOfNotNull(
-                sessionDateById[longest.sessionId]?.let { PersonalRecord(exerciseId, PrType.LONGEST_HOLD, (longest.holdSeconds ?: 0).toDouble(), it) },
+                sessionDateById[longest.sessionId]?.let { PersonalRecord(exerciseId, PrType.LONGEST_HOLD, (longest.holdSeconds ?: 0).toDouble(), achievedOn = it) },
             )
         }
     return weightRepsRecords + holdRecords

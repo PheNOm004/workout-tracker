@@ -44,11 +44,13 @@ class ProgressMathTest {
     }
 
     @Test
-    fun `personalRecords picks heaviest, most reps, and best volume sets per exercise`() {
+    fun `personalRecords picks the single best set per exercise by estimated 1RM`() {
         val squat = com.lsing.timego.data.Exercise(id = 1, name = "Squat", muscleGroups = listOf("QUADS"), isCustom = false, category = "STRENGTH")
         val curl = com.lsing.timego.data.Exercise(id = 2, name = "Bicep Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
         val logs = listOf(
+            // 1RM = 100 * (1 + 3/30) = 110.0
             SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 3, targetReps = 3, loggedAtEpochMillis = 0),
+            // 1RM = 80 * (1 + 10/30) = 106.67 -- heavier volume, but a lower estimated 1RM than the triple above.
             SetLog(id = 2, sessionId = 2, exerciseId = 1, weightKg = 80.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0),
             // A much heavier number, but on a *different* exercise -- must not contaminate Squat's PR.
             SetLog(id = 3, sessionId = 1, exerciseId = 2, weightKg = 12.0, reps = 15, targetReps = 15, loggedAtEpochMillis = 0),
@@ -59,11 +61,13 @@ class ProgressMathTest {
         val records = personalRecords(logs, sessionDateById, exercisesById)
         val squatRecords = records.filter { it.exerciseId == 1L }
 
-        assertEquals(3, squatRecords.size)
-        assertEquals(100.0, squatRecords.first { it.type == PrType.HEAVIEST_WEIGHT }.value, 0.001)
-        assertEquals(10.0, squatRecords.first { it.type == PrType.MOST_REPS }.value, 0.001)
-        assertEquals(800.0, squatRecords.first { it.type == PrType.BEST_VOLUME }.value, 0.001)
-        assertEquals(3, records.filter { it.exerciseId == 2L }.size)
+        assertEquals(1, squatRecords.size)
+        val squatBest = squatRecords.first()
+        assertEquals(PrType.BEST_SET, squatBest.type)
+        assertEquals(100.0, squatBest.value, 0.001)
+        assertEquals(3.0, squatBest.secondaryValue!!, 0.001)
+        assertEquals(LocalDate.of(2026, 8, 1), squatBest.achievedOn)
+        assertEquals(1, records.filter { it.exerciseId == 2L }.size)
     }
 
     @Test

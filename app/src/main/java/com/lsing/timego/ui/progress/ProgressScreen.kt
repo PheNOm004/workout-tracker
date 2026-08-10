@@ -171,20 +171,18 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                             modifier = Modifier.padding(top = 8.dp),
                         ) { exerciseId ->
                             val exerciseRecords = recordsByExercise[exerciseId].orEmpty()
-                            val applicableTypes = if (selectedExercise.loggingType == LoggingType.HOLD.name) {
-                                listOf(PrType.LONGEST_HOLD)
+                            val type = if (selectedExercise.loggingType == LoggingType.HOLD.name) {
+                                PrType.LONGEST_HOLD
                             } else {
-                                listOf(PrType.HEAVIEST_WEIGHT, PrType.MOST_REPS, PrType.BEST_VOLUME)
+                                PrType.BEST_SET
                             }
+                            val record = exerciseRecords.firstOrNull { it.type == type }
                             Row(modifier = Modifier.fillMaxWidth()) {
-                                applicableTypes.forEach { type ->
-                                    val record = exerciseRecords.firstOrNull { it.type == type }
-                                    StatTile(
-                                        label = formatEnumLabel(type.name),
-                                        value = record?.let { formatRecordValue(it) } ?: "--",
-                                        caption = record?.achievedOn?.format(PR_DATE_FORMATTER),
-                                    )
-                                }
+                                StatTile(
+                                    label = if (type == PrType.LONGEST_HOLD) "Longest Hold" else "Best Set",
+                                    value = record?.let { formatRecordValue(it) } ?: "--",
+                                    caption = record?.achievedOn?.format(PR_DATE_FORMATTER),
+                                )
                             }
                         }
                     }
@@ -354,9 +352,7 @@ private fun DayHistoryDialog(date: LocalDate, entries: List<DayHistoryEntry>, on
 private val PR_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d")
 
 private fun formatRecordValue(record: PersonalRecord): String = when (record.type) {
-    PrType.HEAVIEST_WEIGHT -> "${record.value}kg"
-    PrType.MOST_REPS -> "${record.value.toInt()} reps"
-    PrType.BEST_VOLUME -> "${record.value}kg total"
+    PrType.BEST_SET -> "${record.value}kg x ${record.secondaryValue?.toInt()}"
     PrType.LONGEST_HOLD -> "${record.value.toInt()}s"
 }
 
