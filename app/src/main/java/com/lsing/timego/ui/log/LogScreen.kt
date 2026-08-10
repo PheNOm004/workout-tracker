@@ -132,17 +132,20 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     }
 }
 
-/** A one-line header (icon + exercise name) that expands into the actual logging inputs when
- *  tapped. Defaults to collapsed -- rendering full input rows for every exercise in a 119-strong
- *  library at once was both visually overwhelming and wasteful, per user feedback. The leading
- *  icon is decorative (contentDescription = null): category is carried by icon shape alone (see
- *  categoryVisual), and naming it here would be redundant with what TalkBack already reads from
- *  the exercise name and expand/collapse icon. */
+/** A one-line header (icon + exercise name, plus the suggested target already "penciled in" when
+ *  one exists) that expands into the actual logging inputs when tapped. Defaults to collapsed --
+ *  rendering full input rows for every exercise in a 119-strong library at once was both visually
+ *  overwhelming and wasteful, per user feedback. [suggestionSummary] is shown collapsed, not
+ *  gated behind expand: a ledger page has today's target already written on the line, not hidden
+ *  until you tap it open. The leading icon is decorative (contentDescription = null): category is
+ *  carried by icon shape alone (see categoryVisual), and naming it here would be redundant with
+ *  what TalkBack already reads from the exercise name and expand/collapse icon. */
 @Composable
 private fun ExerciseRowHeader(
     exerciseName: String,
     icon: ImageVector,
     iconTint: Color,
+    suggestionSummary: String?,
     expanded: Boolean,
     onToggle: () -> Unit,
 ) {
@@ -155,6 +158,14 @@ private fun ExerciseRowHeader(
     ) {
         Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.padding(end = Spacing.Small))
         Text(exerciseName, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+        if (suggestionSummary != null) {
+            Text(
+                suggestionSummary,
+                style = LedgerFigureValue.copy(fontSize = 14.sp),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(end = Spacing.Small),
+            )
+        }
         Icon(
             if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
             contentDescription = if (expanded) "Collapse" else "Expand",
@@ -204,11 +215,17 @@ private fun StrengthLogRow(
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
 
     ExerciseCard(expanded) {
-        ExerciseRowHeader(exerciseName, visual.icon, visual.accent, expanded) { expanded = !expanded }
+        ExerciseRowHeader(
+            exerciseName,
+            visual.icon,
+            visual.accent,
+            suggestion?.let { "${it.weightKg}kg x ${it.reps}" },
+            expanded,
+        ) { expanded = !expanded }
         AnimatedExpand(expanded) {
             if (suggestion != null) {
                 Text(
-                    "Suggested: ${suggestion.weightKg}kg x ${suggestion.reps} -- ${suggestion.note}",
+                    suggestion.note,
                     style = LedgerFigureValue.copy(fontSize = 13.sp),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
@@ -267,7 +284,7 @@ private fun CardioLogRow(
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
 
     ExerciseCard(expanded) {
-        ExerciseRowHeader(exerciseName, visual.icon, visual.accent, expanded) { expanded = !expanded }
+        ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded) { expanded = !expanded }
         AnimatedExpand(expanded) {
             if (duration != null && duration > 0) {
                 val pace = distance?.let { averagePaceMinPerKm(duration, it) }
@@ -331,11 +348,17 @@ private fun HoldLogRow(
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
 
     ExerciseCard(expanded) {
-        ExerciseRowHeader(exerciseName, visual.icon, visual.accent, expanded) { expanded = !expanded }
+        ExerciseRowHeader(
+            exerciseName,
+            visual.icon,
+            visual.accent,
+            suggestion?.let { "${it.targetDurationSeconds}s" },
+            expanded,
+        ) { expanded = !expanded }
         AnimatedExpand(expanded) {
             if (suggestion != null) {
                 Text(
-                    "Suggested: hold ${suggestion.targetDurationSeconds}s -- ${suggestion.note}",
+                    suggestion.note,
                     style = LedgerFigureValue.copy(fontSize = 13.sp),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
