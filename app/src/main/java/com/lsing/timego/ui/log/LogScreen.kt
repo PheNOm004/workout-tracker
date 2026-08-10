@@ -50,6 +50,7 @@ import com.lsing.timego.domain.MET_CARDIO
 import com.lsing.timego.domain.MET_WARMUP
 import com.lsing.timego.domain.averagePaceMinPerKm
 import com.lsing.timego.domain.estimatedCalorieBurn
+import com.lsing.timego.ui.common.AnimatedExpand
 import com.lsing.timego.ui.common.ExerciseSections
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.categoryVisual
@@ -202,7 +203,7 @@ private fun StrengthLogRow(
 
     ExerciseCard(visual.accent) {
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, expanded) { expanded = !expanded }
-        if (expanded) {
+        AnimatedExpand(expanded) {
             if (suggestion != null) {
                 Text(
                     "Suggested: ${suggestion.weightKg}kg x ${suggestion.reps} -- ${suggestion.note}",
@@ -263,7 +264,7 @@ private fun CardioLogRow(
 
     ExerciseCard(visual.accent) {
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, expanded) { expanded = !expanded }
-        if (expanded) {
+        AnimatedExpand(expanded) {
             if (duration != null && duration > 0) {
                 val pace = distance?.let { averagePaceMinPerKm(duration, it) }
                 val calories = bodyWeightKg?.let { estimatedCalorieBurn(met, it, duration) }
@@ -320,7 +321,7 @@ private fun HoldLogRow(
 
     ExerciseCard(visual.accent) {
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, expanded) { expanded = !expanded }
-        if (expanded) {
+        AnimatedExpand(expanded) {
             if (suggestion != null) {
                 Text(
                     "Suggested: hold ${suggestion.targetDurationSeconds}s -- ${suggestion.note}",
