@@ -1,12 +1,18 @@
 package com.lsing.timego.ui.log
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -15,6 +21,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -31,6 +38,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -40,6 +49,9 @@ import com.lsing.timego.domain.MET_WARMUP
 import com.lsing.timego.domain.averagePaceMinPerKm
 import com.lsing.timego.domain.estimatedCalorieBurn
 import com.lsing.timego.ui.common.ExerciseSections
+import com.lsing.timego.ui.common.SectionHeader
+import com.lsing.timego.ui.common.categoryVisual
+import com.lsing.timego.ui.theme.Spacing
 
 @Composable
 fun LogScreen(viewModel: LogViewModel = viewModel()) {
@@ -64,22 +76,22 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
             }
         },
     ) { fabPadding ->
-        LazyColumn(modifier = Modifier.padding(16.dp).padding(fabPadding)) {
+        LazyColumn(modifier = Modifier.padding(Spacing.Large).padding(fabPadding)) {
             item {
-                Text("Session type", style = MaterialTheme.typography.titleMedium)
-                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).horizontalScroll(rememberScrollState())) {
+                SectionHeader("Session type", topPadding = Spacing.ExtraSmall)
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small).horizontalScroll(rememberScrollState())) {
                     FilterChip(
                         selected = selectedRoutineId == null,
                         onClick = { viewModel.selectRoutine(null) },
                         label = { Text("Freeform") },
-                        modifier = Modifier.padding(end = 8.dp),
+                        modifier = Modifier.padding(end = Spacing.Small),
                     )
                     routines.forEach { routine ->
                         FilterChip(
                             selected = selectedRoutineId == routine.id,
                             onClick = { viewModel.selectRoutine(routine.id) },
                             label = { Text(routine.name) },
-                            modifier = Modifier.padding(end = 8.dp),
+                            modifier = Modifier.padding(end = Spacing.Small),
                         )
                     }
                 }
@@ -89,6 +101,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                     if (exercise.category == ExerciseCategory.CARDIO.name || exercise.category == ExerciseCategory.WARMUP.name) {
                         CardioLogRow(
                             exerciseName = exercise.name,
+                            category = exercise.category,
                             met = if (exercise.category == ExerciseCategory.CARDIO.name) MET_CARDIO else MET_WARMUP,
                             bodyWeightKg = latestBodyWeightKg,
                             onLog = { duration, distance -> viewModel.logCardioSet(exercise.id, duration, distance) },
@@ -96,6 +109,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                     } else {
                         StrengthLogRow(
                             exerciseName = exercise.name,
+                            category = exercise.category,
                             suggestion = suggestions[exercise.id],
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
@@ -112,30 +126,57 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     }
 }
 
-/** A one-line header (just the exercise name) that expands into the actual logging inputs when
+/** A one-line header (icon + exercise name) that expands into the actual logging inputs when
  *  tapped. Defaults to collapsed -- rendering full input rows for every exercise in a 119-strong
- *  library at once was both visually overwhelming and wasteful, per user feedback. */
+ *  library at once was both visually overwhelming and wasteful, per user feedback. The leading
+ *  icon is decorative (contentDescription = null): the category is also conveyed by the card's
+ *  left accent bar, and naming it here would be redundant with what TalkBack already reads from
+ *  the exercise name and expand/collapse icon. */
 @Composable
-private fun ExerciseRowHeader(exerciseName: String, expanded: Boolean, onToggle: () -> Unit) {
+private fun ExerciseRowHeader(
+    exerciseName: String,
+    icon: ImageVector,
+    accent: Color,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onToggle)
-            .padding(12.dp),
+            .padding(Spacing.Medium),
     ) {
+        Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.padding(end = Spacing.Small))
+        Text(exerciseName, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
         Icon(
             if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
             contentDescription = if (expanded) "Collapse" else "Expand",
-            modifier = Modifier.padding(end = 4.dp),
         )
-        Text(exerciseName, style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+/** Wraps [content] in a card with a category-accent-colored left bar, matching the visual
+ *  language used by both [StrengthLogRow] and [CardioLogRow]. */
+@Composable
+private fun ExerciseCard(accent: Color, content: @Composable () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(start = Spacing.Large, end = Spacing.Small, bottom = Spacing.Small),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Box(modifier = Modifier.width(3.dp).fillMaxHeight().background(accent))
+            Column(modifier = Modifier.weight(1f)) {
+                content()
+            }
+        }
     }
 }
 
 @Composable
 private fun StrengthLogRow(
     exerciseName: String,
+    category: String,
     suggestion: com.lsing.timego.domain.OverloadSuggestion?,
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
@@ -149,20 +190,21 @@ private fun StrengthLogRow(
         mutableStateOf(if (isBodyweight) latestBodyWeightKg?.toString().orEmpty() else "")
     }
     var repsText by remember(exerciseName) { mutableStateOf("") }
+    val visual = categoryVisual(ExerciseCategory.valueOf(category))
 
-    Card(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 8.dp)) {
-        ExerciseRowHeader(exerciseName, expanded) { expanded = !expanded }
+    ExerciseCard(visual.accent) {
+        ExerciseRowHeader(exerciseName, visual.icon, visual.accent, expanded) { expanded = !expanded }
         if (expanded) {
             if (suggestion != null) {
                 Text(
                     "Suggested: ${suggestion.weightKg}kg x ${suggestion.reps} -- ${suggestion.note}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 12.dp),
+                    modifier = Modifier.padding(horizontal = Spacing.Medium),
                 )
             }
             Row(
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedTextField(
@@ -171,14 +213,14 @@ private fun StrengthLogRow(
                     label = { Text("kg") },
                     placeholder = if (isBodyweight) { { Text("BW") } } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                 )
                 OutlinedTextField(
                     value = repsText,
                     onValueChange = { repsText = it },
                     label = { Text("reps") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                 )
                 Button(onClick = {
                     val weight = weightText.toDoubleOrNull()
@@ -199,6 +241,7 @@ private fun StrengthLogRow(
 @Composable
 private fun CardioLogRow(
     exerciseName: String,
+    category: String,
     met: Double,
     bodyWeightKg: Double?,
     onLog: (durationMinutes: Double, distanceKm: Double?) -> Unit,
@@ -208,9 +251,10 @@ private fun CardioLogRow(
     var distanceText by remember(exerciseName) { mutableStateOf("") }
     val duration = durationText.toDoubleOrNull()
     val distance = distanceText.toDoubleOrNull()
+    val visual = categoryVisual(ExerciseCategory.valueOf(category))
 
-    Card(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 8.dp)) {
-        ExerciseRowHeader(exerciseName, expanded) { expanded = !expanded }
+    ExerciseCard(visual.accent) {
+        ExerciseRowHeader(exerciseName, visual.icon, visual.accent, expanded) { expanded = !expanded }
         if (expanded) {
             if (duration != null && duration > 0) {
                 val pace = distance?.let { averagePaceMinPerKm(duration, it) }
@@ -220,11 +264,11 @@ private fun CardioLogRow(
                     calories?.let { "~${it.toInt()} kcal" },
                 ).joinToString(" -- ")
                 if (details.isNotEmpty()) {
-                    Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 12.dp))
+                    Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = Spacing.Medium))
                 }
             }
             Row(
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedTextField(
@@ -232,14 +276,14 @@ private fun CardioLogRow(
                     onValueChange = { durationText = it },
                     label = { Text("minutes") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                 )
                 OutlinedTextField(
                     value = distanceText,
                     onValueChange = { distanceText = it },
                     label = { Text("km (optional)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                 )
                 Button(onClick = {
                     if (duration != null && duration > 0) {
