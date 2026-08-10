@@ -25,4 +25,18 @@ class SeedExercisesTest {
         }
         assertEquals(true, durationExercises.all { it.loggingType == LoggingType.DURATION_DISTANCE.name })
     }
+
+    @Test
+    fun `every muscleWeights key is one of the exercise's own tagged muscle groups`() {
+        val orphaned = SEED_EXERCISES.filter { exercise ->
+            exercise.muscleWeights.keys.any { it !in exercise.muscleGroups }
+        }
+        assertEquals(emptyList<Exercise>(), orphaned)
+    }
+
+    @Test
+    fun `every muscleWeights value is between 1 and 100`() {
+        val outOfRange = SEED_EXERCISES.filter { exercise -> exercise.muscleWeights.values.any { it !in 1..100 } }
+        assertEquals(emptyList<Exercise>(), outOfRange)
+    }
 }
