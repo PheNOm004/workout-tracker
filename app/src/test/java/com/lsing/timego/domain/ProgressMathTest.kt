@@ -68,7 +68,7 @@ class ProgressMathTest {
 
     @Test
     fun `personalRecords excludes cardio and warmup sets, which have no meaningful weight or reps`() {
-        val run = com.lsing.timego.data.Exercise(id = 3, name = "Running", muscleGroups = listOf("FULL_BODY"), isCustom = false, category = "CARDIO")
+        val run = com.lsing.timego.data.Exercise(id = 3, name = "Running", muscleGroups = listOf("FULL_BODY"), isCustom = false, category = "CARDIO", loggingType = "DURATION_DISTANCE")
         val logs = listOf(
             SetLog(id = 1, sessionId = 1, exerciseId = 3, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0, durationMinutes = 30.0, distanceKm = 5.0),
         )
@@ -103,12 +103,47 @@ class ProgressMathTest {
         // its weightKg/reps are 0.0/0 sentinels (see SetLog) -- including it here would corrupt
         // a real strength curve with a fake near-zero 1RM data point.
         val squat = com.lsing.timego.data.Exercise(id = 1, name = "Squat", muscleGroups = listOf("QUADS"), isCustom = false, category = "STRENGTH")
-        val cycling = com.lsing.timego.data.Exercise(id = 2, name = "Cycling", muscleGroups = listOf("QUADS"), isCustom = false, category = "CARDIO")
+        val cycling = com.lsing.timego.data.Exercise(id = 2, name = "Cycling", muscleGroups = listOf("QUADS"), isCustom = false, category = "CARDIO", loggingType = "DURATION_DISTANCE")
         val logs = listOf(
             SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
             SetLog(id = 2, sessionId = 2, exerciseId = 2, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0, durationMinutes = 30.0, distanceKm = 10.0),
         )
         val exercisesById = mapOf(1L to squat, 2L to cycling)
+        val sessionDateById = mapOf(1L to LocalDate.of(2026, 8, 1), 2L to LocalDate.of(2026, 8, 2))
+
+        val curve = muscleGroupStrengthCurve(logs, exercisesById, sessionDateById, "QUADS")
+
+        assertEquals(1, curve.size)
+        assertEquals(LocalDate.of(2026, 8, 1), curve[0].first)
+    }
+
+    @Test
+    fun `personalRecords computes longest hold for HOLD exercises`() {
+        val plank = com.lsing.timego.data.Exercise(id = 4, name = "Plank", muscleGroups = listOf("ABS"), isCustom = false, category = "CALISTHENICS", loggingType = "HOLD")
+        val logs = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 4, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0, holdSeconds = 30, targetHoldSeconds = 30),
+            SetLog(id = 2, sessionId = 2, exerciseId = 4, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0, holdSeconds = 45, targetHoldSeconds = 35),
+        )
+        val sessionDateById = mapOf(1L to LocalDate.of(2026, 8, 1), 2L to LocalDate.of(2026, 8, 8))
+        val exercisesById = mapOf(4L to plank)
+
+        val records = personalRecords(logs, sessionDateById, exercisesById)
+
+        assertEquals(1, records.size)
+        assertEquals(PrType.LONGEST_HOLD, records[0].type)
+        assertEquals(45.0, records[0].value, 0.001)
+        assertEquals(LocalDate.of(2026, 8, 8), records[0].achievedOn)
+    }
+
+    @Test
+    fun `muscleGroupStrengthCurve excludes HOLD sets, which have no meaningful weight`() {
+        val squat = com.lsing.timego.data.Exercise(id = 1, name = "Squat", muscleGroups = listOf("QUADS"), isCustom = false, category = "STRENGTH", loggingType = "WEIGHT_REPS")
+        val wallSit = com.lsing.timego.data.Exercise(id = 5, name = "Wall Sit", muscleGroups = listOf("QUADS"), isCustom = false, category = "CALISTHENICS", loggingType = "HOLD")
+        val logs = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 2, exerciseId = 5, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0, holdSeconds = 60, targetHoldSeconds = 60),
+        )
+        val exercisesById = mapOf(1L to squat, 5L to wallSit)
         val sessionDateById = mapOf(1L to LocalDate.of(2026, 8, 1), 2L to LocalDate.of(2026, 8, 2))
 
         val curve = muscleGroupStrengthCurve(logs, exercisesById, sessionDateById, "QUADS")

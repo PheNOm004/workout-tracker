@@ -1,7 +1,7 @@
 package com.lsing.timego.domain
 
 import com.lsing.timego.data.Exercise
-import com.lsing.timego.data.ExerciseCategory
+import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.WorkoutSession
 import java.time.LocalDate
@@ -28,13 +28,7 @@ fun workoutVolumeRatios(sessions: List<WorkoutSession>, sets: List<SetLog>): Map
     return volumeByDate.mapValues { (_, volume) -> (volume / maxVolume).toFloat().coerceIn(0f, 1f) }
 }
 
-/** Categories whose weightKg/reps are real logged values, not the 0.0/0 sentinels CARDIO/WARMUP
- *  sets use (see SetLog) -- shared by every function in this package that ranks or trends
- *  weight/reps (not `private` since MuscleDistribution.kt, a separate file in this package, also
- *  needs it -- Kotlin's top-level `private` is file-scoped, not package-scoped). */
-internal val STRENGTH_CATEGORIES = setOf(ExerciseCategory.STRENGTH.name, ExerciseCategory.CALISTHENICS.name)
-
-enum class PrType { HEAVIEST_WEIGHT, MOST_REPS, BEST_VOLUME }
+enum class PrType { HEAVIEST_WEIGHT, MOST_REPS, BEST_VOLUME, LONGEST_HOLD }
 
 data class PersonalRecord(val exerciseId: Long, val type: PrType, val value: Double, val achievedOn: LocalDate)
 
@@ -42,15 +36,17 @@ data class PersonalRecord(val exerciseId: Long, val type: PrType, val value: Dou
  *  by construction; history sizes here are small enough (one person's own lifts) that this is
  *  cheap even called on every Progress screen load. Grouped per exercise -- a global "heaviest
  *  weight across everything" would mix e.g. a squat and a bicep curl together, which is
- *  meaningless. CARDIO/WARMUP sets are excluded entirely: their weightKg/reps are 0.0/0
- *  sentinels (see SetLog), not real values worth ranking. */
+ *  meaningless. CARDIO/WARMUP sets are excluded entirely via the loggingType check: their
+ *  weightKg/reps are 0.0/0 sentinels (see SetLog), not real values worth ranking. HOLD exercises
+ *  get their own LONGEST_HOLD record computed separately, since weightKg/reps are sentinels for
+ *  them too but holdSeconds is real. */
 fun personalRecords(
     history: List<SetLog>,
     sessionDateById: Map<Long, LocalDate>,
     exercisesById: Map<Long, Exercise>,
 ): List<PersonalRecord> {
-    return history
-        .filter { log -> exercisesById[log.exerciseId]?.category in STRENGTH_CATEGORIES }
+    val weightRepsRecords = history
+        .filter { log -> exercisesById[log.exerciseId]?.loggingType == LoggingType.WEIGHT_REPS.name }
         .groupBy { it.exerciseId }
         .flatMap { (exerciseId, sets) ->
             val heaviest = sets.maxBy { it.weightKg }
@@ -62,6 +58,16 @@ fun personalRecords(
                 sessionDateById[bestVolume.sessionId]?.let { PersonalRecord(exerciseId, PrType.BEST_VOLUME, bestVolume.weightKg * bestVolume.reps, it) },
             )
         }
+    val holdRecords = history
+        .filter { log -> exercisesById[log.exerciseId]?.loggingType == LoggingType.HOLD.name }
+        .groupBy { it.exerciseId }
+        .flatMap { (exerciseId, sets) ->
+            val longest = sets.maxBy { it.holdSeconds ?: 0 }
+            listOfNotNull(
+                sessionDateById[longest.sessionId]?.let { PersonalRecord(exerciseId, PrType.LONGEST_HOLD, (longest.holdSeconds ?: 0).toDouble(), it) },
+            )
+        }
+    return weightRepsRecords + holdRecords
 }
 
 /** Best estimated-1RM per date among sets logged for any STRENGTH/CALISTHENICS exercise tagged
@@ -78,7 +84,7 @@ fun muscleGroupStrengthCurve(
     val bestByDate = mutableMapOf<LocalDate, Double>()
     for (log in history) {
         val exercise = exercisesById[log.exerciseId] ?: continue
-        if (exercise.category !in STRENGTH_CATEGORIES) continue
+        if (exercise.loggingType != LoggingType.WEIGHT_REPS.name) continue
         if (muscleGroup !in exercise.muscleGroups) continue
         val date = sessionDateById[log.sessionId] ?: continue
         val oneRepMax = estimatedOneRepMax(log.weightKg, log.reps)
