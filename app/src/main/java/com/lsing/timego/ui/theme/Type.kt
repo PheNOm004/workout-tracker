@@ -84,3 +84,19 @@ val Typography = Typography(
     labelMedium = TextStyle(fontFamily = ManropeFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp),
     labelSmall = TextStyle(fontFamily = ManropeFamily, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp),
 )
+
+/** Fraunces treatment for PR stat-tile values -- TimeGo's "moment" numbers. */
+val FrauncesStatValue = TextStyle(
+    fontFamily = FrauncesFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 20.sp,
+    lineHeight = 24.sp,
+)
+
+/** Fraunces treatment for short identity-bearing labels (routine names). */
+val FrauncesEmphasis = TextStyle(
+    fontFamily = FrauncesFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 18.sp,
+    lineHeight = 24.sp,
+)
