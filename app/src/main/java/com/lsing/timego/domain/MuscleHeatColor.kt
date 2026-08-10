@@ -2,18 +2,18 @@ package com.lsing.timego.domain
 
 import kotlin.math.roundToInt
 
-/** Cyan-to-red intensity scale for the muscle heatmap (low recent volume -> high). Matches the
- *  legend agreed on during design: cyan, blue, violet, pink, red as evenly-spaced stops, with
- *  [intensity] (0..1, clamped) interpolated linearly between whichever pair of stops it falls
- *  between. Deliberately plain Kotlin/hex-string in-out, same style as [habitHeatmapColorHexes],
- *  so it stays unit-testable without Robolectric and callers convert to Compose Color at the UI
- *  edge. */
+/** Graphite-to-ember intensity scale for the muscle heatmap (low recent volume -> high),
+ *  re-picked within the Training Ledger palette -- graphite/tan through amber to the accent's
+ *  brick-red, evenly-spaced stops interpolated as before. [intensity] (0..1, clamped) is
+ *  interpolated linearly between whichever pair of stops it falls between. Deliberately plain
+ *  Kotlin/hex-string in-out, same style as [habitHeatmapColorHexes], so it stays unit-testable
+ *  without Robolectric and callers convert to Compose Color at the UI edge. */
 private val HEAT_STOPS = listOf(
-    "#22D3EE", // low
-    "#3B82F6",
-    "#8B5CF6",
-    "#EC4899",
-    "#EF4444", // high
+    "#8A8367", // low -- untrained/cool reads as flat graphite-tan, not a "cold" hue
+    "#C98A2E", // amber -- matches LedgerPlateauing
+    "#D9622E",
+    "#C23B25",
+    "#8C2C22", // high -- matches LedgerAccentDim
 )
 
 /** The scale's stops in order, low to high -- exposed so UI code can render a matching legend
