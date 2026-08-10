@@ -57,7 +57,13 @@ class SeedExercisesTest {
     }
 
     @Test
-    fun `library has grown to roughly 300 exercises`() {
-        assertEquals(true, SEED_EXERCISES.size in 250..350)
+    fun `library has grown to roughly 600 exercises`() {
+        assertEquals(true, SEED_EXERCISES.size in 550..700)
+    }
+
+    @Test
+    fun `every HOLD exercise is CALISTHENICS`() {
+        val holdExercises = SEED_EXERCISES.filter { it.loggingType == LoggingType.HOLD.name }
+        assertEquals(true, holdExercises.all { it.category == ExerciseCategory.CALISTHENICS.name })
     }
 }
