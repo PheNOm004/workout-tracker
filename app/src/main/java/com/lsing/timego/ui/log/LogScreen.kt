@@ -44,6 +44,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.ExerciseCategory
+import com.lsing.timego.data.LoggingType
+import com.lsing.timego.domain.HoldSuggestion
 import com.lsing.timego.domain.MET_CARDIO
 import com.lsing.timego.domain.MET_WARMUP
 import com.lsing.timego.domain.averagePaceMinPerKm
@@ -57,6 +59,7 @@ import com.lsing.timego.ui.theme.Spacing
 fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val exercises by viewModel.displayedExercises.collectAsState()
     val suggestions by viewModel.suggestions.collectAsState()
+    val holdSuggestions by viewModel.holdSuggestions.collectAsState()
     val routines by viewModel.routines.collectAsState()
     val selectedRoutineId by viewModel.selectedRoutineId.collectAsState()
     val latestBodyWeightKg by viewModel.latestBodyWeightKg.collectAsState()
@@ -98,16 +101,21 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
             }
             item {
                 ExerciseSections(exercises = exercises) { exercise ->
-                    if (exercise.category == ExerciseCategory.CARDIO.name || exercise.category == ExerciseCategory.WARMUP.name) {
-                        CardioLogRow(
+                    when (exercise.loggingType) {
+                        LoggingType.HOLD.name -> HoldLogRow(
+                            exerciseName = exercise.name,
+                            category = exercise.category,
+                            suggestion = holdSuggestions[exercise.id],
+                            onLog = { duration, target -> viewModel.logHoldSet(exercise.id, duration, target) },
+                        )
+                        LoggingType.DURATION_DISTANCE.name -> CardioLogRow(
                             exerciseName = exercise.name,
                             category = exercise.category,
                             met = if (exercise.category == ExerciseCategory.CARDIO.name) MET_CARDIO else MET_WARMUP,
                             bodyWeightKg = latestBodyWeightKg,
                             onLog = { duration, distance -> viewModel.logCardioSet(exercise.id, duration, distance) },
                         )
-                    } else {
-                        StrengthLogRow(
+                        else -> StrengthLogRow(
                             exerciseName = exercise.name,
                             category = exercise.category,
                             suggestion = suggestions[exercise.id],
@@ -293,6 +301,53 @@ private fun CardioLogRow(
                     }
                 }) {
                     Text("Log")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HoldLogRow(
+    exerciseName: String,
+    category: String,
+    suggestion: HoldSuggestion?,
+    onLog: (durationSeconds: Int, targetDurationSeconds: Int) -> Unit,
+) {
+    var expanded by remember(exerciseName) { mutableStateOf(false) }
+    var secondsText by remember(exerciseName) { mutableStateOf("") }
+    val visual = categoryVisual(ExerciseCategory.valueOf(category))
+
+    ExerciseCard(visual.accent) {
+        ExerciseRowHeader(exerciseName, visual.icon, visual.accent, expanded) { expanded = !expanded }
+        if (expanded) {
+            if (suggestion != null) {
+                Text(
+                    "Suggested: hold ${suggestion.targetDurationSeconds}s -- ${suggestion.note}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = Spacing.Medium),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = secondsText,
+                    onValueChange = { secondsText = it },
+                    label = { Text("seconds held") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                )
+                Button(onClick = {
+                    val seconds = secondsText.toIntOrNull()
+                    if (seconds != null) {
+                        onLog(seconds, suggestion?.targetDurationSeconds ?: seconds)
+                        secondsText = ""
+                    }
+                }) {
+                    Text("Log hold")
                 }
             }
         }
