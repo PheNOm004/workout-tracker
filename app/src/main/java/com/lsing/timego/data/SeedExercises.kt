@@ -1,16 +1,16 @@
 package com.lsing.timego.data
 
 private fun strength(name: String, vararg groups: MuscleGroup) =
-    Exercise(name = name, muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.STRENGTH.name)
+    Exercise(name = name, muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.STRENGTH.name, loggingType = LoggingType.WEIGHT_REPS.name)
 
-private fun calisthenics(name: String, vararg groups: MuscleGroup) =
-    Exercise(name = name, muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.CALISTHENICS.name)
+private fun calisthenics(name: String, vararg groups: MuscleGroup, loggingType: LoggingType = LoggingType.WEIGHT_REPS) =
+    Exercise(name = name, muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.CALISTHENICS.name, loggingType = loggingType.name)
 
 private fun warmup(name: String, vararg groups: MuscleGroup) =
-    Exercise(name = name, muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.WARMUP.name)
+    Exercise(name = name, muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.WARMUP.name, loggingType = LoggingType.DURATION_DISTANCE.name)
 
 private fun cardio(name: String, vararg groups: MuscleGroup) =
-    Exercise(name = name, muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.CARDIO.name)
+    Exercise(name = name, muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.CARDIO.name, loggingType = LoggingType.DURATION_DISTANCE.name)
 
 val SEED_EXERCISES = listOf(
     // Strength -- Chest
@@ -100,24 +100,24 @@ val SEED_EXERCISES = listOf(
     calisthenics("Glute Bridge", MuscleGroup.GLUTES),
     calisthenics("Burpee", MuscleGroup.FULL_BODY),
     calisthenics("Mountain Climber", MuscleGroup.ABS, MuscleGroup.FULL_BODY),
-    calisthenics("Plank", MuscleGroup.ABS),
-    calisthenics("Side Plank", MuscleGroup.OBLIQUES),
+    calisthenics("Plank", MuscleGroup.ABS, loggingType = LoggingType.HOLD),
+    calisthenics("Side Plank", MuscleGroup.OBLIQUES, loggingType = LoggingType.HOLD),
     calisthenics("Sit-Up", MuscleGroup.ABS),
     calisthenics("Hanging Leg Raise", MuscleGroup.ABS),
     calisthenics("Bicycle Crunch", MuscleGroup.ABS, MuscleGroup.OBLIQUES),
-    calisthenics("Superman", MuscleGroup.LOWER_BACK, MuscleGroup.ABS),
+    calisthenics("Superman", MuscleGroup.LOWER_BACK, MuscleGroup.ABS, loggingType = LoggingType.HOLD),
     calisthenics("Pike Push-Up", MuscleGroup.FRONT_DELTS, MuscleGroup.SIDE_DELTS, MuscleGroup.TRICEPS),
     calisthenics("Inverted Row", MuscleGroup.LATS, MuscleGroup.UPPER_BACK, MuscleGroup.BICEPS),
     calisthenics("Step-Up", MuscleGroup.QUADS, MuscleGroup.GLUTES),
-    calisthenics("Wall Sit", MuscleGroup.QUADS),
+    calisthenics("Wall Sit", MuscleGroup.QUADS, loggingType = LoggingType.HOLD),
     calisthenics("Pistol Squat", MuscleGroup.QUADS, MuscleGroup.GLUTES),
     calisthenics("Archer Push-Up", MuscleGroup.CHEST, MuscleGroup.TRICEPS),
-    calisthenics("L-Sit", MuscleGroup.ABS),
+    calisthenics("L-Sit", MuscleGroup.ABS, loggingType = LoggingType.HOLD),
     calisthenics("Handstand Push-Up", MuscleGroup.FRONT_DELTS, MuscleGroup.SIDE_DELTS, MuscleGroup.TRICEPS),
     calisthenics("Australian Pull-Up", MuscleGroup.LATS, MuscleGroup.UPPER_BACK, MuscleGroup.BICEPS),
     calisthenics("Donkey Kick", MuscleGroup.GLUTES),
     calisthenics("Flutter Kick", MuscleGroup.ABS),
-    calisthenics("Dead Hang", MuscleGroup.FOREARMS, MuscleGroup.LATS),
+    calisthenics("Dead Hang", MuscleGroup.FOREARMS, MuscleGroup.LATS, loggingType = LoggingType.HOLD),
 
     // Warmup
     warmup("Arm Circles", MuscleGroup.FRONT_DELTS, MuscleGroup.SIDE_DELTS, MuscleGroup.REAR_DELTS),
