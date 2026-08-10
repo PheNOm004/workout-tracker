@@ -104,7 +104,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             val history = historyByExercise[exercise.id].orEmpty()
             if (exercise.loggingType == LoggingType.HOLD.name) {
                 val holdHistory = history.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
-                holdSuggester.suggestNext(holdHistory)?.let { holdMap[exercise.id] = it }
+                holdSuggester.suggestNext(holdHistory, exercise.name)?.let { holdMap[exercise.id] = it }
             } else {
                 val performanceHistory = history.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
                 suggester.suggestNext(performanceHistory)?.let { map[exercise.id] = it }
