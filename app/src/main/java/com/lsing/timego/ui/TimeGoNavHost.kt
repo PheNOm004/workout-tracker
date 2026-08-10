@@ -3,6 +3,8 @@ package com.lsing.timego.ui
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -63,18 +65,18 @@ fun TimeGoNavHost() {
         ) {
             composable(
                 "log",
-                enterTransition = { fadeIn(tween(200)) },
-                exitTransition = { fadeOut(tween(150)) },
+                enterTransition = { slideInHorizontally(tween(220)) { it / 8 } + fadeIn(tween(220)) },
+                exitTransition = { slideOutHorizontally(tween(180)) { -it / 8 } + fadeOut(tween(180)) },
             ) { com.lsing.timego.ui.log.LogScreen() }
             composable(
                 "progress",
-                enterTransition = { fadeIn(tween(200)) },
-                exitTransition = { fadeOut(tween(150)) },
+                enterTransition = { slideInHorizontally(tween(220)) { it / 8 } + fadeIn(tween(220)) },
+                exitTransition = { slideOutHorizontally(tween(180)) { -it / 8 } + fadeOut(tween(180)) },
             ) { com.lsing.timego.ui.progress.ProgressScreen() }
             composable(
                 "routines",
-                enterTransition = { fadeIn(tween(200)) },
-                exitTransition = { fadeOut(tween(150)) },
+                enterTransition = { slideInHorizontally(tween(220)) { it / 8 } + fadeIn(tween(220)) },
+                exitTransition = { slideOutHorizontally(tween(180)) { -it / 8 } + fadeOut(tween(180)) },
             ) { com.lsing.timego.ui.routines.RoutinesScreen() }
         }
     }
