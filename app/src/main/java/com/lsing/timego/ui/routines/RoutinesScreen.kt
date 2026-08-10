@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -26,7 +27,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.formatEnumLabel
+import com.lsing.timego.ui.theme.FrauncesEmphasis
+import com.lsing.timego.ui.theme.Spacing
 
 @Composable
 fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
@@ -43,27 +47,28 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
         )
     }
 
-    LazyColumn(modifier = Modifier.padding(16.dp)) {
+    LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
         if (untrainedGroups.isNotEmpty()) {
             item {
-                Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Large),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                ) {
                     Text(
                         "Not trained in a while: ${untrainedGroups.joinToString(", ") { formatEnumLabel(it) }}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(Spacing.Medium),
                     )
                 }
             }
         }
         item {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            ) {
-                Text("Your Routines", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                Button(onClick = { showRoutineForm = true }) { Text("+ New routine") }
-            }
+            SectionHeader(
+                title = "Your Routines",
+                topPadding = Spacing.ExtraSmall,
+                trailing = { Button(onClick = { showRoutineForm = true }) { Text("+ New routine") } },
+            )
         }
         if (routines.isEmpty()) {
             item {
@@ -75,13 +80,16 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             }
         }
         items(routines, key = { it.id }) { routine ->
-            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            ) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Text(
                             routine.name,
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.weight(1f).padding(12.dp, 12.dp, 12.dp, 4.dp),
+                            style = FrauncesEmphasis,
+                            modifier = Modifier.weight(1f).padding(Spacing.Medium, Spacing.Medium, Spacing.Medium, Spacing.ExtraSmall),
                         )
                         IconButton(onClick = { viewModel.deleteRoutine(routine.id) }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Delete ${routine.name}")
@@ -92,15 +100,15 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                             "No days set",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(12.dp, 0.dp, 12.dp, 12.dp),
+                            modifier = Modifier.padding(Spacing.Medium, 0.dp, Spacing.Medium, Spacing.Medium),
                         )
                     } else {
-                        FlowRow(modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp)) {
+                        FlowRow(modifier = Modifier.padding(Spacing.Small, 0.dp, Spacing.Small, Spacing.Small)) {
                             routine.daysOfWeek.forEach { day ->
                                 AssistChip(
                                     onClick = {},
                                     label = { Text(day.take(3).lowercase().replaceFirstChar(Char::uppercase)) },
-                                    modifier = Modifier.padding(4.dp),
+                                    modifier = Modifier.padding(Spacing.ExtraSmall),
                                 )
                             }
                         }
