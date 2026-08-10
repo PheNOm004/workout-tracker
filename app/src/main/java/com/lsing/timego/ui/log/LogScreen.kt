@@ -3,16 +3,12 @@ package com.lsing.timego.ui.log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -20,10 +16,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -42,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
@@ -54,6 +50,7 @@ import com.lsing.timego.ui.common.AnimatedExpand
 import com.lsing.timego.ui.common.ExerciseSections
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.categoryVisual
+import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.Spacing
 
 @Composable
@@ -138,14 +135,14 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
 /** A one-line header (icon + exercise name) that expands into the actual logging inputs when
  *  tapped. Defaults to collapsed -- rendering full input rows for every exercise in a 119-strong
  *  library at once was both visually overwhelming and wasteful, per user feedback. The leading
- *  icon is decorative (contentDescription = null): the category is also conveyed by the card's
- *  left accent bar, and naming it here would be redundant with what TalkBack already reads from
+ *  icon is decorative (contentDescription = null): category is carried by icon shape alone (see
+ *  categoryVisual), and naming it here would be redundant with what TalkBack already reads from
  *  the exercise name and expand/collapse icon. */
 @Composable
 private fun ExerciseRowHeader(
     exerciseName: String,
     icon: ImageVector,
-    accent: Color,
+    iconTint: Color,
     expanded: Boolean,
     onToggle: () -> Unit,
 ) {
@@ -156,7 +153,7 @@ private fun ExerciseRowHeader(
             .clickable(onClick = onToggle)
             .padding(Spacing.Medium),
     ) {
-        Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.padding(end = Spacing.Small))
+        Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.padding(end = Spacing.Small))
         Text(exerciseName, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
         Icon(
             if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
@@ -165,20 +162,25 @@ private fun ExerciseRowHeader(
     }
 }
 
-/** Wraps [content] in a card with a category-accent-colored left bar, matching the visual
- *  language used by both [StrengthLogRow] and [CardioLogRow]. */
+/** Replaces the elevated-card-with-permanent-accent-bar treatment: a plain surface with a
+ *  hairline bottom rule (ledger row divider) and the brand accent (the red margin rule) shown
+ *  only on the active row, not permanently on every row -- restraint is the point of the
+ *  direction. Category no longer carries its own color (see categoryVisual); the rule's accent
+ *  is always the theme's one committed brand color. */
 @Composable
-private fun ExerciseCard(accent: Color, content: @Composable () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(start = Spacing.Large, end = Spacing.Small, bottom = Spacing.Small),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+private fun ExerciseCard(expanded: Boolean, content: @Composable () -> Unit) {
+    val accent = MaterialTheme.colorScheme.primary
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = Spacing.Large, end = Spacing.Small)
+            .then(if (expanded) Modifier.background(accent.copy(alpha = 0.06f)) else Modifier),
     ) {
-        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            Box(modifier = Modifier.width(3.dp).fillMaxHeight().background(accent))
-            Column(modifier = Modifier.weight(1f)) {
-                content()
-            }
-        }
+        content()
+        HorizontalDivider(
+            color = if (expanded) accent else MaterialTheme.colorScheme.outlineVariant,
+            thickness = if (expanded) 2.dp else 1.dp,
+        )
     }
 }
 
@@ -201,13 +203,13 @@ private fun StrengthLogRow(
     var repsText by remember(exerciseName) { mutableStateOf("") }
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
 
-    ExerciseCard(visual.accent) {
+    ExerciseCard(expanded) {
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, expanded) { expanded = !expanded }
         AnimatedExpand(expanded) {
             if (suggestion != null) {
                 Text(
                     "Suggested: ${suggestion.weightKg}kg x ${suggestion.reps} -- ${suggestion.note}",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = LedgerFigureValue.copy(fontSize = 13.sp),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
                 )
@@ -221,6 +223,7 @@ private fun StrengthLogRow(
                     onValueChange = { weightText = it },
                     label = { Text("kg") },
                     placeholder = if (isBodyweight) { { Text("BW") } } else null,
+                    textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                 )
@@ -228,6 +231,7 @@ private fun StrengthLogRow(
                     value = repsText,
                     onValueChange = { repsText = it },
                     label = { Text("reps") },
+                    textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                 )
@@ -262,7 +266,7 @@ private fun CardioLogRow(
     val distance = distanceText.toDoubleOrNull()
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
 
-    ExerciseCard(visual.accent) {
+    ExerciseCard(expanded) {
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, expanded) { expanded = !expanded }
         AnimatedExpand(expanded) {
             if (duration != null && duration > 0) {
@@ -273,7 +277,12 @@ private fun CardioLogRow(
                     calories?.let { "~${it.toInt()} kcal" },
                 ).joinToString(" -- ")
                 if (details.isNotEmpty()) {
-                    Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = Spacing.Medium))
+                    Text(
+                        details,
+                        style = LedgerFigureValue.copy(fontSize = 13.sp),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = Spacing.Medium),
+                    )
                 }
             }
             Row(
@@ -284,6 +293,7 @@ private fun CardioLogRow(
                     value = durationText,
                     onValueChange = { durationText = it },
                     label = { Text("minutes") },
+                    textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                 )
@@ -291,6 +301,7 @@ private fun CardioLogRow(
                     value = distanceText,
                     onValueChange = { distanceText = it },
                     label = { Text("km (optional)") },
+                    textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                 )
@@ -319,13 +330,13 @@ private fun HoldLogRow(
     var secondsText by remember(exerciseName) { mutableStateOf("") }
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
 
-    ExerciseCard(visual.accent) {
+    ExerciseCard(expanded) {
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, expanded) { expanded = !expanded }
         AnimatedExpand(expanded) {
             if (suggestion != null) {
                 Text(
                     "Suggested: hold ${suggestion.targetDurationSeconds}s -- ${suggestion.note}",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = LedgerFigureValue.copy(fontSize = 13.sp),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
                 )
@@ -338,6 +349,7 @@ private fun HoldLogRow(
                     value = secondsText,
                     onValueChange = { secondsText = it },
                     label = { Text("seconds held") },
+                    textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                 )
