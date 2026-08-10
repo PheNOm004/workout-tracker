@@ -75,7 +75,7 @@ fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exerci
                 )
                 Text(formatEnumLabel(category.name), style = MaterialTheme.typography.titleMedium)
             }
-            if (expanded) {
+            AnimatedExpand(expanded) {
                 // Sorted so iteration order is deterministic across recompositions -- a plain
                 // HashMap's order isn't guaranteed, and combined with key() below, an unstable
                 // order would still churn which composable slot each group lands in.
@@ -103,7 +103,7 @@ fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exerci
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        if (groupExpanded) {
+                        AnimatedExpand(groupExpanded) {
                             groupExercises.forEach { exercise -> itemContent(exercise) }
                         }
                     }
