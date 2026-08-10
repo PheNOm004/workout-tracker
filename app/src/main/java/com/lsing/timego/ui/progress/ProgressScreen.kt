@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
@@ -51,7 +52,7 @@ import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SparklineChart
 import com.lsing.timego.ui.common.formatEnumLabel
-import com.lsing.timego.ui.theme.FrauncesStatValue
+import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -255,7 +256,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 val category = bmiCategory(currentBmi!!)
                 Text(
                     "BMI: %.1f (${formatEnumLabel(category.name)})".format(currentBmi),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = LedgerFigureValue.copy(fontSize = 14.sp),
                     color = if (category == BmiCategory.NORMAL) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 4.dp),
                 )
@@ -312,7 +313,10 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             }
         }
         items(bodyMetrics, key = { it.id }) { metric ->
-            Text("${metric.date}: ${metric.weightKg?.let { "${it}kg" } ?: "--"} / ${metric.waistCm?.let { "${it}cm" } ?: "--"}")
+            Text(
+                "${metric.date}: ${metric.weightKg?.let { "${it}kg" } ?: "--"} / ${metric.waistCm?.let { "${it}cm" } ?: "--"}",
+                style = LedgerFigureValue.copy(fontSize = 13.sp),
+            )
         }
     }
 }
@@ -333,9 +337,9 @@ private fun DayHistoryDialog(date: LocalDate, entries: List<DayHistoryEntry>, on
                 Column {
                     entries.forEachIndexed { index, entry ->
                         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                            Text("${index + 1}", modifier = Modifier.padding(end = 12.dp))
+                            Text("${index + 1}", style = LedgerFigureValue.copy(fontSize = 14.sp), modifier = Modifier.padding(end = 12.dp))
                             Text(entry.exerciseName, modifier = Modifier.weight(1f))
-                            Text(entry.description)
+                            Text(entry.description, style = LedgerFigureValue.copy(fontSize = 14.sp))
                         }
                     }
                 }
@@ -364,7 +368,7 @@ private fun StatTile(label: String, value: String, caption: String? = null) {
     ) {
         Column(modifier = Modifier.padding(Spacing.Medium)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = FrauncesStatValue)
+            Text(value, style = LedgerFigureValue)
             if (caption != null) {
                 Text(caption, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
