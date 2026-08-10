@@ -30,7 +30,7 @@ class MuscleDistributionTest {
 
     @Test
     fun `muscleGroupVolumeDistribution excludes cardio and warmup sets`() {
-        val run = Exercise(id = 3, name = "Running", muscleGroups = listOf("QUADS"), isCustom = false, category = "CARDIO")
+        val run = Exercise(id = 3, name = "Running", muscleGroups = listOf("QUADS"), isCustom = false, category = "CARDIO", loggingType = "DURATION_DISTANCE")
         val sets = listOf(
             SetLog(id = 1, sessionId = 1, exerciseId = 3, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0, durationMinutes = 30.0),
         )
@@ -40,6 +40,20 @@ class MuscleDistributionTest {
         val distribution = muscleGroupVolumeDistribution(sets, exercisesById, sessionDateById, since = LocalDate.of(2026, 8, 1))
 
         assertEquals(emptyMap<String, Double>(), distribution)
+    }
+
+    @Test
+    fun `muscleGroupVolumeDistribution counts hold seconds as volume for HOLD exercises`() {
+        val plank = Exercise(id = 4, name = "Plank", muscleGroups = listOf("ABS"), isCustom = false, category = "CALISTHENICS", loggingType = "HOLD")
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 4, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0, holdSeconds = 40, targetHoldSeconds = 40),
+        )
+        val exercisesById = mapOf(4L to plank)
+        val sessionDateById = mapOf(1L to LocalDate.of(2026, 8, 10))
+
+        val distribution = muscleGroupVolumeDistribution(sets, exercisesById, sessionDateById, since = LocalDate.of(2026, 8, 1))
+
+        assertEquals(40.0, distribution["ABS"]!!, 0.001)
     }
 
     @Test
