@@ -57,6 +57,26 @@ class MuscleDistributionTest {
     }
 
     @Test
+    fun `muscleGroupVolumeDistribution applies muscleWeights as a percentage of volume`() {
+        val squat = Exercise(
+            id = 1, name = "Squat", muscleGroups = listOf("QUADS", "GLUTES"), isCustom = false,
+            category = "STRENGTH", loggingType = "WEIGHT_REPS", muscleWeights = mapOf("GLUTES" to 60),
+        )
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+        )
+        val exercisesById = mapOf(1L to squat)
+        val sessionDateById = mapOf(1L to LocalDate.of(2026, 8, 10))
+
+        val distribution = muscleGroupVolumeDistribution(sets, exercisesById, sessionDateById, since = LocalDate.of(2026, 8, 1))
+
+        // 100kg x 5 = 500 volume. QUADS has no override -> defaults to 100% -> full 500.
+        // GLUTES is explicitly weighted 60% -> 300.
+        assertEquals(500.0, distribution["QUADS"]!!, 0.001)
+        assertEquals(300.0, distribution["GLUTES"]!!, 0.001)
+    }
+
+    @Test
     fun `trainingStats counts workouts, sets, volume, and estimates duration from set timestamps`() {
         val sessions = listOf(WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 10), routineId = null))
         val sets = listOf(

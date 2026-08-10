@@ -7,13 +7,13 @@ import com.lsing.timego.data.WorkoutSession
 import java.time.LocalDate
 
 /** Total volume per muscle group across WEIGHT_REPS/HOLD sets logged on or after [since] -- an
- *  exercise contributes its full volume to every muscle group it's tagged with (e.g. a squat set
- *  counts toward both QUADS and GLUTES). Backs the "muscle distribution" radar chart and the
- *  muscle-body heatmap. CARDIO/WARMUP excluded, same reasoning as personalRecords/
- *  muscleGroupStrengthCurve -- their weightKg/reps are 0.0/0 sentinels, not real values. HOLD
- *  exercises use holdSeconds directly as their "volume" figure: a rough proxy, not weight-
- *  equivalent, kept only so a muscle trained purely via holds doesn't show as untrained --
- *  superseded once the muscle-correlation model is redesigned with real per-muscle weighting. */
+ *  exercise contributes its volume to every muscle group it's tagged with, scaled by that
+ *  group's entry in [Exercise.muscleWeights] (defaulting to 100% when unspecified) -- e.g. a
+ *  squat set counts its full volume toward QUADS but a partial-credit fraction toward GLUTES if
+ *  weighted lower. Backs the "muscle distribution" radar chart and the muscle-body heatmap.
+ *  CARDIO/WARMUP excluded, same reasoning as personalRecords/muscleGroupStrengthCurve -- their
+ *  weightKg/reps are 0.0/0 sentinels, not real values. HOLD exercises use holdSeconds directly as
+ *  their "volume" figure before weighting: a rough proxy, not weight-equivalent. */
 fun muscleGroupVolumeDistribution(
     history: List<SetLog>,
     exercisesById: Map<Long, Exercise>,
@@ -31,7 +31,8 @@ fun muscleGroupVolumeDistribution(
         val date = sessionDateById[log.sessionId] ?: continue
         if (date.isBefore(since)) continue
         for (group in exercise.muscleGroups) {
-            volumeByGroup[group] = (volumeByGroup[group] ?: 0.0) + volume
+            val weightedVolume = volume * (exercise.muscleWeights[group] ?: 100) / 100.0
+            volumeByGroup[group] = (volumeByGroup[group] ?: 0.0) + weightedVolume
         }
     }
     return volumeByGroup
