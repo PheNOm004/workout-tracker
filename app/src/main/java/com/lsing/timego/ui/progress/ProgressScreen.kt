@@ -1,5 +1,12 @@
 package com.lsing.timego.ui.progress
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -145,26 +152,35 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     modifier = Modifier.padding(vertical = 4.dp),
                 )
                 val selectedExercise = exercisesWithRecords[selectedIndex]
-                val exerciseRecords = recordsByExercise[selectedExercise.id].orEmpty()
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Medium)) {
                         Text(selectedExercise.name, style = MaterialTheme.typography.titleSmall)
-                        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                        AnimatedContent(
+                            targetState = selectedExercise.id,
+                            transitionSpec = {
+                                (fadeIn(tween(200)) + scaleIn(initialScale = 0.95f, animationSpec = tween(200))) togetherWith
+                                    (fadeOut(tween(150)) + scaleOut(targetScale = 0.95f, animationSpec = tween(150)))
+                            },
+                            modifier = Modifier.padding(top = 8.dp),
+                        ) { exerciseId ->
+                            val exerciseRecords = recordsByExercise[exerciseId].orEmpty()
                             val applicableTypes = if (selectedExercise.loggingType == LoggingType.HOLD.name) {
                                 listOf(PrType.LONGEST_HOLD)
                             } else {
                                 listOf(PrType.HEAVIEST_WEIGHT, PrType.MOST_REPS, PrType.BEST_VOLUME)
                             }
-                            applicableTypes.forEach { type ->
-                                val record = exerciseRecords.firstOrNull { it.type == type }
-                                StatTile(
-                                    label = formatEnumLabel(type.name),
-                                    value = record?.let { formatRecordValue(it) } ?: "--",
-                                    caption = record?.achievedOn?.format(PR_DATE_FORMATTER),
-                                )
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                applicableTypes.forEach { type ->
+                                    val record = exerciseRecords.firstOrNull { it.type == type }
+                                    StatTile(
+                                        label = formatEnumLabel(type.name),
+                                        value = record?.let { formatRecordValue(it) } ?: "--",
+                                        caption = record?.achievedOn?.format(PR_DATE_FORMATTER),
+                                    )
+                                }
                             }
                         }
                     }
@@ -213,10 +229,19 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             }
         }
         item {
-            if (strengthCurve.isEmpty()) {
-                Text("No logged sets yet for this selection.", style = MaterialTheme.typography.bodySmall)
-            } else {
-                SparklineChart(strengthCurve, modifier = Modifier.fillMaxWidth().height(160.dp).padding(vertical = 8.dp))
+            val curveKey = if (curveMode == CurveMode.EXERCISE) selectedExerciseId else selectedMuscleGroup
+            AnimatedContent(
+                targetState = curveKey,
+                transitionSpec = {
+                    (fadeIn(tween(200)) + scaleIn(initialScale = 0.95f, animationSpec = tween(200))) togetherWith
+                        (fadeOut(tween(150)) + scaleOut(targetScale = 0.95f, animationSpec = tween(150)))
+                },
+            ) {
+                if (strengthCurve.isEmpty()) {
+                    Text("No logged sets yet for this selection.", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    SparklineChart(strengthCurve, modifier = Modifier.fillMaxWidth().height(160.dp).padding(vertical = 8.dp))
+                }
             }
         }
         item {
