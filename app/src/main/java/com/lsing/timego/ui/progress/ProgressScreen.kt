@@ -93,7 +93,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             SectionHeader("Consistency", topPadding = Spacing.ExtraSmall)
             HeatmapGrid(
                 ratios = volumeRatios,
-                lightColor = Color(0xFFD9622E),
+                lightColor = Color(0xFFE12D23),
                 darkColor = Color(0xFF5C1A14),
                 onDateClick = { date -> viewModel.selectHistoryDate(date) },
             )

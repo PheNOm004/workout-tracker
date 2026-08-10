@@ -3,17 +3,21 @@ package com.lsing.timego.domain
 import kotlin.math.roundToInt
 
 /** Graphite-to-ember intensity scale for the muscle heatmap (low recent volume -> high),
- *  re-picked within the Training Ledger palette -- graphite/tan through amber to the accent's
- *  brick-red, evenly-spaced stops interpolated as before. [intensity] (0..1, clamped) is
- *  interpolated linearly between whichever pair of stops it falls between. Deliberately plain
- *  Kotlin/hex-string in-out, same style as [habitHeatmapColorHexes], so it stays unit-testable
- *  without Robolectric and callers convert to Compose Color at the UI edge. */
+ *  re-picked within the Training Ledger palette -- graphite/tan through amber-brown to a
+ *  saturated ember red, each stop's red channel strictly higher than the last so the scale
+ *  reads as monotonically hotter (a dark "brick" red actually has a *lower* raw red channel
+ *  than a bright orange, so the high stop is a brighter, more saturated red than the brand's
+ *  own muted accent -- legibility at the hot end of a heat scale outranks matching the brand
+ *  swatch exactly). [intensity] (0..1, clamped) is interpolated linearly between whichever pair
+ *  of stops it falls between. Deliberately plain Kotlin/hex-string in-out, same style as
+ *  [habitHeatmapColorHexes], so it stays unit-testable without Robolectric and callers convert
+ *  to Compose Color at the UI edge. */
 private val HEAT_STOPS = listOf(
-    "#8A8367", // low -- untrained/cool reads as flat graphite-tan, not a "cold" hue
-    "#C98A2E", // amber -- matches LedgerPlateauing
-    "#D9622E",
-    "#C23B25",
-    "#8C2C22", // high -- matches LedgerAccentDim
+    "#8A8367", // low -- untrained/cool reads as flat graphite-tan, not a "cold" hue, matches LedgerSecondary
+    "#A57042", // amber-brown
+    "#BE5A30", // burnt orange
+    "#D24028", // red-orange
+    "#E12D23", // high -- saturated ember red
 )
 
 /** The scale's stops in order, low to high -- exposed so UI code can render a matching legend
