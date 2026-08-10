@@ -4,7 +4,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SeedExercisesTest {
-    private val holdExerciseNames = setOf("Plank", "Side Plank", "Wall Sit", "L-Sit", "Dead Hang", "Superman")
+    private val holdExerciseNames = setOf(
+        "Plank", "Side Plank", "Wall Sit", "L-Sit", "Dead Hang", "Superman",
+        "Planche Lean", "Hollow Body Hold", "Copenhagen Plank", "Wall Handstand Hold",
+        "Tuck Planche Hold", "Front Lever Hold", "Back Lever Hold", "Human Flag Hold",
+    )
 
     @Test
     fun `exactly the curated hold exercises are tagged HOLD`() {
