@@ -43,4 +43,15 @@ class SeedExercisesTest {
         val outOfRange = SEED_EXERCISES.filter { exercise -> exercise.muscleWeights.values.any { it !in 1..100 } }
         assertEquals(emptyList<Exercise>(), outOfRange)
     }
+
+    @Test
+    fun `no duplicate exercise names`() {
+        val names = SEED_EXERCISES.map { it.name }
+        assertEquals(names.size, names.toSet().size)
+    }
+
+    @Test
+    fun `library has grown to roughly 300 exercises`() {
+        assertEquals(true, SEED_EXERCISES.size in 250..350)
+    }
 }
