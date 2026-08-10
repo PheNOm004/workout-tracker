@@ -91,6 +91,12 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         }
         item {
             SectionHeader("Muscle Distribution (last 30 days)")
+            Text(
+                "Colors show volume relative to your most-trained muscle group this period",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
             if (muscleDistribution.isEmpty()) {
                 Text(
                     "No strength sets logged in the last 30 days yet.",
