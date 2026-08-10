@@ -18,15 +18,30 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
     /** Inserts any [seed] exercise whose name isn't already present -- NOT gated on the table
      *  being totally empty, since expanding the seed list (Update 1.1: 12 -> 119) must still
      *  reach devices that already have some exercises logged. Matches by name rather than id,
-     *  since seed entries have no stable id across app versions. */
+     *  since seed entries have no stable id across app versions. Also syncs [Exercise.loggingType]
+     *  for exercises that already exist but whose seed loggingType has since changed (e.g. Plank
+     *  reclassified WEIGHT_REPS -> HOLD) -- otherwise an already-migrated device would keep the
+     *  stale value forever, since insertAll only touches missing rows. */
     suspend fun seedMissingExercises(seed: List<Exercise>) {
-        val existingNames = exercises.first().map { it.name }.toSet()
-        val missing = seed.filter { it.name !in existingNames }
+        val existingByName = exercises.first().associateBy { it.name }
+        val missing = seed.filter { it.name !in existingByName.keys }
         if (missing.isNotEmpty()) db.exerciseDao().insertAll(missing)
+        seed.forEach { seedExercise ->
+            val existing = existingByName[seedExercise.name]
+            if (existing != null && existing.loggingType != seedExercise.loggingType) {
+                db.exerciseDao().updateLoggingType(seedExercise.name, seedExercise.loggingType)
+            }
+        }
     }
 
-    suspend fun addCustomExercise(name: String, muscleGroups: List<String>, category: String): Long =
-        db.exerciseDao().insert(Exercise(name = name, muscleGroups = muscleGroups, isCustom = true, category = category))
+    suspend fun addCustomExercise(name: String, muscleGroups: List<String>, category: String): Long {
+        val loggingType = if (category == ExerciseCategory.CARDIO.name || category == ExerciseCategory.WARMUP.name) {
+            LoggingType.DURATION_DISTANCE.name
+        } else {
+            LoggingType.WEIGHT_REPS.name
+        }
+        return db.exerciseDao().insert(Exercise(name = name, muscleGroups = muscleGroups, isCustom = true, category = category, loggingType = loggingType))
+    }
 
     suspend fun startOrGetTodaySession(routineId: Long?): WorkoutSession =
         db.sessionDao().findByDate(LocalDate.now())
@@ -58,6 +73,21 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                 loggedAtEpochMillis = System.currentTimeMillis(),
                 durationMinutes = durationMinutes,
                 distanceKm = distanceKm,
+            ),
+        )
+    }
+
+    suspend fun logHoldSet(sessionId: Long, exerciseId: Long, durationSeconds: Int, targetDurationSeconds: Int) {
+        db.setLogDao().insert(
+            SetLog(
+                sessionId = sessionId,
+                exerciseId = exerciseId,
+                weightKg = 0.0,
+                reps = 0,
+                targetReps = 0,
+                loggedAtEpochMillis = System.currentTimeMillis(),
+                holdSeconds = durationSeconds,
+                targetHoldSeconds = targetDurationSeconds,
             ),
         )
     }

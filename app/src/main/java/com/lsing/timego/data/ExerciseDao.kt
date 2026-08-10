@@ -22,4 +22,7 @@ interface ExerciseDao {
 
     @Query("SELECT * FROM exercises WHERE id = :id")
     suspend fun getById(id: Long): Exercise?
+
+    @Query("UPDATE exercises SET loggingType = :loggingType WHERE name = :name")
+    suspend fun updateLoggingType(name: String, loggingType: String)
 }
