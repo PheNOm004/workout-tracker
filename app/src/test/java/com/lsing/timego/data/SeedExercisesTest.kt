@@ -8,6 +8,12 @@ class SeedExercisesTest {
         "Plank", "Side Plank", "Wall Sit", "L-Sit", "Dead Hang", "Superman",
         "Planche Lean", "Hollow Body Hold", "Copenhagen Plank", "Wall Handstand Hold",
         "Tuck Planche Hold", "Front Lever Hold", "Back Lever Hold", "Human Flag Hold",
+        // Imported (external exercise library import)
+        "Frog Stand", "Advanced Tuck Planche Hold", "Straddle Planche Hold", "Full Planche Hold",
+        "Freestanding Handstand Hold", "Tuck Front Lever", "Advanced Tuck Front Lever",
+        "Straddle Front Lever", "Tuck Back Lever", "Straddle Back Lever", "Ring Support Hold",
+        "Bent-Arm Iron Cross Hold", "Star Plank", "Single-Leg Wall Sit", "Human Flag Tuck",
+        "Human Flag Straddle", "Bear Crawl Hold", "Animal Flow Beast Hold",
     )
 
     @Test
