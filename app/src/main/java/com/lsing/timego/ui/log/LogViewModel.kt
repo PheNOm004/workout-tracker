@@ -118,7 +118,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val session = repository.startOrGetTodaySession(routineId = _selectedRoutineId.value)
             repository.logSet(session.id, exerciseId, weightKg, reps, targetReps)
-            refreshSuggestions(allExercises)
+            refreshSuggestionForExercise(exerciseId)
         }
     }
 
@@ -133,7 +133,35 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val session = repository.startOrGetTodaySession(routineId = _selectedRoutineId.value)
             repository.logHoldSet(session.id, exerciseId, durationSeconds, targetDurationSeconds)
-            refreshSuggestions(allExercises)
+            refreshSuggestionForExercise(exerciseId)
+        }
+    }
+
+    /** Recomputes the suggestion for just the exercise that was logged, instead of every exercise
+     *  in the library ([refreshSuggestions] used to run after every single logged set -- a full
+     *  history rescan grouped across all 585 seeded exercises just to update one row, which is why
+     *  logging felt slow). Only that exercise's own history can have changed, so only its map entry
+     *  needs to move; every other exercise's suggestion (and the suggestions for exercises that
+     *  aren't even on screen right now) is untouched. */
+    private suspend fun refreshSuggestionForExercise(exerciseId: Long) {
+        val exercise = allExercises.firstOrNull { it.id == exerciseId } ?: return
+        val history = repository.historyForExercise(exerciseId)
+        if (exercise.loggingType == LoggingType.HOLD.name) {
+            val holdHistory = history.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
+            val suggestion = holdSuggester.suggestNext(holdHistory, exercise.name)
+            _holdSuggestions.value = if (suggestion != null) {
+                _holdSuggestions.value + (exerciseId to suggestion)
+            } else {
+                _holdSuggestions.value - exerciseId
+            }
+        } else {
+            val performanceHistory = history.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
+            val suggestion = suggester.suggestNext(performanceHistory)
+            _suggestions.value = if (suggestion != null) {
+                _suggestions.value + (exerciseId to suggestion)
+            } else {
+                _suggestions.value - exerciseId
+            }
         }
     }
 

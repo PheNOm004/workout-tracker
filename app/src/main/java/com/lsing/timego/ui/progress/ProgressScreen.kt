@@ -158,7 +158,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Medium)) {
-                        Text(selectedExercise.name, style = MaterialTheme.typography.titleSmall)
+                        // Exercise name dropped -- it's already the centered item on the wheel
+                        // picker directly above this card, repeating it here was redundant.
                         AnimatedContent(
                             targetState = selectedExercise.id,
                             transitionSpec = {
@@ -167,7 +168,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                     (fadeOut(spring(stiffness = Spring.StiffnessHigh)) +
                                         scaleOut(targetScale = 0.92f, animationSpec = spring(stiffness = Spring.StiffnessHigh)))
                             },
-                            modifier = Modifier.padding(top = 8.dp),
                         ) { exerciseId ->
                             val exerciseRecords = recordsByExercise[exerciseId].orEmpty()
                             Row(modifier = Modifier.fillMaxWidth()) {
@@ -177,6 +177,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                         label = "Longest Hold",
                                         value = record?.let { "${it.value.toInt()}s" } ?: "--",
                                         caption = record?.achievedOn?.format(PR_DATE_FORMATTER),
+                                        modifier = Modifier.weight(1f),
                                     )
                                 } else {
                                     // All three tiles read off the same best-set record (weight, reps,
@@ -189,16 +190,19 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                         label = "Weight",
                                         value = record?.let { "${it.value}kg" } ?: "--",
                                         caption = caption,
+                                        modifier = Modifier.weight(1f),
                                     )
                                     StatTile(
                                         label = "Reps",
                                         value = record?.secondaryValue?.let { "${it.toInt()}" } ?: "--",
                                         caption = caption,
+                                        modifier = Modifier.weight(1f),
                                     )
                                     StatTile(
                                         label = "Total Weight",
                                         value = record?.let { "${it.value * (it.secondaryValue ?: 0.0)}kg" } ?: "--",
                                         caption = caption,
+                                        modifier = Modifier.weight(1f),
                                     )
                                 }
                             }
@@ -370,9 +374,9 @@ private fun DayHistoryDialog(date: LocalDate, entries: List<DayHistoryEntry>, on
 private val PR_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d")
 
 @Composable
-private fun StatTile(label: String, value: String, caption: String? = null) {
+private fun StatTile(label: String, value: String, caption: String? = null, modifier: Modifier = Modifier) {
     Card(
-        modifier = Modifier.padding(Spacing.ExtraSmall),
+        modifier = modifier.padding(Spacing.ExtraSmall),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(modifier = Modifier.padding(Spacing.Medium)) {

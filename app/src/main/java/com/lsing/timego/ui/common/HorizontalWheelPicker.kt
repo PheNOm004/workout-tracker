@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -86,11 +87,18 @@ fun HorizontalWheelPicker(
                             .alpha(if (isSelected) 1f else 0.4f),
                         contentAlignment = Alignment.Center,
                     ) {
+                        // maxLines=1 alone doesn't clip -- Box doesn't clip its children by
+                        // default, so a long name (the library has plenty) rendered past its
+                        // itemWidth bled into the neighboring item's space instead of stopping at
+                        // this item's boundary, which is what actually read as "inconsistent
+                        // spacing" between items rather than a spacing value being wrong anywhere.
                         Text(
                             label,
                             style = if (isSelected) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
                             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 4.dp),
                         )
                     }
                 }
