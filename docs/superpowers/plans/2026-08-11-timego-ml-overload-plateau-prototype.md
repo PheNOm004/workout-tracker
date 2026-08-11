@@ -302,7 +302,7 @@ def test_with_prior_blends_toward_prior_when_data_is_sparse():
     one_rms = [100.0]  # n=1, w = 1/(1+10) ~ 0.09, mostly prior
     result = predict_next_one_rep_max(one_rms, population_prior=150.0)
     assert 100.0 < result < 150.0
-    assert result < 110.0  # should sit close to the prior, not the single data point
+    assert result > 140.0  # should sit close to the prior, not the single data point
 
 
 def test_requires_at_least_one_data_point():
