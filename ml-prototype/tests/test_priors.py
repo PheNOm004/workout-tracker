@@ -7,17 +7,17 @@ def _sample_df():
         "Sex": ["M", "M", "M", "F", "F"],
         "Equipment": ["Raw", "Raw", "Raw", "Raw", "Raw"],
         "BodyweightKg": [80.0, 90.0, 100.0, 60.0, 65.0],
-        "BestSquatKg": [140.0, 160.0, 180.0, 90.0, 100.0],
-        "BestBenchKg": [100.0, 110.0, 120.0, 50.0, 55.0],
-        "BestDeadliftKg": [180.0, 200.0, 220.0, 110.0, 120.0],
+        "Best3SquatKg": [140.0, 160.0, 180.0, 90.0, 100.0],
+        "Best3BenchKg": [100.0, 110.0, 120.0, 50.0, 55.0],
+        "Best3DeadliftKg": [180.0, 200.0, 220.0, 110.0, 120.0],
     })
 
 
 def test_known_categories_map_to_columns():
     assert LIFT_CATEGORY_COLUMNS == {
-        "squat": "BestSquatKg",
-        "bench": "BestBenchKg",
-        "deadlift": "BestDeadliftKg",
+        "squat": "Best3SquatKg",
+        "bench": "Best3BenchKg",
+        "deadlift": "Best3DeadliftKg",
     }
 
 

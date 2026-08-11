@@ -1,9 +1,9 @@
 import pandas as pd
 
 LIFT_CATEGORY_COLUMNS = {
-    "squat": "BestSquatKg",
-    "bench": "BestBenchKg",
-    "deadlift": "BestDeadliftKg",
+    "squat": "Best3SquatKg",
+    "bench": "Best3BenchKg",
+    "deadlift": "Best3DeadliftKg",
 }
 
 
