@@ -201,7 +201,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                     val caption = record?.achievedOn?.format(PR_DATE_FORMATTER)
                                     StatTile(
                                         label = "Weight",
-                                        value = record?.let { "${it.value}kg" } ?: "--",
+                                        value = record?.let { "%.1fkg".format(it.value) } ?: "--",
                                         caption = caption,
                                         modifier = Modifier.weight(1f),
                                     )
@@ -213,7 +213,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                     )
                                     StatTile(
                                         label = "Total Weight",
-                                        value = record?.let { "${it.value * (it.secondaryValue ?: 0.0)}kg" } ?: "--",
+                                        value = record?.let { "%.1fkg".format(it.value * (it.secondaryValue ?: 0.0)) } ?: "--",
                                         caption = caption,
                                         modifier = Modifier.weight(1f),
                                     )
