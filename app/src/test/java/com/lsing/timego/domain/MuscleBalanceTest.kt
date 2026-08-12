@@ -102,4 +102,48 @@ class MuscleBalanceTest {
         assertEquals(setOf("QUADS", "CHEST"), result.toSet())
         assertEquals(2, result.size)
     }
+
+    @Test
+    fun `muscleGroupsWorkedInSession unions muscle groups across a session's sets`() {
+        val setLogs = listOf(
+            SetLog(id = 1, sessionId = 10, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 10, exerciseId = 2, weightKg = 60.0, reps = 8, targetReps = 8, loggedAtEpochMillis = 0),
+        )
+
+        val result = muscleGroupsWorkedInSession(sessionId = 10, setLogs = setLogs, exercises = listOf(legsExercise, chestExercise))
+
+        assertEquals(setOf("QUADS", "CHEST"), result)
+    }
+
+    @Test
+    fun `muscleGroupsWorkedInSession ignores sets from other sessions`() {
+        val setLogs = listOf(
+            SetLog(id = 1, sessionId = 10, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 99, exerciseId = 2, weightKg = 60.0, reps = 8, targetReps = 8, loggedAtEpochMillis = 0),
+        )
+
+        val result = muscleGroupsWorkedInSession(sessionId = 10, setLogs = setLogs, exercises = listOf(legsExercise, chestExercise))
+
+        assertEquals(setOf("QUADS"), result)
+    }
+
+    @Test
+    fun `muscleGroupsWorkedInSession returns empty set for a session with no sets`() {
+        val result = muscleGroupsWorkedInSession(sessionId = 10, setLogs = emptyList(), exercises = listOf(legsExercise))
+
+        assertEquals(emptySet<String>(), result)
+    }
+
+    @Test
+    fun `muscleGroupsWorkedInSession dedupes when two exercises share a muscle group`() {
+        val secondLegsExercise = Exercise(id = 3, name = "Leg Press", muscleGroups = listOf("QUADS"), isCustom = false)
+        val setLogs = listOf(
+            SetLog(id = 1, sessionId = 10, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 10, exerciseId = 3, weightKg = 80.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0),
+        )
+
+        val result = muscleGroupsWorkedInSession(sessionId = 10, setLogs = setLogs, exercises = listOf(legsExercise, secondLegsExercise))
+
+        assertEquals(setOf("QUADS"), result)
+    }
 }

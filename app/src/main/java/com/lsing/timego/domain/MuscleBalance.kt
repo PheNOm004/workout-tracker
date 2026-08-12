@@ -45,3 +45,20 @@ fun rankUntrainedMuscleGroups(
     val last = lastTrainedByGroup[group] ?: return@sortedByDescending Long.MAX_VALUE
     ChronoUnit.DAYS.between(last, today)
 }
+
+/** Which muscle groups a session actually trained, derived from its logged sets -- shared by the
+ *  logging landing page's last-session summary card (this spec) and, later, the Progress screen's
+ *  heatmap workout-summary feature. Deliberately session-scoped rather than date-scoped: two
+ *  sessions can share a calendar date now that WorkoutSession isn't date-unique, and this should
+ *  answer "what did THIS session train," not "what was trained that whole day." */
+fun muscleGroupsWorkedInSession(
+    sessionId: Long,
+    setLogs: List<SetLog>,
+    exercises: List<Exercise>,
+): Set<String> {
+    val exercisesById = exercises.associateBy { it.id }
+    return setLogs
+        .filter { it.sessionId == sessionId }
+        .flatMap { log -> exercisesById[log.exerciseId]?.muscleGroups.orEmpty() }
+        .toSet()
+}
