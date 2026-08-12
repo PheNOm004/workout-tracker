@@ -1,9 +1,11 @@
 package com.lsing.timego.ui.common
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -51,15 +53,31 @@ fun buildDayHistoryEntries(setLogs: List<SetLog>, exercisesById: Map<Long, Exerc
  *  (title = "Last session"). [title] is caller-supplied rather than assuming a date, since the
  *  landing page's "last session" isn't itself date-keyed the way the heatmap's tap target is. */
 @Composable
-fun WorkoutHistoryDialog(title: String, entries: List<DayHistoryEntry>, onDismiss: () -> Unit) {
+fun WorkoutHistoryDialog(
+    title: String,
+    entries: List<DayHistoryEntry>,
+    onDismiss: () -> Unit,
+    muscleGroups: Set<String> = emptySet(),
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            if (entries.isEmpty()) {
-                Text("No sets logged.")
-            } else {
-                Column {
+            Column {
+                if (muscleGroups.isNotEmpty()) {
+                    FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                        muscleGroups.sorted().forEach { group ->
+                            AssistChip(
+                                onClick = {},
+                                label = { Text(formatEnumLabel(group)) },
+                                modifier = Modifier.padding(end = 4.dp),
+                            )
+                        }
+                    }
+                }
+                if (entries.isEmpty()) {
+                    Text("No sets logged.")
+                } else {
                     entries.forEach { entry ->
                         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
                             Text(entry.exerciseName, style = MaterialTheme.typography.bodyMedium)

@@ -12,6 +12,7 @@ import com.lsing.timego.domain.TrainingStats
 import com.lsing.timego.domain.bodyMassIndex
 import com.lsing.timego.domain.muscleGroupStrengthCurve
 import com.lsing.timego.domain.muscleGroupVolumeDistribution
+import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.personalRecords
 import com.lsing.timego.domain.strengthCurve
 import com.lsing.timego.domain.trainingStats
@@ -61,6 +62,9 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
 
     private val _historyForSelectedDate = MutableStateFlow<List<DayHistoryEntry>>(emptyList())
     val historyForSelectedDate: StateFlow<List<DayHistoryEntry>> = _historyForSelectedDate.asStateFlow()
+
+    private val _historyMuscleGroups = MutableStateFlow<Set<String>>(emptySet())
+    val historyMuscleGroups: StateFlow<Set<String>> = _historyMuscleGroups.asStateFlow()
 
     private val _weightCurve = MutableStateFlow<List<Pair<LocalDate, Double>>>(emptyList())
     val weightCurve: StateFlow<List<Pair<LocalDate, Double>>> = _weightCurve.asStateFlow()
@@ -161,6 +165,7 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
         _selectedHistoryDate.value = date
         if (date == null) {
             _historyForSelectedDate.value = emptyList()
+            _historyMuscleGroups.value = emptySet()
             return
         }
         viewModelScope.launch {
@@ -168,6 +173,9 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
             val exercisesById = _exercises.value.associateBy { it.id }
             val sets = repository.allSetLogs().filter { it.sessionId in sessionIds }.sortedBy { it.loggedAtEpochMillis }
             _historyForSelectedDate.value = buildDayHistoryEntries(sets, exercisesById)
+            _historyMuscleGroups.value = sessionIds.flatMap { sessionId ->
+                muscleGroupsWorkedInSession(sessionId, sets, _exercises.value)
+            }.toSet()
         }
     }
 }

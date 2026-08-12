@@ -81,12 +81,14 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
 
     val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsState()
     val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsState()
+    val historyMuscleGroups by viewModel.historyMuscleGroups.collectAsState()
 
     if (selectedHistoryDate != null) {
         WorkoutHistoryDialog(
             title = "Workout on ${selectedHistoryDate!!}",
             entries = historyForSelectedDate,
             onDismiss = { viewModel.selectHistoryDate(null) },
+            muscleGroups = historyMuscleGroups,
         )
     }
 
