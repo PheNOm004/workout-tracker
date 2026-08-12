@@ -8,6 +8,7 @@ import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.Routine
 import com.lsing.timego.data.SEED_EXERCISES
+import com.lsing.timego.data.SettingsRepository
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.HoldPerformance
@@ -59,6 +60,7 @@ data class LandingSummary(
  *  of defaulting to freeform -- that's the whole point of routine scheduling (Update 1.1). */
 class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
+    private val settingsRepository = SettingsRepository(application)
     private val suggester = RuleBasedOverloadSuggester()
     private val holdSuggester = RuleBasedHoldSuggester()
 
@@ -89,7 +91,13 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val _landingSummary = MutableStateFlow(LandingSummary(lastSession = null, recommendedMuscleGroups = emptyList()))
     val landingSummary: StateFlow<LandingSummary> = _landingSummary.asStateFlow()
 
+    private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
+    val holdDelaySeconds: StateFlow<Int> = _holdDelaySeconds.asStateFlow()
+
     init {
+        viewModelScope.launch {
+            settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
+        }
         viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
             repository.exercises.collect { list ->

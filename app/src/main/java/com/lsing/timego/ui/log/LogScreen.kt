@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,10 +47,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.domain.HoldSuggestion
+import com.lsing.timego.domain.HoldTimerPhase
 import com.lsing.timego.domain.MET_CARDIO
 import com.lsing.timego.domain.MET_WARMUP
 import com.lsing.timego.domain.averagePaceMinPerKm
 import com.lsing.timego.domain.estimatedCalorieBurn
+import com.lsing.timego.domain.tick
 import com.lsing.timego.ui.common.AnimatedExpand
 import com.lsing.timego.ui.common.ExerciseSections
 import com.lsing.timego.ui.common.SectionHeader
@@ -58,6 +61,7 @@ import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.categoryVisual
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
+import kotlinx.coroutines.delay
 import com.lsing.timego.ui.theme.Spacing
 
 @Composable
@@ -176,6 +180,7 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, on
     val routines by viewModel.routines.collectAsState()
     val selectedRoutineId by viewModel.selectedRoutineId.collectAsState()
     val latestBodyWeightKg by viewModel.latestBodyWeightKg.collectAsState()
+    val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
     if (showAddDialog) {
@@ -231,6 +236,7 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, on
                             exerciseName = exercise.name,
                             category = exercise.category,
                             suggestion = holdSuggestions[exercise.id],
+                            delaySeconds = holdDelaySeconds,
                             onLog = { duration, target, isWarmup -> viewModel.logHoldSet(exercise.id, duration, target, isWarmup) },
                         )
                         LoggingType.DURATION_DISTANCE.name -> CardioLogRow(
@@ -477,12 +483,19 @@ private fun HoldLogRow(
     exerciseName: String,
     category: String,
     suggestion: HoldSuggestion?,
+    delaySeconds: Int,
     onLog: (durationSeconds: Int, targetDurationSeconds: Int, isWarmup: Boolean) -> Unit,
 ) {
     var expanded by remember(exerciseName) { mutableStateOf(false) }
-    var secondsText by remember(exerciseName) { mutableStateOf("") }
     var isWarmup by remember(exerciseName) { mutableStateOf(false) }
+    var phase by remember(exerciseName) { mutableStateOf<HoldTimerPhase?>(null) }
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
+
+    LaunchedEffect(phase) {
+        val current = phase ?: return@LaunchedEffect
+        delay(1000)
+        phase = current.tick()
+    }
 
     ExerciseCard(expanded) {
         ExerciseRowHeader(
@@ -508,27 +521,47 @@ private fun HoldLogRow(
                 Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
                 Text("Warmup set", style = MaterialTheme.typography.bodySmall)
             }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = secondsText,
-                    onValueChange = { secondsText = it },
-                    label = { Text("seconds held") },
-                    textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f).padding(end = Spacing.Small),
-                )
-                Button(onClick = {
-                    val seconds = secondsText.toIntOrNull()
-                    if (seconds != null) {
-                        onLog(seconds, suggestion?.targetDurationSeconds ?: seconds, isWarmup)
-                        secondsText = ""
-                        isWarmup = false
+            when (val currentPhase = phase) {
+                null -> Row(
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Button(onClick = {
+                        phase = if (delaySeconds <= 0) HoldTimerPhase.Running(0) else HoldTimerPhase.CountingDown(delaySeconds)
+                    }) {
+                        Text("Start")
                     }
-                }) {
-                    Text("Log hold")
+                }
+                is HoldTimerPhase.CountingDown -> Row(
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "Starting in ${currentPhase.secondsRemaining}s...",
+                        style = LedgerFigureValue,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Button(onClick = { phase = null }) {
+                        Text("Cancel")
+                    }
+                }
+                is HoldTimerPhase.Running -> Row(
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "${currentPhase.elapsedSeconds}s",
+                        style = LedgerFigureValue,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Button(onClick = {
+                        val seconds = currentPhase.elapsedSeconds
+                        onLog(seconds, suggestion?.targetDurationSeconds ?: seconds, isWarmup)
+                        phase = null
+                        isWarmup = false
+                    }) {
+                        Text("Stop & Log")
+                    }
                 }
             }
         }
