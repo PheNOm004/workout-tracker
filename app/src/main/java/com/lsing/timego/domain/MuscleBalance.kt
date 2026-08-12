@@ -31,3 +31,17 @@ fun untrainedMuscleGroups(
     val last = lastTrainedByGroup[group]
     last == null || ChronoUnit.DAYS.between(last, today) >= thresholdDays
 }
+
+/** Same neglect signal as [untrainedMuscleGroups] but returns every group ranked by staleness
+ *  (most-neglected first) instead of a threshold-filtered flag list -- backs the logging landing
+ *  page's "recommended muscle group" pick (top of this list = best candidate for balanced
+ *  growth). Never-trained groups (absent from [lastTrainedByGroup]) sort first, ahead of any
+ *  trained-but-stale group, since "never" is more neglected than any finite number of days. */
+fun rankUntrainedMuscleGroups(
+    allGroups: List<String>,
+    lastTrainedByGroup: Map<String, LocalDate>,
+    today: LocalDate,
+): List<String> = allGroups.sortedByDescending { group ->
+    val last = lastTrainedByGroup[group] ?: return@sortedByDescending Long.MAX_VALUE
+    ChronoUnit.DAYS.between(last, today)
+}
