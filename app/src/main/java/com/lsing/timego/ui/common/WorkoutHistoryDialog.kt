@@ -1,7 +1,6 @@
 package com.lsing.timego.ui.common
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -62,11 +61,12 @@ fun WorkoutHistoryDialog(title: String, entries: List<DayHistoryEntry>, onDismis
             } else {
                 Column {
                     entries.forEach { entry ->
-                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                            Text(entry.exerciseName, modifier = Modifier.weight(1f))
+                        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                            Text(entry.exerciseName, style = MaterialTheme.typography.bodyMedium)
                             Text(
                                 entry.setDescriptions.joinToString(", "),
-                                style = LedgerFigureValue.copy(fontSize = 14.sp),
+                                style = LedgerFigureValue.copy(fontSize = 13.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }

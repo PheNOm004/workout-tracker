@@ -28,6 +28,12 @@ import com.lsing.timego.data.ExerciseCategory
 fun formatEnumLabel(rawName: String): String =
     rawName.lowercase().split("_").joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
 
+/** Strips hyphens/spaces and lowercases so a search for "pull up" or "pullup" matches an exercise
+ *  named "Pull-Up" -- exercise names keep their real punctuation (no renaming), only the search
+ *  comparison ignores it. Applied to both the query and the candidate name. */
+private fun normalizeForSearch(text: String): String =
+    text.lowercase().filterNot { it == '-' || it == ' ' }
+
 /** Renders [exercises] with a search box, then grouped by category (collapsible, defaults to
  *  expanded) and sub-headed by muscle group within each category. [itemContent] renders one
  *  exercise's row -- this component owns only the search/grouping/collapse chrome so Log and
@@ -49,7 +55,7 @@ fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exerci
 
     if (query.isNotBlank()) {
         val matches = remember(exercises, query) {
-            exercises.filter { it.name.contains(query, ignoreCase = true) }
+            exercises.filter { normalizeForSearch(it.name).contains(normalizeForSearch(query)) }
         }
         matches.forEach { exercise -> itemContent(exercise) }
         return
