@@ -9,13 +9,13 @@ class HoldSuggesterTest {
 
     @Test
     fun `no history returns null`() {
-        assertNull(suggester.suggestNext(emptyList(), "Plank"))
+        assertNull(suggester.suggestNext(emptyList(), emptyList(), "Plank"))
     }
 
     @Test
     fun `hit target hold suggests a longer duration`() {
         val history = listOf(HoldPerformance(durationSeconds = 30, targetDurationSeconds = 30))
-        val result = suggester.suggestNext(history, "Plank")
+        val result = suggester.suggestNext(history, emptyList(), "Plank")
         assertEquals(35, result!!.targetDurationSeconds)
         assertEquals(PlateauStatus.PROGRESSING, result.plateauStatus)
     }
@@ -23,7 +23,7 @@ class HoldSuggesterTest {
     @Test
     fun `missed target hold suggests the same target`() {
         val history = listOf(HoldPerformance(durationSeconds = 20, targetDurationSeconds = 30))
-        val result = suggester.suggestNext(history, "Plank")
+        val result = suggester.suggestNext(history, emptyList(), "Plank")
         assertEquals(30, result!!.targetDurationSeconds)
         assertEquals(PlateauStatus.PROGRESSING, result.plateauStatus)
     }
@@ -34,7 +34,7 @@ class HoldSuggesterTest {
             HoldPerformance(durationSeconds = 20, targetDurationSeconds = 30),
             HoldPerformance(durationSeconds = 22, targetDurationSeconds = 30),
         )
-        val result = suggester.suggestNext(history, "Plank")
+        val result = suggester.suggestNext(history, emptyList(), "Plank")
         assertEquals(27, result!!.targetDurationSeconds)
         assertEquals("Deload: missed target hold twice in a row", result.note)
         assertEquals(PlateauStatus.REGRESSING, result.plateauStatus)
@@ -52,7 +52,7 @@ class HoldSuggesterTest {
             HoldPerformance(durationSeconds = 32, targetDurationSeconds = 30),
             HoldPerformance(durationSeconds = 30, targetDurationSeconds = 30),
         )
-        val result = suggester.suggestNext(history, "Plank")
+        val result = suggester.suggestNext(history, emptyList(), "Plank")
         assertEquals(PlateauStatus.PLATEAUING, result!!.plateauStatus)
         assertEquals(30, result.targetDurationSeconds)
         assertEquals(true, result.note.contains("plateau", ignoreCase = true))
@@ -62,28 +62,49 @@ class HoldSuggesterTest {
     fun `hitting target well past the ceiling on a mapped exercise suggests the next tier`() {
         // 45s held against a 30s target is 1.5x -- the ceiling threshold.
         val history = listOf(HoldPerformance(durationSeconds = 45, targetDurationSeconds = 30))
-        val result = suggester.suggestNext(history, "Tuck Planche Hold")
+        val result = suggester.suggestNext(history, emptyList(), "Tuck Planche Hold")
         assertEquals(true, result!!.note.contains("Advanced Tuck Planche Hold"))
     }
 
     @Test
     fun `hitting target without reaching the ceiling on a mapped exercise does not suggest next tier`() {
         val history = listOf(HoldPerformance(durationSeconds = 32, targetDurationSeconds = 30))
-        val result = suggester.suggestNext(history, "Tuck Planche Hold")
+        val result = suggester.suggestNext(history, emptyList(), "Tuck Planche Hold")
         assertEquals(false, result!!.note.contains("Advanced Tuck Planche Hold"))
     }
 
     @Test
     fun `ceiling hit on an exercise with no known progression falls through to normal suggestion`() {
         val history = listOf(HoldPerformance(durationSeconds = 45, targetDurationSeconds = 30))
-        val result = suggester.suggestNext(history, "Plank")
+        val result = suggester.suggestNext(history, emptyList(), "Plank")
         assertEquals(35, result!!.targetDurationSeconds)
     }
 
     @Test
     fun `ceiling hit on the top tier of a progression chain falls through to normal suggestion`() {
         val history = listOf(HoldPerformance(durationSeconds = 45, targetDurationSeconds = 30))
-        val result = suggester.suggestNext(history, "Full Planche Hold")
+        val result = suggester.suggestNext(history, emptyList(), "Full Planche Hold")
         assertEquals(35, result!!.targetDurationSeconds)
+    }
+
+    @Test
+    fun `current session already has a working hold locks suggestion to its first entry`() {
+        val currentSessionWorkingSets = listOf(
+            HoldPerformance(durationSeconds = 35, targetDurationSeconds = 30),
+            HoldPerformance(durationSeconds = 40, targetDurationSeconds = 30), // later hold -- must be ignored
+        )
+        val result = suggester.suggestNext(emptyList(), currentSessionWorkingSets, "Plank")
+        assertEquals(30, result!!.targetDurationSeconds)
+        assertEquals(PlateauStatus.REPEATING, result.plateauStatus)
+        assertEquals("Repeating today's working hold", result.note)
+    }
+
+    @Test
+    fun `tier progression is skipped mid-session even if the ceiling is cleared`() {
+        val currentSessionWorkingSets = listOf(HoldPerformance(durationSeconds = 45, targetDurationSeconds = 30))
+        val result = suggester.suggestNext(emptyList(), currentSessionWorkingSets, "Tuck Planche Hold")
+        assertEquals(30, result!!.targetDurationSeconds)
+        assertEquals(PlateauStatus.REPEATING, result.plateauStatus)
+        assertEquals(false, result.note.contains("Advanced Tuck Planche Hold"))
     }
 }

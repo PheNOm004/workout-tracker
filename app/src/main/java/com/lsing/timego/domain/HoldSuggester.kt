@@ -5,7 +5,7 @@ data class HoldPerformance(val durationSeconds: Int, val targetDurationSeconds: 
 data class HoldSuggestion(val targetDurationSeconds: Int, val note: String, val plateauStatus: PlateauStatus)
 
 interface HoldSuggester {
-    fun suggestNext(history: List<HoldPerformance>, exerciseName: String): HoldSuggestion?
+    fun suggestNext(sessionHistory: List<HoldPerformance>, currentSessionWorkingSets: List<HoldPerformance>, exerciseName: String): HoldSuggestion?
 }
 
 /** Static, hand-curated progression chain for the tiered HOLD-type calisthenics families added in
@@ -29,17 +29,30 @@ private val CALISTHENICS_PROGRESSIONS: Map<String, String> = mapOf(
 private const val PROGRESSION_CEILING_RATIO = 1.5
 
 /** Same deterministic, no-ML philosophy as [RuleBasedOverloadSuggester], applied to timed holds.
- *  Plateau status is computed from a 5-hold rolling window via [classifyPlateauStatus]. When the
- *  last hold clears [PROGRESSION_CEILING_RATIO]x its target and [exerciseName] has a known next
- *  tier in [CALISTHENICS_PROGRESSIONS], suggests switching to that tier instead of a duration bump
- *  -- the user rarely adds external load to calisthenics, so a duration/weight increase isn't the
- *  natural ceiling-buster here the way it is for STRENGTH exercises. */
+ *  [sessionHistory] is one representative (last working) hold per past session (see
+ *  [sessionWorkingSetHistory]), not every raw hold. [currentSessionWorkingSets] non-empty --
+ *  including the calisthenics tier-progression check below -- locks the suggestion to this
+ *  session's *first* working hold's target instead of consulting [sessionHistory] at all: tier
+ *  progression is a between-session decision exactly like a weight/duration increase is, per the
+ *  2026-08-12 warmup-session-aware-suggester design. */
 class RuleBasedHoldSuggester : HoldSuggester {
-    override fun suggestNext(history: List<HoldPerformance>, exerciseName: String): HoldSuggestion? {
-        if (history.isEmpty()) return null
-        val last = history.last()
-        val durations = history.map { it.durationSeconds.toDouble() }
-        val hitFlags = history.map { it.durationSeconds >= it.targetDurationSeconds }
+    override fun suggestNext(
+        sessionHistory: List<HoldPerformance>,
+        currentSessionWorkingSets: List<HoldPerformance>,
+        exerciseName: String,
+    ): HoldSuggestion? {
+        if (currentSessionWorkingSets.isNotEmpty()) {
+            val locked = currentSessionWorkingSets.first()
+            return HoldSuggestion(
+                targetDurationSeconds = locked.targetDurationSeconds,
+                note = "Repeating today's working hold",
+                plateauStatus = PlateauStatus.REPEATING,
+            )
+        }
+        if (sessionHistory.isEmpty()) return null
+        val last = sessionHistory.last()
+        val durations = sessionHistory.map { it.durationSeconds.toDouble() }
+        val hitFlags = sessionHistory.map { it.durationSeconds >= it.targetDurationSeconds }
         val status = classifyPlateauStatus(durations, hitFlags)
 
         val nextTier = CALISTHENICS_PROGRESSIONS[exerciseName]
@@ -76,6 +89,7 @@ class RuleBasedHoldSuggester : HoldSuggester {
                     plateauStatus = status,
                 )
             }
+            PlateauStatus.REPEATING -> error("classifyPlateauStatus never returns REPEATING")
         }
     }
 }
