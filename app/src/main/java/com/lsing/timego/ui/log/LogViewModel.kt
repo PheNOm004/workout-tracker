@@ -22,6 +22,7 @@ import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.routinesForToday
+import com.lsing.timego.domain.sessionWorkingSetHistory
 import com.lsing.timego.ui.common.DayHistoryEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -129,21 +130,36 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Splits suggestion computation by loggingType: WEIGHT_REPS exercises get a weight/reps
-     *  suggestion from [suggester], HOLD exercises get a duration suggestion from [holdSuggester]
-     *  -- an exercise can only produce one kind, so each history is built from the fields that
-     *  are real for that exercise (see SetLog's doc comment on its sentinel-field convention). */
+     *  suggestion from [suggester], HOLD exercises get a duration suggestion from [holdSuggester] --
+     *  an exercise can only produce one kind, so each history is built from the fields that are real
+     *  for that exercise (see SetLog's doc comment on its sentinel-field convention). Each exercise's
+     *  raw sets are reduced to [sessionWorkingSetHistory] (one representative set per past session)
+     *  plus, separately, the active session's own working sets for that exercise so far -- see the
+     *  2026-08-12 warmup-session-aware-suggester design for why suggestions no longer look at a flat
+     *  raw-set history. */
     private suspend fun refreshSuggestions(exerciseList: List<Exercise>) {
-        val historyByExercise = repository.allSetLogsOrderedByTime().groupBy { it.exerciseId }
+        val allSets = repository.allSetLogsOrderedByTime()
+        val sessionStartById = repository.allSessions().associate { it.id to it.startEpochMillis }
+        val activeSessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId
+        val setsByExercise = allSets.groupBy { it.exerciseId }
         val map = mutableMapOf<Long, OverloadSuggestion>()
         val holdMap = mutableMapOf<Long, HoldSuggestion>()
         for (exercise in exerciseList) {
-            val history = historyByExercise[exercise.id].orEmpty()
-            if (exercise.loggingType == LoggingType.HOLD.name) {
-                val holdHistory = history.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
-                holdSuggester.suggestNext(holdHistory, exercise.name)?.let { holdMap[exercise.id] = it }
+            val exerciseSets = setsByExercise[exercise.id].orEmpty()
+            val sessionHistory = sessionWorkingSetHistory(exerciseSets, sessionStartById)
+            val currentSessionWorkingSets = if (activeSessionId != null) {
+                exerciseSets.filter { it.sessionId == activeSessionId && !it.isWarmup }.sortedBy { it.loggedAtEpochMillis }
             } else {
-                val performanceHistory = history.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
-                suggester.suggestNext(performanceHistory)?.let { map[exercise.id] = it }
+                emptyList()
+            }
+            if (exercise.loggingType == LoggingType.HOLD.name) {
+                val historyPerf = sessionHistory.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
+                val currentPerf = currentSessionWorkingSets.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
+                holdSuggester.suggestNext(historyPerf, currentPerf, exercise.name)?.let { holdMap[exercise.id] = it }
+            } else {
+                val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
+                val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
+                suggester.suggestNext(historyPerf, currentPerf)?.let { map[exercise.id] = it }
             }
         }
         _suggestions.value = map
@@ -231,10 +247,10 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun logSet(exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int) {
+    fun logSet(exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean = false) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
         viewModelScope.launch {
-            repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps)
+            repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup)
             refreshSuggestionForExercise(exerciseId)
         }
     }
@@ -246,40 +262,55 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun logHoldSet(exerciseId: Long, durationSeconds: Int, targetDurationSeconds: Int) {
+    fun logHoldSet(exerciseId: Long, durationSeconds: Int, targetDurationSeconds: Int, isWarmup: Boolean = false) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
         viewModelScope.launch {
-            repository.logHoldSet(sessionId, exerciseId, durationSeconds, targetDurationSeconds)
+            repository.logHoldSet(sessionId, exerciseId, durationSeconds, targetDurationSeconds, isWarmup)
             refreshSuggestionForExercise(exerciseId)
         }
     }
 
     /** Recomputes the suggestion for just the exercise that was logged, instead of every exercise
-     *  in the library ([refreshSuggestions] used to run after every single logged set -- a full
-     *  history rescan grouped across all 585 seeded exercises just to update one row, which is why
-     *  logging felt slow). Only that exercise's own history can have changed, so only its map entry
-     *  needs to move; every other exercise's suggestion (and the suggestions for exercises that
-     *  aren't even on screen right now) is untouched. */
+     *  in the library (see [refreshSuggestions]'s doc comment for why -- unchanged perf rationale
+     *  from the 2026-08-10 logging-field-accuracy session). */
     private suspend fun refreshSuggestionForExercise(exerciseId: Long) {
         val exercise = allExercises.firstOrNull { it.id == exerciseId } ?: return
-        val history = repository.historyForExercise(exerciseId)
+        val (sessionHistory, currentSessionWorkingSets) = buildSuggestionInputs(exerciseId)
         if (exercise.loggingType == LoggingType.HOLD.name) {
-            val holdHistory = history.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
-            val suggestion = holdSuggester.suggestNext(holdHistory, exercise.name)
+            val historyPerf = sessionHistory.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
+            val currentPerf = currentSessionWorkingSets.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
+            val suggestion = holdSuggester.suggestNext(historyPerf, currentPerf, exercise.name)
             _holdSuggestions.value = if (suggestion != null) {
                 _holdSuggestions.value + (exerciseId to suggestion)
             } else {
                 _holdSuggestions.value - exerciseId
             }
         } else {
-            val performanceHistory = history.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
-            val suggestion = suggester.suggestNext(performanceHistory)
+            val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
+            val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
+            val suggestion = suggester.suggestNext(historyPerf, currentPerf)
             _suggestions.value = if (suggestion != null) {
                 _suggestions.value + (exerciseId to suggestion)
             } else {
                 _suggestions.value - exerciseId
             }
         }
+    }
+
+    /** Shared by [refreshSuggestionForExercise] -- fetches this exercise's full history once,
+     *  splits it into past-session representative performances and the active session's own
+     *  working sets so far (empty if no session is active, per [SessionUiState]). */
+    private suspend fun buildSuggestionInputs(exerciseId: Long): Pair<List<com.lsing.timego.data.SetLog>, List<com.lsing.timego.data.SetLog>> {
+        val allSets = repository.historyForExercise(exerciseId)
+        val sessionStartById = repository.allSessions().associate { it.id to it.startEpochMillis }
+        val sessionHistory = sessionWorkingSetHistory(allSets, sessionStartById)
+        val activeSessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId
+        val currentSessionWorkingSets = if (activeSessionId != null) {
+            allSets.filter { it.sessionId == activeSessionId && !it.isWarmup }.sortedBy { it.loggedAtEpochMillis }
+        } else {
+            emptyList()
+        }
+        return sessionHistory to currentSessionWorkingSets
     }
 
     fun addCustomExercise(name: String, muscleGroups: List<String>, category: String) {
