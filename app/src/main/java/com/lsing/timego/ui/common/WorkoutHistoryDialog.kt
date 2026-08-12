@@ -3,7 +3,10 @@ package com.lsing.timego.ui.common
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
@@ -69,7 +72,7 @@ fun WorkoutHistoryDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column {
+            Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 if (muscleGroups.isNotEmpty()) {
                     FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
                         muscleGroups.sorted().forEach { group ->

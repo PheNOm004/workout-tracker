@@ -5,6 +5,17 @@ import com.lsing.timego.data.SetLog
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
+/** A muscle group only counts as genuinely "worked" by an exercise if it's a primary mover
+ *  (weight >= 70 on the exercise's EMG-grounded 0-100 scale, same convention as
+ *  [muscleGroupVolumeDistribution]'s weighting) -- a synergist or stabilizer tag (e.g. Triceps on
+ *  Bench Press, weight ~65) shouldn't silently satisfy "trained today" for that muscle. A group
+ *  missing from [Exercise.muscleWeights] defaults to 100 (unweighted = fully primary), matching
+ *  the field's own documented default. */
+private const val PRIMARY_MOVER_THRESHOLD = 70
+
+fun primaryMuscleGroups(exercise: Exercise): Set<String> =
+    exercise.muscleGroups.filter { group -> (exercise.muscleWeights[group] ?: 100) >= PRIMARY_MOVER_THRESHOLD }.toSet()
+
 fun lastTrainedDatesByMuscleGroup(
     setLogs: List<SetLog>,
     exercisesById: Map<Long, Exercise>,
@@ -14,7 +25,7 @@ fun lastTrainedDatesByMuscleGroup(
     for (log in setLogs) {
         val exercise = exercisesById[log.exerciseId] ?: continue
         val date = sessionDateById[log.sessionId] ?: continue
-        for (group in exercise.muscleGroups) {
+        for (group in primaryMuscleGroups(exercise)) {
             val current = result[group]
             if (current == null || date.isAfter(current)) result[group] = date
         }
@@ -50,7 +61,9 @@ fun rankUntrainedMuscleGroups(
  *  logging landing page's last-session summary card (this spec) and, later, the Progress screen's
  *  heatmap workout-summary feature. Deliberately session-scoped rather than date-scoped: two
  *  sessions can share a calendar date now that WorkoutSession isn't date-unique, and this should
- *  answer "what did THIS session train," not "what was trained that whole day." */
+ *  answer "what did THIS session train," not "what was trained that whole day." Only counts
+ *  [primaryMuscleGroups] per exercise -- a chest session that also lightly loads triceps/delts as
+ *  synergists shouldn't report having "trained" those groups. */
 fun muscleGroupsWorkedInSession(
     sessionId: Long,
     setLogs: List<SetLog>,
@@ -59,6 +72,6 @@ fun muscleGroupsWorkedInSession(
     val exercisesById = exercises.associateBy { it.id }
     return setLogs
         .filter { it.sessionId == sessionId }
-        .flatMap { log -> exercisesById[log.exerciseId]?.muscleGroups.orEmpty() }
+        .flatMap { log -> exercisesById[log.exerciseId]?.let(::primaryMuscleGroups).orEmpty() }
         .toSet()
 }

@@ -11,6 +11,45 @@ class MuscleBalanceTest {
     private val chestExercise = Exercise(id = 2, name = "Bench", muscleGroups = listOf("CHEST"), isCustom = false)
 
     @Test
+    fun `primaryMuscleGroups excludes synergist and stabilizer tags below the primary-mover threshold`() {
+        val benchPress = Exercise(
+            id = 4,
+            name = "Bench Press",
+            muscleGroups = listOf("CHEST", "TRICEPS", "FRONT_DELTS"),
+            muscleWeights = mapOf("CHEST" to 100, "TRICEPS" to 65, "FRONT_DELTS" to 40),
+            isCustom = false,
+        )
+
+        assertEquals(setOf("CHEST"), primaryMuscleGroups(benchPress))
+    }
+
+    @Test
+    fun `primaryMuscleGroups treats an unweighted tagged group as fully primary`() {
+        assertEquals(setOf("QUADS"), primaryMuscleGroups(legsExercise))
+    }
+
+    @Test
+    fun `lastTrainedDatesByMuscleGroup ignores synergist-only muscle groups`() {
+        val benchPress = Exercise(
+            id = 4,
+            name = "Bench Press",
+            muscleGroups = listOf("CHEST", "TRICEPS"),
+            muscleWeights = mapOf("CHEST" to 100, "TRICEPS" to 65),
+            isCustom = false,
+        )
+        val logs = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 4, weightKg = 60.0, reps = 8, targetReps = 8, loggedAtEpochMillis = 0),
+        )
+        val exercisesById = mapOf(4L to benchPress)
+        val sessionDateById = mapOf(1L to LocalDate.of(2026, 8, 5))
+
+        val result = lastTrainedDatesByMuscleGroup(logs, exercisesById, sessionDateById)
+
+        assertEquals(LocalDate.of(2026, 8, 5), result["CHEST"])
+        assertEquals(null, result["TRICEPS"])
+    }
+
+    @Test
     fun `lastTrainedDatesByMuscleGroup takes the most recent date per group`() {
         val logs = listOf(
             SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
@@ -132,6 +171,24 @@ class MuscleBalanceTest {
         val result = muscleGroupsWorkedInSession(sessionId = 10, setLogs = emptyList(), exercises = listOf(legsExercise))
 
         assertEquals(emptySet<String>(), result)
+    }
+
+    @Test
+    fun `muscleGroupsWorkedInSession excludes synergist-only muscle groups`() {
+        val benchPress = Exercise(
+            id = 4,
+            name = "Bench Press",
+            muscleGroups = listOf("CHEST", "TRICEPS", "FRONT_DELTS"),
+            muscleWeights = mapOf("CHEST" to 100, "TRICEPS" to 65, "FRONT_DELTS" to 40),
+            isCustom = false,
+        )
+        val setLogs = listOf(
+            SetLog(id = 1, sessionId = 10, exerciseId = 4, weightKg = 60.0, reps = 8, targetReps = 8, loggedAtEpochMillis = 0),
+        )
+
+        val result = muscleGroupsWorkedInSession(sessionId = 10, setLogs = setLogs, exercises = listOf(benchPress))
+
+        assertEquals(setOf("CHEST"), result)
     }
 
     @Test
