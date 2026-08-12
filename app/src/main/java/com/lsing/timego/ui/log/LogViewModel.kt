@@ -245,10 +245,10 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun logSet(exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean = false) {
+    fun logSet(exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean = false, addedWeightKg: Double? = null) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
         viewModelScope.launch {
-            repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup)
+            repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg)
             refreshSuggestionForExercise(exerciseId)
         }
     }

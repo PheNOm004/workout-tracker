@@ -52,6 +52,7 @@ import com.lsing.timego.domain.MET_CARDIO
 import com.lsing.timego.domain.MET_WARMUP
 import com.lsing.timego.domain.averagePaceMinPerKm
 import com.lsing.timego.domain.estimatedCalorieBurn
+import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.domain.tick
 import com.lsing.timego.ui.common.AnimatedExpand
 import com.lsing.timego.ui.common.ExerciseSections
@@ -252,7 +253,9 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, on
                             suggestion = suggestions[exercise.id],
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
-                            onLog = { weight, reps, target, isWarmup -> viewModel.logSet(exercise.id, weight, reps, target, isWarmup) },
+                            onLog = { weight, reps, target, isWarmup, addedWeightKg ->
+                                viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg)
+                            },
                         )
                     }
                 }
@@ -335,25 +338,31 @@ private fun StrengthLogRow(
     suggestion: com.lsing.timego.domain.OverloadSuggestion?,
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
-    onLog: (weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean) -> Unit,
+    onLog: (weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean, addedWeightKg: Double?) -> Unit,
 ) {
     var expanded by remember(exerciseName) { mutableStateOf(false) }
-    // Bodyweight exercises (Pull-Up, Push-Up, Dip, ...) pre-fill kg with the user's latest logged
-    // body weight rather than leaving it blank/0 -- an unedited bodyweight set is still real load,
-    // and 0 would flatten estimatedOneRepMax to zero forever regardless of actual rep progress.
-    var weightText by remember(exerciseName) {
-        mutableStateOf(if (isBodyweight) latestBodyWeightKg?.toString().orEmpty() else "")
-    }
+    // Bodyweight exercises (Pull-Up, Push-Up, Dip, ...) ask for just the added weight k (e.g. a
+    // weighted vest) -- blank/0 means bodyweight-only, not "no weight logged." weightKg (the
+    // absolute bodyweight+k total 1RM/PR/suggester math needs) is computed at log time, not typed.
+    var weightText by remember(exerciseName) { mutableStateOf("") }
     var repsText by remember(exerciseName) { mutableStateOf("") }
     var isWarmup by remember(exerciseName) { mutableStateOf(false) }
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
+    val suggestionHint = suggestion?.let {
+        if (isBodyweight) {
+            val addedK = latestBodyWeightKg?.let { bw -> it.weightKg - bw } ?: it.weightKg
+            "${formatCalisthenicsWeight(addedK)} x ${it.reps}"
+        } else {
+            "${it.weightKg}kg x ${it.reps}"
+        }
+    }
 
     ExerciseCard(expanded) {
         ExerciseRowHeader(
             exerciseName,
             visual.icon,
             visual.accent,
-            suggestion?.let { "${it.weightKg}kg x ${it.reps}" },
+            suggestionHint,
             expanded,
         ) { expanded = !expanded }
         AnimatedExpand(expanded) {
@@ -379,8 +388,8 @@ private fun StrengthLogRow(
                 OutlinedTextField(
                     value = weightText,
                     onValueChange = { weightText = it },
-                    label = { Text("kg") },
-                    placeholder = if (isBodyweight) { { Text("BW") } } else null,
+                    label = { Text(if (isBodyweight) "added kg" else "kg") },
+                    placeholder = if (isBodyweight) { { Text("0") } } else null,
                     textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f).padding(end = Spacing.Small),
@@ -394,13 +403,24 @@ private fun StrengthLogRow(
                     modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                 )
                 Button(onClick = {
-                    val weight = weightText.toDoubleOrNull()
                     val reps = repsText.toIntOrNull()
-                    if (weight != null && reps != null) {
-                        onLog(weight, reps, suggestion?.reps ?: reps, isWarmup)
-                        weightText = ""
-                        repsText = ""
-                        isWarmup = false
+                    if (isBodyweight) {
+                        val addedWeight = weightText.toDoubleOrNull() ?: 0.0
+                        if (reps != null) {
+                            val totalWeight = (latestBodyWeightKg ?: 0.0) + addedWeight
+                            onLog(totalWeight, reps, suggestion?.reps ?: reps, isWarmup, addedWeight)
+                            weightText = ""
+                            repsText = ""
+                            isWarmup = false
+                        }
+                    } else {
+                        val weight = weightText.toDoubleOrNull()
+                        if (weight != null && reps != null) {
+                            onLog(weight, reps, suggestion?.reps ?: reps, isWarmup, null)
+                            weightText = ""
+                            repsText = ""
+                            isWarmup = false
+                        }
                     }
                 }) {
                     Text("Log set")
