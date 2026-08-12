@@ -48,9 +48,37 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
     }
 }
 
+/** Backfills startEpochMillis/endEpochMillis from each session's own set_logs (min/max
+ *  loggedAtEpochMillis) rather than leaving them at a fixed default -- pre-migration sessions have
+ *  no explicit boundaries, so their nearest real signal is the timestamps of the sets actually
+ *  logged in them. A session with zero sets (shouldn't normally happen, but not impossible if a
+ *  session was created and nothing was ever logged) falls back to midnight of its date column
+ *  (`date` is stored as an epoch-day Long via Converters.toEpochDay, so `date * 86400000` is that
+ *  day's midnight in epoch millis). Every backfilled row gets a non-null endEpochMillis --
+ *  pre-migration data has no concept of "still active," so all of it is treated as closed. */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE workout_sessions ADD COLUMN startEpochMillis INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE workout_sessions ADD COLUMN endEpochMillis INTEGER")
+        db.execSQL(
+            """
+            UPDATE workout_sessions SET
+                startEpochMillis = COALESCE(
+                    (SELECT MIN(loggedAtEpochMillis) FROM set_logs WHERE set_logs.sessionId = workout_sessions.id),
+                    date * 86400000
+                ),
+                endEpochMillis = COALESCE(
+                    (SELECT MAX(loggedAtEpochMillis) FROM set_logs WHERE set_logs.sessionId = workout_sessions.id),
+                    date * 86400000
+                )
+            """,
+        )
+    }
+}
+
 @Database(
     entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -67,7 +95,7 @@ abstract class TimeGoDatabase : RoomDatabase() {
         fun getInstance(context: Context): TimeGoDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(context.applicationContext, TimeGoDatabase::class.java, "timego.db")
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .build()
                     .also { instance = it }
             }
