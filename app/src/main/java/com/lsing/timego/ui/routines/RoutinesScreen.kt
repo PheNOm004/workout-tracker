@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -71,11 +72,22 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
         if (untrainedGroups.isNotEmpty()) {
             item {
                 Text(
-                    "Not trained in a while: ${untrainedGroups.joinToString(", ") { formatEnumLabel(it) }}",
-                    style = MaterialTheme.typography.bodyMedium,
+                    "Not trained in a while",
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.ExtraSmall),
                 )
+                FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
+                    untrainedGroups.forEach { group ->
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(formatEnumLabel(group)) },
+                            colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.error),
+                            border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = MaterialTheme.colorScheme.error),
+                            modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
+                        )
+                    }
+                }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }

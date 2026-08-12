@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
@@ -129,16 +131,36 @@ private fun LogLandingContent(
         if (summary.lastSession == null) {
             Text("No sessions logged yet.", style = MaterialTheme.typography.bodyMedium)
         } else {
-            Row(modifier = Modifier.fillMaxWidth().clickable { showLastSessionDetail = true }) {
-                StatTile("Sets", "${summary.lastSession.sets}", modifier = Modifier.weight(1f))
-                StatTile("Duration", "${summary.lastSession.durationMinutes} min", modifier = Modifier.weight(1f))
+            Column(modifier = Modifier.fillMaxWidth().clickable { showLastSessionDetail = true }) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    StatTile("Sets", "${summary.lastSession.sets}", modifier = Modifier.weight(1f))
+                    StatTile("Duration", "${summary.lastSession.durationMinutes} min", modifier = Modifier.weight(1f))
+                }
+                Text(
+                    "Trained",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Spacing.Small),
+                )
+                if (summary.lastSession.muscleGroups.isEmpty()) {
+                    Text(
+                        "--",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                } else {
+                    FlowRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                        summary.lastSession.muscleGroups.sorted().forEach { group ->
+                            AssistChip(
+                                onClick = {},
+                                label = { Text(formatEnumLabel(group)) },
+                                modifier = Modifier.padding(end = 4.dp, bottom = 4.dp),
+                            )
+                        }
+                    }
+                }
             }
-            Text(
-                "Trained: ${summary.lastSession.muscleGroups.joinToString(", ") { formatEnumLabel(it) }.ifEmpty { "--" }}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.Small),
-            )
         }
 
         SectionHeader("Recommended")
