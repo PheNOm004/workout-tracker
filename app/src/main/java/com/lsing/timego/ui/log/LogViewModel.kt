@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.LoggingType
+import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.Routine
 import com.lsing.timego.data.SEED_EXERCISES
 import com.lsing.timego.data.TimeGoDatabase
@@ -14,13 +15,32 @@ import com.lsing.timego.domain.HoldSuggestion
 import com.lsing.timego.domain.OverloadSuggestion
 import com.lsing.timego.domain.RuleBasedHoldSuggester
 import com.lsing.timego.domain.RuleBasedOverloadSuggester
+import com.lsing.timego.domain.SessionAutoCloseDecision
 import com.lsing.timego.domain.SetPerformance
+import com.lsing.timego.domain.checkSessionAutoClose
+import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
+import com.lsing.timego.domain.muscleGroupsWorkedInSession
+import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.routinesForToday
+import com.lsing.timego.ui.common.DayHistoryEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+
+sealed interface SessionUiState {
+    data object Loading : SessionUiState
+    data class NoActiveSession(val lastSession: LastSessionSummary?, val recommendedMuscleGroups: List<String>) : SessionUiState
+    data class Active(val sessionId: Long) : SessionUiState
+}
+
+data class LastSessionSummary(
+    val sets: Int,
+    val muscleGroups: Set<String>,
+    val durationMinutes: Long,
+    val detail: List<DayHistoryEntry>,
+)
 
 /** [selectedRoutineId] null means freeform (all exercises shown, sessions logged with no routine
  *  link); non-null filters [displayedExercises] to that routine's exercises and tags logged
@@ -52,6 +72,9 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val _latestBodyWeightKg = MutableStateFlow<Double?>(null)
     val latestBodyWeightKg: StateFlow<Double?> = _latestBodyWeightKg.asStateFlow()
 
+    private val _sessionState = MutableStateFlow<SessionUiState>(SessionUiState.Loading)
+    val sessionState: StateFlow<SessionUiState> = _sessionState.asStateFlow()
+
     init {
         viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
@@ -59,6 +82,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 allExercises = list
                 refreshSuggestions(list)
                 refreshDisplayedExercises()
+                refreshSessionState()
             }
         }
         viewModelScope.launch {
@@ -114,25 +138,99 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         _holdSuggestions.value = holdMap
     }
 
-    fun logSet(exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int) {
+    private suspend fun refreshSessionState() {
+        val active = repository.activeSession()
+        if (active != null) {
+            val sets = repository.setLogsForSession(active.id)
+            val lastSetTime = sets.maxOfOrNull { it.loggedAtEpochMillis }
+            val decision = if (lastSetTime != null) {
+                checkSessionAutoClose(lastSetTime, System.currentTimeMillis())
+            } else {
+                SessionAutoCloseDecision.STAY_ACTIVE // just started, nothing logged yet -- never auto-close an empty session
+            }
+            if (decision == SessionAutoCloseDecision.AUTO_CLOSE) {
+                repository.endSession(active.id, lastSetTime!!)
+                _sessionState.value = buildNoActiveSessionState()
+                return
+            }
+            _sessionState.value = SessionUiState.Active(active.id)
+        } else {
+            _sessionState.value = buildNoActiveSessionState()
+        }
+    }
+
+    private suspend fun buildNoActiveSessionState(): SessionUiState.NoActiveSession {
+        val lastSession = repository.lastClosedSession()
+        val summary = lastSession?.let { session ->
+            val sets = repository.setLogsForSession(session.id)
+            val exercisesById = allExercises.associateBy { it.id }
+            val muscleGroups = muscleGroupsWorkedInSession(session.id, sets, allExercises)
+            val detail = sets.mapNotNull { log ->
+                val exercise = exercisesById[log.exerciseId] ?: return@mapNotNull null
+                val description = when (exercise.loggingType) {
+                    LoggingType.DURATION_DISTANCE.name -> {
+                        val distance = log.distanceKm?.let { " -- ${it}km" } ?: ""
+                        "${log.durationMinutes ?: 0.0} min$distance"
+                    }
+                    LoggingType.HOLD.name -> "${log.holdSeconds ?: 0}s hold"
+                    else -> "${log.weightKg}kg x ${log.reps}"
+                }
+                DayHistoryEntry(exercise.name, description)
+            }
+            LastSessionSummary(
+                sets = sets.size,
+                muscleGroups = muscleGroups,
+                durationMinutes = (session.endEpochMillis ?: session.startEpochMillis).minus(session.startEpochMillis) / 60_000,
+                detail = detail,
+            )
+        }
+
+        val allSets = repository.allSetLogs()
+        val sessionDateById = repository.allSessions().associate { it.id to it.date }
+        val exercisesById = allExercises.associateBy { it.id }
+        val lastTrained = lastTrainedDatesByMuscleGroup(allSets, exercisesById, sessionDateById)
+        val allGroups = MuscleGroup.entries.map { it.name }
+        val recommended = rankUntrainedMuscleGroups(allGroups, lastTrained, LocalDate.now()).take(2)
+
+        return SessionUiState.NoActiveSession(lastSession = summary, recommendedMuscleGroups = recommended)
+    }
+
+    fun startSession(routineId: Long?) {
         viewModelScope.launch {
-            val session = repository.startOrGetTodaySession(routineId = _selectedRoutineId.value)
-            repository.logSet(session.id, exerciseId, weightKg, reps, targetReps)
+            val session = repository.startSession(routineId)
+            selectRoutine(routineId)
+            _sessionState.value = SessionUiState.Active(session.id)
+        }
+    }
+
+    fun endActiveSession() {
+        val current = _sessionState.value
+        if (current !is SessionUiState.Active) return
+        viewModelScope.launch {
+            repository.endSession(current.sessionId, System.currentTimeMillis())
+            _sessionState.value = buildNoActiveSessionState()
+        }
+    }
+
+    fun logSet(exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int) {
+        val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
+        viewModelScope.launch {
+            repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps)
             refreshSuggestionForExercise(exerciseId)
         }
     }
 
     fun logCardioSet(exerciseId: Long, durationMinutes: Double, distanceKm: Double?) {
+        val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
         viewModelScope.launch {
-            val session = repository.startOrGetTodaySession(routineId = _selectedRoutineId.value)
-            repository.logCardioSet(session.id, exerciseId, durationMinutes, distanceKm)
+            repository.logCardioSet(sessionId, exerciseId, durationMinutes, distanceKm)
         }
     }
 
     fun logHoldSet(exerciseId: Long, durationSeconds: Int, targetDurationSeconds: Int) {
+        val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
         viewModelScope.launch {
-            val session = repository.startOrGetTodaySession(routineId = _selectedRoutineId.value)
-            repository.logHoldSet(session.id, exerciseId, durationSeconds, targetDurationSeconds)
+            repository.logHoldSet(sessionId, exerciseId, durationSeconds, targetDurationSeconds)
             refreshSuggestionForExercise(exerciseId)
         }
     }

@@ -29,8 +29,8 @@ class ProgressMathTest {
     @Test
     fun `workoutVolumeRatios normalizes each day's volume against the max`() {
         val sessions = listOf(
-            WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 1), routineId = null),
-            WorkoutSession(id = 2, date = LocalDate.of(2026, 8, 2), routineId = null),
+            WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 1), routineId = null, startEpochMillis = 0, endEpochMillis = 0),
+            WorkoutSession(id = 2, date = LocalDate.of(2026, 8, 2), routineId = null, startEpochMillis = 0, endEpochMillis = 0),
         )
         val sets = listOf(
             SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
