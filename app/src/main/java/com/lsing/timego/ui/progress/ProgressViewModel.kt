@@ -17,6 +17,7 @@ import com.lsing.timego.domain.personalRecords
 import com.lsing.timego.domain.strengthCurve
 import com.lsing.timego.domain.trainingStats
 import com.lsing.timego.domain.workoutVolumeRatios
+import com.lsing.timego.ui.common.DayHistoryEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,8 +26,6 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 enum class CurveMode { EXERCISE, MUSCLE_GROUP }
-
-data class DayHistoryEntry(val exerciseName: String, val description: String)
 
 class ProgressViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))

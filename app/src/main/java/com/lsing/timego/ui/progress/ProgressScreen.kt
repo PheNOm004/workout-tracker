@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,7 +23,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -44,12 +42,15 @@ import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.domain.PrType
 import com.lsing.timego.domain.BmiCategory
 import com.lsing.timego.domain.bmiCategory
+import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.HeatmapGrid
 import com.lsing.timego.ui.common.HorizontalWheelPicker
 import com.lsing.timego.ui.common.MuscleBodyDiagram
 import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SparklineChart
+import com.lsing.timego.ui.common.StatTile
+import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.Spacing
@@ -80,8 +81,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsState()
 
     if (selectedHistoryDate != null) {
-        DayHistoryDialog(
-            date = selectedHistoryDate!!,
+        WorkoutHistoryDialog(
+            title = "Workout on ${selectedHistoryDate!!}",
             entries = historyForSelectedDate,
             onDismiss = { viewModel.selectHistoryDate(null) },
         )
@@ -341,50 +342,4 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     }
 }
 
-/** Set/Name/Reps/Weight table, one row per logged set that day -- inspired by the set-log table
- *  pattern common in workout-tracking apps. No muscle-diagram illustration (would need real
- *  per-muscle-group vector art, a bigger asset investment than this pass); the exercise's own
- *  muscle-group tags are already visible elsewhere (Log/Routines section headers). */
-@Composable
-private fun DayHistoryDialog(date: LocalDate, entries: List<DayHistoryEntry>, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Workout on $date") },
-        text = {
-            if (entries.isEmpty()) {
-                Text("No sets logged on this day.")
-            } else {
-                Column {
-                    entries.forEachIndexed { index, entry ->
-                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                            Text("${index + 1}", style = LedgerFigureValue.copy(fontSize = 14.sp), modifier = Modifier.padding(end = 12.dp))
-                            Text(entry.exerciseName, modifier = Modifier.weight(1f))
-                            Text(entry.description, style = LedgerFigureValue.copy(fontSize = 14.sp))
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
-        },
-    )
-}
-
 private val PR_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d")
-
-@Composable
-private fun StatTile(label: String, value: String, caption: String? = null, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.padding(Spacing.ExtraSmall),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column(modifier = Modifier.padding(Spacing.Medium)) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = LedgerFigureValue)
-            if (caption != null) {
-                Text(caption, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-    }
-}
