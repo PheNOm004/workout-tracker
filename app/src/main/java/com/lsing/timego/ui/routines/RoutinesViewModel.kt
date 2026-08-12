@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.Routine
+import com.lsing.timego.data.SettingsRepository
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
@@ -18,6 +19,7 @@ import java.time.LocalDate
 
 class RoutinesViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
+    private val settingsRepository = SettingsRepository(application)
 
     private val _routines = MutableStateFlow<List<Routine>>(emptyList())
     val routines: StateFlow<List<Routine>> = _routines.asStateFlow()
@@ -28,6 +30,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     private val _untrainedGroups = MutableStateFlow<List<String>>(emptyList())
     val untrainedGroups: StateFlow<List<String>> = _untrainedGroups.asStateFlow()
 
+    private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
+    val holdDelaySeconds: StateFlow<Int> = _holdDelaySeconds.asStateFlow()
+
     init {
         viewModelScope.launch { repository.routines.collect { _routines.value = it } }
         viewModelScope.launch {
@@ -36,6 +41,13 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
                 refreshUntrainedGroups(exerciseList)
             }
         }
+        viewModelScope.launch {
+            settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
+        }
+    }
+
+    fun setHoldDelaySeconds(seconds: Int) {
+        viewModelScope.launch { settingsRepository.setHoldDelaySeconds(seconds.coerceIn(0, 30)) }
     }
 
     private suspend fun refreshUntrainedGroups(exerciseList: List<Exercise>) {

@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -36,6 +38,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     val routines by viewModel.routines.collectAsState()
     val exercises by viewModel.exercises.collectAsState()
     val untrainedGroups by viewModel.untrainedGroups.collectAsState()
+    val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsState()
     var showRoutineForm by remember { mutableStateOf(false) }
 
     if (showRoutineForm) {
@@ -47,6 +50,24 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     }
 
     LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
+        item {
+            SectionHeader(title = "Settings", topPadding = Spacing.ExtraSmall)
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
+                Text(
+                    "Hold-exercise start delay",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { viewModel.setHoldDelaySeconds(holdDelaySeconds - 1) }) {
+                    Icon(Icons.Filled.Remove, contentDescription = "Decrease delay")
+                }
+                Text("${holdDelaySeconds}s", style = LedgerFigureEmphasis)
+                IconButton(onClick = { viewModel.setHoldDelaySeconds(holdDelaySeconds + 1) }) {
+                    Icon(Icons.Filled.Add, contentDescription = "Increase delay")
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
         if (untrainedGroups.isNotEmpty()) {
             item {
                 Text(
