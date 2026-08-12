@@ -59,7 +59,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
 
     suspend fun setLogsForSession(sessionId: Long): List<SetLog> = db.setLogDao().forSession(sessionId)
 
-    suspend fun logSet(sessionId: Long, exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int) {
+    suspend fun logSet(sessionId: Long, exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean = false) {
         db.setLogDao().insert(
             SetLog(
                 sessionId = sessionId,
@@ -68,6 +68,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                 reps = reps,
                 targetReps = targetReps,
                 loggedAtEpochMillis = System.currentTimeMillis(),
+                isWarmup = isWarmup,
             ),
         )
     }
@@ -87,7 +88,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         )
     }
 
-    suspend fun logHoldSet(sessionId: Long, exerciseId: Long, durationSeconds: Int, targetDurationSeconds: Int) {
+    suspend fun logHoldSet(sessionId: Long, exerciseId: Long, durationSeconds: Int, targetDurationSeconds: Int, isWarmup: Boolean = false) {
         db.setLogDao().insert(
             SetLog(
                 sessionId = sessionId,
@@ -98,6 +99,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                 loggedAtEpochMillis = System.currentTimeMillis(),
                 holdSeconds = durationSeconds,
                 targetHoldSeconds = targetDurationSeconds,
+                isWarmup = isWarmup,
             ),
         )
     }
