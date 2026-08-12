@@ -13,6 +13,24 @@ class ProgressMathTest {
     }
 
     @Test
+    fun `ProgressTimeframe sinceDate computes each window`() {
+        val today = LocalDate.of(2026, 8, 12)
+        val earliest = LocalDate.of(2026, 1, 1)
+
+        assertEquals(LocalDate.of(2026, 8, 5), ProgressTimeframe.WEEK.sinceDate(earliest, today))
+        assertEquals(LocalDate.of(2026, 7, 13), ProgressTimeframe.MONTH.sinceDate(earliest, today))
+        assertEquals(LocalDate.of(2025, 8, 12), ProgressTimeframe.YEAR.sinceDate(earliest, today))
+        assertEquals(earliest, ProgressTimeframe.LIFETIME.sinceDate(earliest, today))
+    }
+
+    @Test
+    fun `ProgressTimeframe LIFETIME falls back to today with no session history`() {
+        val today = LocalDate.of(2026, 8, 12)
+
+        assertEquals(today, ProgressTimeframe.LIFETIME.sinceDate(null, today))
+    }
+
+    @Test
     fun `strengthCurve pairs each set's 1RM with its session date, sorted`() {
         val logs = listOf(
             SetLog(id = 1, sessionId = 2, exerciseId = 1, weightKg = 60.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),

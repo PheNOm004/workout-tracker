@@ -10,6 +10,20 @@ import java.time.LocalDate
  *  needing a real max-effort test every session. */
 fun estimatedOneRepMax(weightKg: Double, reps: Int): Double = weightKg * (1 + reps / 30.0)
 
+/** Drives the Progress screen's Muscle Distribution + stat-tile timeframe selector. */
+enum class ProgressTimeframe {
+    WEEK, MONTH, YEAR, LIFETIME;
+
+    /** LIFETIME falls back to [today] (not some far-past constant) when there's no session data
+     *  yet, so an empty-history user sees "no sets logged" rather than an arbitrary window. */
+    fun sinceDate(earliestSessionDate: LocalDate?, today: LocalDate): LocalDate = when (this) {
+        WEEK -> today.minusDays(7)
+        MONTH -> today.minusDays(30)
+        YEAR -> today.minusDays(365)
+        LIFETIME -> earliestSessionDate ?: today
+    }
+}
+
 fun strengthCurve(history: List<SetLog>, sessionDateById: Map<Long, LocalDate>): List<Pair<LocalDate, Double>> =
     history.mapNotNull { log ->
         sessionDateById[log.sessionId]?.let { date -> date to estimatedOneRepMax(log.weightKg, log.reps) }
