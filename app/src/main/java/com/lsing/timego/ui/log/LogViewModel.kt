@@ -31,7 +31,7 @@ import java.time.LocalDate
 
 sealed interface SessionUiState {
     data object Loading : SessionUiState
-    data class NoActiveSession(val lastSession: LastSessionSummary?, val recommendedMuscleGroups: List<String>) : SessionUiState
+    data object NoActiveSession : SessionUiState
     data class Active(val sessionId: Long) : SessionUiState
 }
 
@@ -40,6 +40,15 @@ data class LastSessionSummary(
     val muscleGroups: Set<String>,
     val durationMinutes: Long,
     val detail: List<DayHistoryEntry>,
+)
+
+/** Last-session summary + recommended muscle groups -- kept fresh independently of
+ *  [SessionUiState] so the landing page's content (last session, recommendation) can still be
+ *  shown when the user backs out of an in-progress session to peek at it, not just when there's
+ *  genuinely no active session. */
+data class LandingSummary(
+    val lastSession: LastSessionSummary?,
+    val recommendedMuscleGroups: List<String>,
 )
 
 /** [selectedRoutineId] null means freeform (all exercises shown, sessions logged with no routine
@@ -74,6 +83,9 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _sessionState = MutableStateFlow<SessionUiState>(SessionUiState.Loading)
     val sessionState: StateFlow<SessionUiState> = _sessionState.asStateFlow()
+
+    private val _landingSummary = MutableStateFlow(LandingSummary(lastSession = null, recommendedMuscleGroups = emptyList()))
+    val landingSummary: StateFlow<LandingSummary> = _landingSummary.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -139,6 +151,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun refreshSessionState() {
+        refreshLandingSummary()
         val active = repository.activeSession()
         if (active != null) {
             val sets = repository.setLogsForSession(active.id)
@@ -150,16 +163,21 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             }
             if (decision == SessionAutoCloseDecision.AUTO_CLOSE) {
                 repository.endSession(active.id, lastSetTime!!)
-                _sessionState.value = buildNoActiveSessionState()
+                refreshLandingSummary() // re-fetch so the just-closed session shows as "last session"
+                _sessionState.value = SessionUiState.NoActiveSession
                 return
             }
             _sessionState.value = SessionUiState.Active(active.id)
         } else {
-            _sessionState.value = buildNoActiveSessionState()
+            _sessionState.value = SessionUiState.NoActiveSession
         }
     }
 
-    private suspend fun buildNoActiveSessionState(): SessionUiState.NoActiveSession {
+    /** Kept independent of [refreshSessionState] so it can also be called right after
+     *  [endActiveSession] closes a session, before [SessionUiState] itself changes -- the landing
+     *  page's last-session card should reflect the session that was just ended, and this is the
+     *  only place that recomputes it. */
+    private suspend fun refreshLandingSummary() {
         val lastSession = repository.lastClosedSession()
         val summary = lastSession?.let { session ->
             val sets = repository.setLogsForSession(session.id)
@@ -192,7 +210,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         val allGroups = MuscleGroup.entries.map { it.name }
         val recommended = rankUntrainedMuscleGroups(allGroups, lastTrained, LocalDate.now()).take(2)
 
-        return SessionUiState.NoActiveSession(lastSession = summary, recommendedMuscleGroups = recommended)
+        _landingSummary.value = LandingSummary(lastSession = summary, recommendedMuscleGroups = recommended)
     }
 
     fun startSession(routineId: Long?) {
@@ -208,7 +226,8 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         if (current !is SessionUiState.Active) return
         viewModelScope.launch {
             repository.endSession(current.sessionId, System.currentTimeMillis())
-            _sessionState.value = buildNoActiveSessionState()
+            refreshLandingSummary()
+            _sessionState.value = SessionUiState.NoActiveSession
         }
     }
 

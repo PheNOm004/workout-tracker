@@ -62,13 +62,16 @@ import com.lsing.timego.ui.theme.Spacing
 @Composable
 fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val sessionState by viewModel.sessionState.collectAsState()
+    val landingSummary by viewModel.landingSummary.collectAsState()
+    val routines by viewModel.routines.collectAsState()
 
     when (val state = sessionState) {
         is SessionUiState.Loading -> { /* nothing to render yet -- first frame only, resolves on the next recomposition */ }
         is SessionUiState.NoActiveSession -> LogLandingContent(
-            state = state,
-            routines = viewModel.routines.collectAsState().value,
-            onStartSession = viewModel::startSession,
+            summary = landingSummary,
+            routines = routines,
+            isSessionActive = false,
+            onStartOrContinue = viewModel::startSession,
         )
         is SessionUiState.Active -> {
             // Keyed on sessionId, not just a bare remember{}: this resets to false whenever a
@@ -76,7 +79,12 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
             // same session (e.g. suggestion updates after logging a set).
             var peekingLanding by remember(state.sessionId) { mutableStateOf(false) }
             if (peekingLanding) {
-                ActiveSessionLandingContent(onContinue = { peekingLanding = false })
+                LogLandingContent(
+                    summary = landingSummary,
+                    routines = routines,
+                    isSessionActive = true,
+                    onStartOrContinue = { peekingLanding = false },
+                )
             } else {
                 LoggingContent(
                     viewModel = viewModel,
@@ -88,47 +96,39 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     }
 }
 
-/** Shown when the user backs out of an in-progress session without ending it -- a lightweight
- *  stand-in for the full landing page (no last-session/recommendation content, since a session is
- *  still open) whose only job is getting back into logging. */
-@Composable
-private fun ActiveSessionLandingContent(onContinue: () -> Unit) {
-    Column(modifier = Modifier.padding(Spacing.Large)) {
-        SectionHeader("Session in progress", topPadding = Spacing.ExtraSmall)
-        Text("You have a session already in progress.", style = MaterialTheme.typography.bodyMedium)
-        Button(onClick = onContinue, modifier = Modifier.padding(top = Spacing.Medium)) {
-            Text("Continue Session")
-        }
-    }
-}
-
+/** Shared between the real landing page (no active session) and the "peek back" view from an
+ *  in-progress session -- same last-session summary and recommendation either way; only the
+ *  bottom action row changes ([isSessionActive] swaps Freeform/Routine start buttons for a single
+ *  "Continue Session" button, since [onStartOrContinue] resumes the existing session rather than
+ *  creating a new one when a session is already active). */
 @Composable
 private fun LogLandingContent(
-    state: SessionUiState.NoActiveSession,
+    summary: LandingSummary,
     routines: List<com.lsing.timego.data.Routine>,
-    onStartSession: (routineId: Long?) -> Unit,
+    isSessionActive: Boolean,
+    onStartOrContinue: (routineId: Long?) -> Unit,
 ) {
     var showLastSessionDetail by remember { mutableStateOf(false) }
 
-    if (showLastSessionDetail && state.lastSession != null) {
+    if (showLastSessionDetail && summary.lastSession != null) {
         WorkoutHistoryDialog(
             title = "Last session",
-            entries = state.lastSession.detail,
+            entries = summary.lastSession.detail,
             onDismiss = { showLastSessionDetail = false },
         )
     }
 
     Column(modifier = Modifier.padding(Spacing.Large)) {
         SectionHeader("Last session", topPadding = Spacing.ExtraSmall)
-        if (state.lastSession == null) {
+        if (summary.lastSession == null) {
             Text("No sessions logged yet.", style = MaterialTheme.typography.bodyMedium)
         } else {
             Row(modifier = Modifier.fillMaxWidth().clickable { showLastSessionDetail = true }) {
-                StatTile("Sets", "${state.lastSession.sets}", modifier = Modifier.weight(1f))
-                StatTile("Duration", "${state.lastSession.durationMinutes} min", modifier = Modifier.weight(1f))
+                StatTile("Sets", "${summary.lastSession.sets}", modifier = Modifier.weight(1f))
+                StatTile("Duration", "${summary.lastSession.durationMinutes} min", modifier = Modifier.weight(1f))
             }
             Text(
-                "Trained: ${state.lastSession.muscleGroups.joinToString(", ") { formatEnumLabel(it) }.ifEmpty { "--" }}",
+                "Trained: ${summary.lastSession.muscleGroups.joinToString(", ") { formatEnumLabel(it) }.ifEmpty { "--" }}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.Small),
@@ -136,24 +136,31 @@ private fun LogLandingContent(
         }
 
         SectionHeader("Recommended")
-        if (state.recommendedMuscleGroups.isEmpty()) {
+        if (summary.recommendedMuscleGroups.isEmpty()) {
             Text("Everything's been trained recently -- nice balance.", style = MaterialTheme.typography.bodyMedium)
         } else {
             Text(
-                state.recommendedMuscleGroups.joinToString(", ") { formatEnumLabel(it) },
+                summary.recommendedMuscleGroups.joinToString(", ") { formatEnumLabel(it) },
                 style = LedgerFigureValue,
                 color = MaterialTheme.colorScheme.primary,
             )
         }
 
-        SectionHeader("Start a session")
-        Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-            Button(onClick = { onStartSession(null) }, modifier = Modifier.padding(end = Spacing.Small)) {
-                Text("Freeform")
+        if (isSessionActive) {
+            SectionHeader("Session in progress")
+            Button(onClick = { onStartOrContinue(null) }) {
+                Text("Continue Session")
             }
-            routines.forEach { routine ->
-                Button(onClick = { onStartSession(routine.id) }, modifier = Modifier.padding(end = Spacing.Small)) {
-                    Text(routine.name)
+        } else {
+            SectionHeader("Start a session")
+            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                Button(onClick = { onStartOrContinue(null) }, modifier = Modifier.padding(end = Spacing.Small)) {
+                    Text("Freeform")
+                }
+                routines.forEach { routine ->
+                    Button(onClick = { onStartOrContinue(routine.id) }, modifier = Modifier.padding(end = Spacing.Small)) {
+                        Text(routine.name)
+                    }
                 }
             }
         }
