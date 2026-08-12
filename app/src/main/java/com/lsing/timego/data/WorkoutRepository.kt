@@ -43,11 +43,21 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         return db.exerciseDao().insert(Exercise(name = name, muscleGroups = muscleGroups, isCustom = true, category = category, loggingType = loggingType))
     }
 
-    suspend fun startOrGetTodaySession(routineId: Long?): WorkoutSession =
-        db.sessionDao().findByDate(LocalDate.now())
-            ?: WorkoutSession(date = LocalDate.now(), routineId = routineId).let { session ->
-                session.copy(id = db.sessionDao().insert(session))
-            }
+    suspend fun activeSession(): WorkoutSession? = db.sessionDao().findActiveSession()
+
+    suspend fun lastClosedSession(): WorkoutSession? = db.sessionDao().findLastClosedSession()
+
+    suspend fun startSession(routineId: Long?): WorkoutSession {
+        val now = System.currentTimeMillis()
+        val session = WorkoutSession(date = LocalDate.now(), routineId = routineId, startEpochMillis = now, endEpochMillis = null)
+        return session.copy(id = db.sessionDao().insert(session))
+    }
+
+    suspend fun endSession(sessionId: Long, endEpochMillis: Long) {
+        db.sessionDao().closeSession(sessionId, endEpochMillis)
+    }
+
+    suspend fun setLogsForSession(sessionId: Long): List<SetLog> = db.setLogDao().forSession(sessionId)
 
     suspend fun logSet(sessionId: Long, exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int) {
         db.setLogDao().insert(
