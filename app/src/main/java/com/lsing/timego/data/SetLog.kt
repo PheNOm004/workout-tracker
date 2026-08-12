@@ -26,4 +26,8 @@ data class SetLog(
     val holdSeconds: Int? = null,
     val targetHoldSeconds: Int? = null,
     val isWarmup: Boolean = false,
+    /** Only set for CALISTHENICS exercises -- the added-weight-only k typed at entry, kept
+     *  alongside [weightKg] (which stays the full bodyweight+k total, for 1RM/PR/suggester math)
+     *  purely so display can format it as "BW + k" instead of a raw absolute number. */
+    val addedWeightKg: Double? = null,
 )

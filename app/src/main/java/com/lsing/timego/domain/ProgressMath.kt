@@ -46,8 +46,17 @@ enum class PrType { BEST_SET, LONGEST_HOLD }
 
 /** [secondaryValue] carries reps alongside [value]'s weight for a BEST_SET record (null for
  *  LONGEST_HOLD, which is single-valued) -- a "best set" is inherently a weight+reps pair, not a
- *  single number, so both travel together rather than being reported as separate records. */
-data class PersonalRecord(val exerciseId: Long, val type: PrType, val value: Double, val secondaryValue: Double? = null, val achievedOn: LocalDate)
+ *  single number, so both travel together rather than being reported as separate records.
+ *  [addedWeightKg] carries the winning set's added-weight-only k for CALISTHENICS exercises (null
+ *  otherwise), display-only -- see [SetLog.addedWeightKg]. */
+data class PersonalRecord(
+    val exerciseId: Long,
+    val type: PrType,
+    val value: Double,
+    val secondaryValue: Double? = null,
+    val achievedOn: LocalDate,
+    val addedWeightKg: Double? = null,
+)
 
 /** Computed fresh from full history each time (not incrementally tracked) -- simpler and correct
  *  by construction; history sizes here are small enough (one person's own lifts) that this is
@@ -74,7 +83,7 @@ fun personalRecords(
         .mapNotNull { (exerciseId, sets) ->
             val bestSet = sets.maxBy { estimatedOneRepMax(it.weightKg, it.reps) }
             sessionDateById[bestSet.sessionId]?.let {
-                PersonalRecord(exerciseId, PrType.BEST_SET, bestSet.weightKg, bestSet.reps.toDouble(), it)
+                PersonalRecord(exerciseId, PrType.BEST_SET, bestSet.weightKg, bestSet.reps.toDouble(), it, bestSet.addedWeightKg)
             }
         }
     val holdRecords = history
