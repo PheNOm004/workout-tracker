@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
+import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.domain.PrType
 import com.lsing.timego.domain.BmiCategory
 import com.lsing.timego.domain.bmiCategory
@@ -71,6 +72,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val currentBmi by viewModel.currentBmi.collectAsState()
     val muscleDistribution by viewModel.muscleDistribution.collectAsState()
     val trainingStats by viewModel.trainingStats.collectAsState()
+    val timeframe by viewModel.timeframe.collectAsState()
 
     var weightText by remember { mutableStateOf("") }
     var waistText by remember { mutableStateOf("") }
@@ -99,7 +101,17 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             )
         }
         item {
-            SectionHeader("Muscle Distribution (last 30 days)")
+            SectionHeader("Muscle Distribution (${timeframeLabel(timeframe)})")
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                ProgressTimeframe.entries.forEach { option ->
+                    FilterChip(
+                        selected = timeframe == option,
+                        onClick = { viewModel.selectTimeframe(option) },
+                        label = { Text(formatEnumLabel(option.name)) },
+                        modifier = Modifier.padding(end = 4.dp),
+                    )
+                }
+            }
             Text(
                 "Colors show volume relative to your most-trained muscle group this period",
                 style = MaterialTheme.typography.bodySmall,
@@ -108,7 +120,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             )
             if (muscleDistribution.isEmpty()) {
                 Text(
-                    "No strength sets logged in the last 30 days yet.",
+                    "No strength sets logged (${timeframeLabel(timeframe)}) yet.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 4.dp),
@@ -343,3 +355,10 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
 }
 
 private val PR_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d")
+
+private fun timeframeLabel(timeframe: ProgressTimeframe): String = when (timeframe) {
+    ProgressTimeframe.WEEK -> "last 7 days"
+    ProgressTimeframe.MONTH -> "last 30 days"
+    ProgressTimeframe.YEAR -> "last 12 months"
+    ProgressTimeframe.LIFETIME -> "lifetime"
+}

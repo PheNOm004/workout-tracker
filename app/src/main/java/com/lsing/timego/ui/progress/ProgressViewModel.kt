@@ -16,11 +16,13 @@ import com.lsing.timego.domain.personalRecords
 import com.lsing.timego.domain.strengthCurve
 import com.lsing.timego.domain.trainingStats
 import com.lsing.timego.domain.workoutVolumeRatios
+import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.buildDayHistoryEntries
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -72,25 +74,30 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _trainingStats = MutableStateFlow(TrainingStats(0, 0.0, 0.0, 0))
     val trainingStats: StateFlow<TrainingStats> = _trainingStats.asStateFlow()
 
+    private val _timeframe = MutableStateFlow(ProgressTimeframe.MONTH)
+    val timeframe: StateFlow<ProgressTimeframe> = _timeframe.asStateFlow()
+
     init {
         viewModelScope.launch {
-            repository.sessions.collect { sessions ->
-                val allSets = repository.allSetLogs()
-                _volumeRatios.value = workoutVolumeRatios(sessions, allSets)
-                val sessionDateById = sessions.associate { it.id to it.date }
-                val exercisesById = repository.exercises.first().associateBy { it.id }
-                _records.value = personalRecords(allSets, sessionDateById, exercisesById)
+            combine(repository.sessions, _timeframe) { sessions, timeframe -> sessions to timeframe }
+                .collect { (sessions, timeframe) ->
+                    val allSets = repository.allSetLogs()
+                    _volumeRatios.value = workoutVolumeRatios(sessions, allSets)
+                    val sessionDateById = sessions.associate { it.id to it.date }
+                    val exercisesById = repository.exercises.first().associateBy { it.id }
+                    _records.value = personalRecords(allSets, sessionDateById, exercisesById)
 
-                val since = LocalDate.now().minusDays(30)
-                _trainingStats.value = trainingStats(sessions, allSets, since)
-                val rawDistribution = muscleGroupVolumeDistribution(allSets, exercisesById, sessionDateById, since)
-                val maxVolume = rawDistribution.values.maxOrNull() ?: 0.0
-                _muscleDistribution.value = if (maxVolume > 0.0) {
-                    rawDistribution.mapValues { (_, volume) -> (volume / maxVolume).toFloat() }
-                } else {
-                    emptyMap()
+                    val earliestSessionDate = sessions.minOfOrNull { it.date }
+                    val since = timeframe.sinceDate(earliestSessionDate, LocalDate.now())
+                    _trainingStats.value = trainingStats(sessions, allSets, since)
+                    val rawDistribution = muscleGroupVolumeDistribution(allSets, exercisesById, sessionDateById, since)
+                    val maxVolume = rawDistribution.values.maxOrNull() ?: 0.0
+                    _muscleDistribution.value = if (maxVolume > 0.0) {
+                        rawDistribution.mapValues { (_, volume) -> (volume / maxVolume).toFloat() }
+                    } else {
+                        emptyMap()
+                    }
                 }
-            }
         }
         viewModelScope.launch {
             repository.bodyMetrics.collect { metrics ->
@@ -113,6 +120,10 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                 }
             }
         }
+    }
+
+    fun selectTimeframe(timeframe: ProgressTimeframe) {
+        _timeframe.value = timeframe
     }
 
     fun selectExercise(exerciseId: Long) {
