@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
@@ -20,6 +22,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -67,7 +70,35 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
             routines = viewModel.routines.collectAsState().value,
             onStartSession = viewModel::startSession,
         )
-        is SessionUiState.Active -> LoggingContent(viewModel = viewModel, onEndSession = viewModel::endActiveSession)
+        is SessionUiState.Active -> {
+            // Keyed on sessionId, not just a bare remember{}: this resets to false whenever a
+            // *new* active session starts, but persists correctly across recompositions of the
+            // same session (e.g. suggestion updates after logging a set).
+            var peekingLanding by remember(state.sessionId) { mutableStateOf(false) }
+            if (peekingLanding) {
+                ActiveSessionLandingContent(onContinue = { peekingLanding = false })
+            } else {
+                LoggingContent(
+                    viewModel = viewModel,
+                    onEndSession = viewModel::endActiveSession,
+                    onBackToLanding = { peekingLanding = true },
+                )
+            }
+        }
+    }
+}
+
+/** Shown when the user backs out of an in-progress session without ending it -- a lightweight
+ *  stand-in for the full landing page (no last-session/recommendation content, since a session is
+ *  still open) whose only job is getting back into logging. */
+@Composable
+private fun ActiveSessionLandingContent(onContinue: () -> Unit) {
+    Column(modifier = Modifier.padding(Spacing.Large)) {
+        SectionHeader("Session in progress", topPadding = Spacing.ExtraSmall)
+        Text("You have a session already in progress.", style = MaterialTheme.typography.bodyMedium)
+        Button(onClick = onContinue, modifier = Modifier.padding(top = Spacing.Medium)) {
+            Text("Continue Session")
+        }
     }
 }
 
@@ -130,7 +161,7 @@ private fun LogLandingContent(
 }
 
 @Composable
-private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit) {
+private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, onBackToLanding: () -> Unit) {
     val exercises by viewModel.displayedExercises.collectAsState()
     val suggestions by viewModel.suggestions.collectAsState()
     val holdSuggestions by viewModel.holdSuggestions.collectAsState()
@@ -147,6 +178,7 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit) {
     }
 
     Scaffold(
+        modifier = Modifier.imePadding(),
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(Icons.Filled.Add, contentDescription = "Add custom exercise")
@@ -155,14 +187,18 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit) {
     ) { fabPadding ->
         LazyColumn(modifier = Modifier.padding(Spacing.Large).padding(fabPadding)) {
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    SectionHeader("Session type", topPadding = Spacing.ExtraSmall)
-                    Button(onClick = onEndSession) { Text("End Session") }
-                }
+                SectionHeader(
+                    "Session type",
+                    topPadding = Spacing.ExtraSmall,
+                    trailing = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = onBackToLanding) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to landing")
+                            }
+                            Button(onClick = onEndSession) { Text("End Session") }
+                        }
+                    },
+                )
                 Row(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small).horizontalScroll(rememberScrollState())) {
                     FilterChip(
                         selected = selectedRoutineId == null,
