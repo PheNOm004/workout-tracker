@@ -37,12 +37,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.domain.PrType
 import com.lsing.timego.domain.BmiCategory
 import com.lsing.timego.domain.bmiCategory
+import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.HeatmapGrid
 import com.lsing.timego.ui.common.HorizontalWheelPicker
@@ -201,9 +203,16 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                     // a lighter high-rep set's reps as if one set did both.
                                     val record = exerciseRecords.firstOrNull { it.type == PrType.BEST_SET }
                                     val caption = record?.achievedOn?.format(PR_DATE_FORMATTER)
+                                    val isBodyweight = selectedExercise.category == ExerciseCategory.CALISTHENICS.name
                                     StatTile(
                                         label = "Weight",
-                                        value = record?.let { "%.1fkg".format(it.value) } ?: "--",
+                                        value = record?.let {
+                                            if (isBodyweight && it.addedWeightKg != null) {
+                                                formatCalisthenicsWeight(it.addedWeightKg)
+                                            } else {
+                                                "%.1fkg".format(it.value)
+                                            }
+                                        } ?: "--",
                                         caption = caption,
                                         modifier = Modifier.weight(1f),
                                     )

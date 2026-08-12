@@ -16,8 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lsing.timego.data.Exercise
+import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.SetLog
+import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.Spacing
 
@@ -41,7 +43,11 @@ fun buildDayHistoryEntries(setLogs: List<SetLog>, exercisesById: Map<Long, Exerc
                     "${log.durationMinutes ?: 0.0} min$distance"
                 }
                 LoggingType.HOLD.name -> "${log.holdSeconds ?: 0}s hold"
-                else -> "${log.weightKg}kg x ${log.reps}"
+                else -> if (exercise.category == ExerciseCategory.CALISTHENICS.name && log.addedWeightKg != null) {
+                    "${formatCalisthenicsWeight(log.addedWeightKg)} x ${log.reps}"
+                } else {
+                    "${log.weightKg}kg x ${log.reps}"
+                }
             }
             exercise.name to description
         }
