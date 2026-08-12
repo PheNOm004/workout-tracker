@@ -5,22 +5,33 @@ data class SetPerformance(val weightKg: Double, val reps: Int, val targetReps: I
 data class OverloadSuggestion(val weightKg: Double, val reps: Int, val note: String, val plateauStatus: PlateauStatus)
 
 interface OverloadSuggester {
-    fun suggestNext(history: List<SetPerformance>): OverloadSuggestion?
+    fun suggestNext(sessionHistory: List<SetPerformance>, currentSessionWorkingSets: List<SetPerformance>): OverloadSuggestion?
 }
 
 /** Deterministic, on-device, no ML -- see the v1 spec's "Recommendation Engine" section for why,
  *  and the 2026-08-11 suggester-plateau-upgrade-design spec for why this is the base layer a
- *  future ML model sits on top of rather than the model itself. Plateau status is computed from
- *  a 5-set rolling window of estimated 1RM via [classifyPlateauStatus] -- REGRESSING (last two
- *  sets missed target) still triggers the same 10% deload as before; PROGRESSING keeps the
- *  original hit-target/missed-target branches; PLATEAUING is new -- holds weight and reps flat
- *  for one more session instead of blindly adding weight into a stall. */
+ *  future ML model sits on top of rather than the model itself. [sessionHistory] is one
+ *  representative (last working) set per past session (see [sessionWorkingSetHistory]), not every
+ *  raw set -- overload is a between-session decision. [currentSessionWorkingSets] non-empty means
+ *  a working set has already been logged for this exercise this session: the suggestion locks to
+ *  that session's *first* working set's weight/target (2026-08-12 warmup-session-aware-suggester
+ *  design) rather than re-running the decision table, so a second/third set of the same exercise
+ *  doesn't escalate further mid-session even if you deviate (e.g. a drop set) on a later one. */
 class RuleBasedOverloadSuggester : OverloadSuggester {
-    override fun suggestNext(history: List<SetPerformance>): OverloadSuggestion? {
-        if (history.isEmpty()) return null
-        val last = history.last()
-        val oneRepMaxes = history.map { estimatedOneRepMax(it.weightKg, it.reps) }
-        val hitFlags = history.map { it.reps >= it.targetReps }
+    override fun suggestNext(sessionHistory: List<SetPerformance>, currentSessionWorkingSets: List<SetPerformance>): OverloadSuggestion? {
+        if (currentSessionWorkingSets.isNotEmpty()) {
+            val locked = currentSessionWorkingSets.first()
+            return OverloadSuggestion(
+                weightKg = locked.weightKg,
+                reps = locked.targetReps,
+                note = "Repeating today's working weight",
+                plateauStatus = PlateauStatus.REPEATING,
+            )
+        }
+        if (sessionHistory.isEmpty()) return null
+        val last = sessionHistory.last()
+        val oneRepMaxes = sessionHistory.map { estimatedOneRepMax(it.weightKg, it.reps) }
+        val hitFlags = sessionHistory.map { it.reps >= it.targetReps }
         val status = classifyPlateauStatus(oneRepMaxes, hitFlags)
 
         return when (status) {
@@ -51,6 +62,7 @@ class RuleBasedOverloadSuggester : OverloadSuggester {
                     plateauStatus = status,
                 )
             }
+            PlateauStatus.REPEATING -> error("classifyPlateauStatus never returns REPEATING")
         }
     }
 }

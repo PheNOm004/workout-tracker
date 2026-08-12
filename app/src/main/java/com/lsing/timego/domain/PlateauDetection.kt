@@ -1,6 +1,6 @@
 package com.lsing.timego.domain
 
-enum class PlateauStatus { PROGRESSING, PLATEAUING, REGRESSING }
+enum class PlateauStatus { PROGRESSING, PLATEAUING, REGRESSING, REPEATING }
 
 private const val WINDOW_SIZE = 5
 
