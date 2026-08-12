@@ -14,16 +14,43 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lsing.timego.data.Exercise
+import com.lsing.timego.data.LoggingType
+import com.lsing.timego.data.SetLog
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.Spacing
 
-data class DayHistoryEntry(val exerciseName: String, val description: String)
+/** [setDescriptions] holds one entry per set of this exercise (e.g. "60.0kg x 8"), grouped
+ *  together under a single [exerciseName] row rather than repeating the name once per set --
+ *  see [buildDayHistoryEntries]. */
+data class DayHistoryEntry(val exerciseName: String, val setDescriptions: List<String>)
 
-/** Set/Name/Reps-or-Duration table, one row per logged set -- shared between the Progress
- *  screen's tap-a-heatmap-day dialog (title = "Workout on <date>") and the logging landing page's
- *  last-session detail (title = "Last session"). [title] is caller-supplied rather than assuming
- *  a date, since the landing page's "last session" isn't itself date-keyed the way the heatmap's
- *  tap target is. */
+/** Shared by the Progress screen's tap-a-heatmap-day history and the logging landing page's
+ *  last-session detail -- both need "every set logged in this session/day, one row per exercise
+ *  with all its sets listed together" rather than one row per raw set (which repeated the
+ *  exercise name for every set of a multi-set exercise). Order follows first-appearance order in
+ *  [setLogs] (chronological, since callers pass sets already ordered by loggedAtEpochMillis). */
+fun buildDayHistoryEntries(setLogs: List<SetLog>, exercisesById: Map<Long, Exercise>): List<DayHistoryEntry> =
+    setLogs
+        .mapNotNull { log ->
+            val exercise = exercisesById[log.exerciseId] ?: return@mapNotNull null
+            val description = when (exercise.loggingType) {
+                LoggingType.DURATION_DISTANCE.name -> {
+                    val distance = log.distanceKm?.let { " -- ${it}km" } ?: ""
+                    "${log.durationMinutes ?: 0.0} min$distance"
+                }
+                LoggingType.HOLD.name -> "${log.holdSeconds ?: 0}s hold"
+                else -> "${log.weightKg}kg x ${log.reps}"
+            }
+            exercise.name to description
+        }
+        .groupBy({ it.first }, { it.second })
+        .map { (name, descriptions) -> DayHistoryEntry(name, descriptions) }
+
+/** One row per exercise (not per set) -- shared between the Progress screen's tap-a-heatmap-day
+ *  dialog (title = "Workout on <date>") and the logging landing page's last-session detail
+ *  (title = "Last session"). [title] is caller-supplied rather than assuming a date, since the
+ *  landing page's "last session" isn't itself date-keyed the way the heatmap's tap target is. */
 @Composable
 fun WorkoutHistoryDialog(title: String, entries: List<DayHistoryEntry>, onDismiss: () -> Unit) {
     AlertDialog(
@@ -34,11 +61,13 @@ fun WorkoutHistoryDialog(title: String, entries: List<DayHistoryEntry>, onDismis
                 Text("No sets logged.")
             } else {
                 Column {
-                    entries.forEachIndexed { index, entry ->
+                    entries.forEach { entry ->
                         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                            Text("${index + 1}", style = LedgerFigureValue.copy(fontSize = 14.sp), modifier = Modifier.padding(end = 12.dp))
                             Text(entry.exerciseName, modifier = Modifier.weight(1f))
-                            Text(entry.description, style = LedgerFigureValue.copy(fontSize = 14.sp))
+                            Text(
+                                entry.setDescriptions.joinToString(", "),
+                                style = LedgerFigureValue.copy(fontSize = 14.sp),
+                            )
                         }
                     }
                 }

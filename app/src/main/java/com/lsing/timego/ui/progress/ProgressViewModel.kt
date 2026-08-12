@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lsing.timego.data.BodyMetric
 import com.lsing.timego.data.Exercise
-import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.PersonalRecord
@@ -18,6 +17,7 @@ import com.lsing.timego.domain.strengthCurve
 import com.lsing.timego.domain.trainingStats
 import com.lsing.timego.domain.workoutVolumeRatios
 import com.lsing.timego.ui.common.DayHistoryEntry
+import com.lsing.timego.ui.common.buildDayHistoryEntries
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -155,20 +155,8 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val sessionIds = repository.allSessions().filter { it.date == date }.map { it.id }.toSet()
             val exercisesById = _exercises.value.associateBy { it.id }
-            _historyForSelectedDate.value = repository.allSetLogs()
-                .filter { it.sessionId in sessionIds }
-                .mapNotNull { log ->
-                    val exercise = exercisesById[log.exerciseId] ?: return@mapNotNull null
-                    val description = when (exercise.loggingType) {
-                        LoggingType.DURATION_DISTANCE.name -> {
-                            val distance = log.distanceKm?.let { " -- ${it}km" } ?: ""
-                            "${log.durationMinutes ?: 0.0} min$distance"
-                        }
-                        LoggingType.HOLD.name -> "${log.holdSeconds ?: 0}s hold"
-                        else -> "${log.weightKg}kg x ${log.reps}"
-                    }
-                    DayHistoryEntry(exercise.name, description)
-                }
+            val sets = repository.allSetLogs().filter { it.sessionId in sessionIds }.sortedBy { it.loggedAtEpochMillis }
+            _historyForSelectedDate.value = buildDayHistoryEntries(sets, exercisesById)
         }
     }
 }

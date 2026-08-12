@@ -24,6 +24,7 @@ import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.sessionWorkingSetHistory
 import com.lsing.timego.ui.common.DayHistoryEntry
+import com.lsing.timego.ui.common.buildDayHistoryEntries
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -199,18 +200,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             val sets = repository.setLogsForSession(session.id)
             val exercisesById = allExercises.associateBy { it.id }
             val muscleGroups = muscleGroupsWorkedInSession(session.id, sets, allExercises)
-            val detail = sets.mapNotNull { log ->
-                val exercise = exercisesById[log.exerciseId] ?: return@mapNotNull null
-                val description = when (exercise.loggingType) {
-                    LoggingType.DURATION_DISTANCE.name -> {
-                        val distance = log.distanceKm?.let { " -- ${it}km" } ?: ""
-                        "${log.durationMinutes ?: 0.0} min$distance"
-                    }
-                    LoggingType.HOLD.name -> "${log.holdSeconds ?: 0}s hold"
-                    else -> "${log.weightKg}kg x ${log.reps}"
-                }
-                DayHistoryEntry(exercise.name, description)
-            }
+            val detail = buildDayHistoryEntries(sets, exercisesById)
             LastSessionSummary(
                 sets = sets.size,
                 muscleGroups = muscleGroups,
