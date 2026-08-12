@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -230,7 +231,7 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, on
                             exerciseName = exercise.name,
                             category = exercise.category,
                             suggestion = holdSuggestions[exercise.id],
-                            onLog = { duration, target -> viewModel.logHoldSet(exercise.id, duration, target) },
+                            onLog = { duration, target, isWarmup -> viewModel.logHoldSet(exercise.id, duration, target, isWarmup) },
                         )
                         LoggingType.DURATION_DISTANCE.name -> CardioLogRow(
                             exerciseName = exercise.name,
@@ -245,7 +246,7 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, on
                             suggestion = suggestions[exercise.id],
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
-                            onLog = { weight, reps, target -> viewModel.logSet(exercise.id, weight, reps, target) },
+                            onLog = { weight, reps, target, isWarmup -> viewModel.logSet(exercise.id, weight, reps, target, isWarmup) },
                         )
                     }
                 }
@@ -328,7 +329,7 @@ private fun StrengthLogRow(
     suggestion: com.lsing.timego.domain.OverloadSuggestion?,
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
-    onLog: (weightKg: Double, reps: Int, targetReps: Int) -> Unit,
+    onLog: (weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean) -> Unit,
 ) {
     var expanded by remember(exerciseName) { mutableStateOf(false) }
     // Bodyweight exercises (Pull-Up, Push-Up, Dip, ...) pre-fill kg with the user's latest logged
@@ -338,6 +339,7 @@ private fun StrengthLogRow(
         mutableStateOf(if (isBodyweight) latestBodyWeightKg?.toString().orEmpty() else "")
     }
     var repsText by remember(exerciseName) { mutableStateOf("") }
+    var isWarmup by remember(exerciseName) { mutableStateOf(false) }
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
 
     ExerciseCard(expanded) {
@@ -356,6 +358,13 @@ private fun StrengthLogRow(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
                 )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = Spacing.Medium),
+            ) {
+                Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
+                Text("Warmup set", style = MaterialTheme.typography.bodySmall)
             }
             Row(
                 modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
@@ -382,9 +391,10 @@ private fun StrengthLogRow(
                     val weight = weightText.toDoubleOrNull()
                     val reps = repsText.toIntOrNull()
                     if (weight != null && reps != null) {
-                        onLog(weight, reps, suggestion?.reps ?: reps)
+                        onLog(weight, reps, suggestion?.reps ?: reps, isWarmup)
                         weightText = ""
                         repsText = ""
+                        isWarmup = false
                     }
                 }) {
                     Text("Log set")
@@ -467,10 +477,11 @@ private fun HoldLogRow(
     exerciseName: String,
     category: String,
     suggestion: HoldSuggestion?,
-    onLog: (durationSeconds: Int, targetDurationSeconds: Int) -> Unit,
+    onLog: (durationSeconds: Int, targetDurationSeconds: Int, isWarmup: Boolean) -> Unit,
 ) {
     var expanded by remember(exerciseName) { mutableStateOf(false) }
     var secondsText by remember(exerciseName) { mutableStateOf("") }
+    var isWarmup by remember(exerciseName) { mutableStateOf(false) }
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
 
     ExerciseCard(expanded) {
@@ -491,6 +502,13 @@ private fun HoldLogRow(
                 )
             }
             Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = Spacing.Medium),
+            ) {
+                Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
+                Text("Warmup set", style = MaterialTheme.typography.bodySmall)
+            }
+            Row(
                 modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -505,8 +523,9 @@ private fun HoldLogRow(
                 Button(onClick = {
                     val seconds = secondsText.toIntOrNull()
                     if (seconds != null) {
-                        onLog(seconds, suggestion?.targetDurationSeconds ?: seconds)
+                        onLog(seconds, suggestion?.targetDurationSeconds ?: seconds, isWarmup)
                         secondsText = ""
+                        isWarmup = false
                     }
                 }) {
                     Text("Log hold")
