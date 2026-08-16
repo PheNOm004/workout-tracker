@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.IntOffset
 
 /** Shared motion vocabulary for the Night Training Console. */
 object TimeGoMotion {
@@ -25,6 +26,8 @@ object TimeGoMotion {
     val contentExit: FiniteAnimationSpec<Float> = tween(durationMillis = 160)
     val navigationIn: FiniteAnimationSpec<Int> = tween(durationMillis = 260)
     val navigationOut: FiniteAnimationSpec<Int> = tween(durationMillis = 180)
+    val navigationInOffset: FiniteAnimationSpec<IntOffset> = tween(durationMillis = 260)
+    val navigationOutOffset: FiniteAnimationSpec<IntOffset> = tween(durationMillis = 180)
     val pulseWidth: FiniteAnimationSpec<androidx.compose.ui.unit.Dp> = spring(
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = Spring.StiffnessMedium,

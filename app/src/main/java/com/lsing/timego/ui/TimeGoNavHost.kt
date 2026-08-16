@@ -1,6 +1,5 @@
 package com.lsing.timego.ui
 
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -13,6 +12,7 @@ import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.lsing.timego.ui.theme.TimeGoMotion
 
 private data class TimeGoDestination(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -38,7 +39,7 @@ fun TimeGoNavHost() {
     val navController = rememberNavController()
     Scaffold(
         bottomBar = {
-            NavigationBar {
+            NavigationBar(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow) {
                 val backStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = backStackEntry?.destination
                 destinations.forEach { destination ->
@@ -53,6 +54,13 @@ fun TimeGoNavHost() {
                         },
                         icon = { Icon(destination.icon, contentDescription = destination.label) },
                         label = { Text(destination.label) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = androidx.compose.material3.MaterialTheme.colorScheme.onPrimaryContainer,
+                            selectedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                            indicatorColor = androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
+                            unselectedIconColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
                     )
                 }
             }
@@ -65,18 +73,18 @@ fun TimeGoNavHost() {
         ) {
             composable(
                 "log",
-                enterTransition = { slideInHorizontally(tween(220)) { it / 8 } + fadeIn(tween(220)) },
-                exitTransition = { slideOutHorizontally(tween(180)) { -it / 8 } + fadeOut(tween(180)) },
+                enterTransition = { slideInHorizontally(TimeGoMotion.navigationInOffset) { it / 8 } + fadeIn(TimeGoMotion.contentEnter) },
+                exitTransition = { slideOutHorizontally(TimeGoMotion.navigationOutOffset) { -it / 8 } + fadeOut(TimeGoMotion.contentExit) },
             ) { com.lsing.timego.ui.log.LogScreen() }
             composable(
                 "progress",
-                enterTransition = { slideInHorizontally(tween(220)) { it / 8 } + fadeIn(tween(220)) },
-                exitTransition = { slideOutHorizontally(tween(180)) { -it / 8 } + fadeOut(tween(180)) },
+                enterTransition = { slideInHorizontally(TimeGoMotion.navigationInOffset) { it / 8 } + fadeIn(TimeGoMotion.contentEnter) },
+                exitTransition = { slideOutHorizontally(TimeGoMotion.navigationOutOffset) { -it / 8 } + fadeOut(TimeGoMotion.contentExit) },
             ) { com.lsing.timego.ui.progress.ProgressScreen() }
             composable(
                 "routines",
-                enterTransition = { slideInHorizontally(tween(220)) { it / 8 } + fadeIn(tween(220)) },
-                exitTransition = { slideOutHorizontally(tween(180)) { -it / 8 } + fadeOut(tween(180)) },
+                enterTransition = { slideInHorizontally(TimeGoMotion.navigationInOffset) { it / 8 } + fadeIn(TimeGoMotion.contentEnter) },
+                exitTransition = { slideOutHorizontally(TimeGoMotion.navigationOutOffset) { -it / 8 } + fadeOut(TimeGoMotion.contentExit) },
             ) { com.lsing.timego.ui.routines.RoutinesScreen() }
         }
     }
