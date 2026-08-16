@@ -594,6 +594,8 @@ private fun HoldLogRow(
 ) {
     var expanded by remember(exerciseName) { mutableStateOf(false) }
     var isWarmup by remember(exerciseName) { mutableStateOf(false) }
+    var useTimer by remember(exerciseName) { mutableStateOf(true) }
+    var manualDurationText by remember(exerciseName) { mutableStateOf("") }
     var phase by remember(exerciseName) { mutableStateOf<HoldTimerPhase?>(null) }
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
 
@@ -627,7 +629,34 @@ private fun HoldLogRow(
                 Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
                 Text("Warmup set", style = MaterialTheme.typography.bodySmall)
             }
-            when (val currentPhase = phase) {
+            if (!useTimer) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val manualDuration = manualDurationText.toIntOrNull()
+                    OutlinedTextField(
+                        value = manualDurationText,
+                        onValueChange = { manualDurationText = it },
+                        label = { Text("seconds") },
+                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                    )
+                    Button(onClick = {
+                        if (manualDuration != null && manualDuration > 0) {
+                            onLog(manualDuration, suggestion?.targetDurationSeconds ?: manualDuration, isWarmup)
+                            manualDurationText = ""
+                            isWarmup = false
+                        }
+                    }) { Text("Log") }
+                }
+                TextButton(
+                    onClick = { useTimer = true },
+                    modifier = Modifier.padding(horizontal = Spacing.Medium),
+                ) { Text("Use timer instead") }
+            } else {
+                when (val currentPhase = phase) {
                 null -> Row(
                     modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
                     verticalAlignment = Alignment.CenterVertically,
@@ -635,8 +664,9 @@ private fun HoldLogRow(
                     Button(onClick = {
                         phase = if (delaySeconds <= 0) HoldTimerPhase.Running(0) else HoldTimerPhase.CountingDown(delaySeconds)
                     }) {
-                        Text("Start")
+                        Text("Start timer")
                     }
+                    TextButton(onClick = { useTimer = false }) { Text("Enter manually") }
                 }
                 is HoldTimerPhase.CountingDown -> Row(
                     modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
@@ -668,6 +698,7 @@ private fun HoldLogRow(
                     }) {
                         Text("Stop & Log")
                     }
+                }
                 }
             }
         }
