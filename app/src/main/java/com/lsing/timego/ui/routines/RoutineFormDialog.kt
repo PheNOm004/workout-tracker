@@ -33,6 +33,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.ui.common.ExerciseSections
+import com.lsing.timego.ui.theme.Spacing
 import java.time.DayOfWeek
 
 /** Full-screen dialog for creating a routine -- previously an always-visible form at the bottom
@@ -50,18 +51,18 @@ fun RoutineFormDialog(
     val selectedDays = remember { mutableStateOf(setOf<String>()) }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(modifier = Modifier.fillMaxSize()) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.Large),
                 ) {
                     Text("New Routine", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Filled.Close, contentDescription = "Close")
                     }
                 }
-                LazyColumn(modifier = Modifier.weight(1f).padding(horizontal = 16.dp)) {
+                LazyColumn(modifier = Modifier.weight(1f).padding(horizontal = Spacing.Large)) {
                     item {
                         OutlinedTextField(
                             value = routineName,
@@ -69,7 +70,7 @@ fun RoutineFormDialog(
                             label = { Text("Routine name") },
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        Text("Days", modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+                        Text("Days", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall))
                         Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                             DayOfWeek.entries.forEach { day ->
                                 val checked = day.name in selectedDays.value
@@ -83,7 +84,7 @@ fun RoutineFormDialog(
                                 )
                             }
                         }
-                        Text("Exercises", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                        Text("Exercises", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall))
                     }
                     item {
                         ExerciseSections(exercises = exercises) { exercise ->
@@ -104,7 +105,7 @@ fun RoutineFormDialog(
                         }
                     }
                 }
-                Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Box(modifier = Modifier.fillMaxWidth().padding(Spacing.Large)) {
                     Button(
                         onClick = {
                             if (routineName.isNotBlank() && selectedExerciseIds.value.isNotEmpty()) {

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.ui.common.formatEnumLabel
+import com.lsing.timego.ui.theme.Spacing
 
 @Composable
 fun AddExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String, muscleGroups: List<String>, category: String) -> Unit) {
@@ -41,7 +42,7 @@ fun AddExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String, muscleGroups:
                     label = { Text("Exercise name") },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Text("Category", modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+                Text("Category", style = androidx.compose.material3.MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall))
                 Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                     ExerciseCategory.entries.forEach { entry ->
                         FilterChip(
@@ -52,7 +53,7 @@ fun AddExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String, muscleGroups:
                         )
                     }
                 }
-                Text("Muscle groups", modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+                Text("Muscle groups", style = androidx.compose.material3.MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall))
                 MuscleGroup.entries.forEach { group ->
                     val checked = group.name in selectedGroups.value
                     Row {

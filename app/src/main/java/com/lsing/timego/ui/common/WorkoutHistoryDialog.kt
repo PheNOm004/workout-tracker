@@ -110,11 +110,12 @@ fun WorkoutHistoryDialog(
 fun StatTile(label: String, value: String, caption: String? = null, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.padding(Spacing.ExtraSmall),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.padding(Spacing.Medium)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = LedgerFigureValue)
+            Text(value, style = LedgerFigureValue, color = MaterialTheme.colorScheme.onSurface)
             if (caption != null) {
                 Text(caption, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
