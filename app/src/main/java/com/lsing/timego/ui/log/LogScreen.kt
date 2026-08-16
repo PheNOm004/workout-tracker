@@ -60,6 +60,7 @@ import com.lsing.timego.ui.common.AnimatedExpand
 import com.lsing.timego.ui.common.ExerciseSections
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.StatTile
+import com.lsing.timego.ui.common.TrainingPulse
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.categoryVisual
 import com.lsing.timego.ui.common.formatEnumLabel
@@ -223,8 +224,13 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, on
     ) { fabPadding ->
         LazyColumn(modifier = Modifier.padding(Spacing.Large).padding(fabPadding)) {
             item {
+                Text(
+                    "Log your next set",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
+                )
                 SectionHeader(
-                    "Session type",
+                    "Active workout",
                     topPadding = Spacing.ExtraSmall,
                     trailing = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -339,17 +345,20 @@ private fun ExerciseRowHeader(
 @Composable
 private fun ExerciseCard(expanded: Boolean, content: @Composable () -> Unit) {
     val accent = MaterialTheme.colorScheme.primary
-    Column(
+    TrainingPulse(
+        active = expanded,
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = Spacing.Large, end = Spacing.Small)
-            .then(if (expanded) Modifier.background(accent.copy(alpha = 0.06f)) else Modifier),
+            .then(if (expanded) Modifier.background(MaterialTheme.colorScheme.surfaceContainer) else Modifier),
     ) {
-        content()
-        HorizontalDivider(
-            color = if (expanded) accent else MaterialTheme.colorScheme.outlineVariant,
-            thickness = if (expanded) 2.dp else 1.dp,
-        )
+        Column {
+            content()
+            HorizontalDivider(
+                color = if (expanded) accent else MaterialTheme.colorScheme.outlineVariant,
+                thickness = if (expanded) 2.dp else 1.dp,
+            )
+        }
     }
 }
 

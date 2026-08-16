@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.ExerciseCategory
+import com.lsing.timego.ui.theme.Spacing
 
 /** Title-Case display label for an ExerciseCategory or MuscleGroup enum name, e.g. "FULL_BODY" ->
  *  "Full Body". Shared here since both category and muscle-group headers need it. */
@@ -71,15 +72,21 @@ fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exerci
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp)
+                    .padding(top = Spacing.Large, bottom = Spacing.ExtraSmall)
                     .clickable { expanded = !expanded },
             ) {
+                val visual = categoryVisual(category)
                 Icon(
                     if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
                     contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = visual.accent,
                     modifier = Modifier.padding(start = 8.dp, end = 4.dp),
                 )
-                Text(formatEnumLabel(category.name), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    formatEnumLabel(category.name),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             }
             AnimatedExpand(expanded) {
                 // Sorted so iteration order is deterministic across recompositions -- a plain
@@ -95,7 +102,7 @@ fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exerci
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 8.dp)
+                                .padding(top = Spacing.Small)
                                 .clickable { groupExpanded = !groupExpanded },
                         ) {
                             Icon(
