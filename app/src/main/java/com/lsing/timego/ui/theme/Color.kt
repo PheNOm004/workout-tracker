@@ -2,86 +2,85 @@ package com.lsing.timego.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// "Ledger" palette — a lifter's paper training logbook, rendered dark-first. Chrome
-// (backgrounds/surfaces/text/rules) only; chart-specific colors (heatmap scale, radar chart)
-// live in their own domain/UI files and are re-picked separately within this same family.
+// Night Training Console palette: dark gym surfaces with warm text and controlled training color.
+// Ledger-prefixed names remain stable for existing call sites while the values move to the new
+// semantic system.
 
-// Dark theme (primary mode): warm near-black graphite, not the prior cool blue-black --
-// closer to a ledger page under a desk lamp than a phone-screen black.
-val LedgerBackgroundDark = Color(0xFF0D0C0A)
-val LedgerSurfaceDark = Color(0xFF16140F)
-val LedgerSurfaceVariantDark = Color(0xFF211E17)
-val LedgerOnSurfaceDark = Color(0xFFEDE8DC)
-val LedgerOnSurfaceVariantDark = Color(0xFFB8B2A0)
-val LedgerOutlineDark = Color(0xFF7A7461)
-val LedgerOutlineVariantDark = Color(0xFF332F25)
+// Dark-first surfaces.
+val LedgerBackgroundDark = Color(0xFF101315)
+val LedgerSurfaceDark = Color(0xFF181D20)
+val LedgerSurfaceVariantDark = Color(0xFF22292C)
+val LedgerOnSurfaceDark = Color(0xFFF4F1EA)
+val LedgerOnSurfaceVariantDark = Color(0xFFAAB2B3)
+val LedgerOutlineDark = Color(0xFF596366)
+val LedgerOutlineVariantDark = Color(0xFF343B3E)
 
-// Elevation/tonal ramp for the roles Material3 resolves from surfaceContainer* -- every role is
-// set explicitly for the same reason the prior Onyx system set them explicitly: an unset role
-// falls back to the baseline violet-grey palette in NavigationBar/ModalBottomSheet/AlertDialog/Card.
-val LedgerSurfaceDimDark = Color(0xFF0A0908)
-val LedgerSurfaceBrightDark = Color(0xFF322E24)
-val LedgerSurfaceContainerLowestDark = Color(0xFF080706)
-val LedgerSurfaceContainerLowDark = Color(0xFF19170F)
-val LedgerSurfaceContainerDark = Color(0xFF1D1A13)
-val LedgerSurfaceContainerHighDark = Color(0xFF27231A)
-val LedgerSurfaceContainerHighestDark = Color(0xFF322D22)
+val LedgerSurfaceDimDark = Color(0xFF0C0F10)
+val LedgerSurfaceBrightDark = Color(0xFF30383B)
+val LedgerSurfaceContainerLowestDark = Color(0xFF0B0E0F)
+val LedgerSurfaceContainerLowDark = Color(0xFF151A1C)
+val LedgerSurfaceContainerDark = Color(0xFF1C2224)
+val LedgerSurfaceContainerHighDark = Color(0xFF252C2F)
+val LedgerSurfaceContainerHighestDark = Color(0xFF30383B)
 
-// Light theme: real bone/aged-paper ground -- its own tonal pass, not a mechanical invert.
-val LedgerBackgroundLight = Color(0xFFF6F1E4)
-val LedgerSurfaceLight = Color(0xFFFBF8EF)
-val LedgerSurfaceVariantLight = Color(0xFFE9E1CC)
-val LedgerOnSurfaceLight = Color(0xFF211E17)
-val LedgerOnSurfaceVariantLight = Color(0xFF534E3E)
-val LedgerOutlineLight = Color(0xFF847D66)
-val LedgerOutlineVariantLight = Color(0xFFD6CCAE)
+// Warm light companion, intentionally not a mechanical inversion of dark mode.
+val LedgerBackgroundLight = Color(0xFFF2F0EC)
+val LedgerSurfaceLight = Color(0xFFFBFAF7)
+val LedgerSurfaceVariantLight = Color(0xFFE7E4DF)
+val LedgerOnSurfaceLight = Color(0xFF1B2022)
+val LedgerOnSurfaceVariantLight = Color(0xFF596164)
+val LedgerOutlineLight = Color(0xFF7C8587)
+val LedgerOutlineVariantLight = Color(0xFFD2D5D4)
 
-val LedgerSurfaceDimLight = Color(0xFFE2D9C0)
-val LedgerSurfaceBrightLight = Color(0xFFFBF8EF)
+val LedgerSurfaceDimLight = Color(0xFFD9DCD9)
+val LedgerSurfaceBrightLight = Color(0xFFFFFFFF)
 val LedgerSurfaceContainerLowestLight = Color(0xFFFFFFFF)
-val LedgerSurfaceContainerLowLight = Color(0xFFF8F3E5)
-val LedgerSurfaceContainerLight = Color(0xFFF1EADA)
-val LedgerSurfaceContainerHighLight = Color(0xFFEBE2CE)
-val LedgerSurfaceContainerHighestLight = Color(0xFFE5DBC3)
+val LedgerSurfaceContainerLowLight = Color(0xFFF7F6F2)
+val LedgerSurfaceContainerLight = Color(0xFFEDEBE6)
+val LedgerSurfaceContainerHighLight = Color(0xFFE7E5E0)
+val LedgerSurfaceContainerHighestLight = Color(0xFFE1E0DB)
 
-// The one committed brand accent -- brick/ink red, carries the margin rule, active-row indicator,
-// FAB, and primary buttons. Shared across light/dark (contrast-adjusted where Material requires
-// an "on" color); no secondary/tertiary brand hues -- both roles collapse to graphite tonal steps
-// so the palette stays Restrained (neutrals + one accent).
-val LedgerAccent = Color(0xFFB33A2E)
-val LedgerAccentDim = Color(0xFF8C2C22)
-val LedgerOnAccent = Color(0xFFFFF3EC)
-val LedgerSecondary = Color(0xFF8A8367)
-val LedgerOnSecondary = Color(0xFF1D1A13)
-val LedgerTertiary = Color(0xFF6E6A57)
-val LedgerTertiaryDim = Color(0xFF56523F)
-val LedgerOnTertiary = Color(0xFFF6F1E4)
-val LedgerError = Color(0xFFCF4A3D)
-val LedgerOnError = Color(0xFFFFFFFF)
+// Brand/action color and its contrast-adjusted companion roles.
+val LedgerAccent = Color(0xFFFF6B5E)
+val LedgerAccentDim = Color(0xFFB94742)
+val LedgerOnAccent = Color(0xFF32100D)
+val LedgerSecondary = Color(0xFF9BA6A8)
+val LedgerOnSecondary = Color(0xFF172022)
+val LedgerTertiary = Color(0xFFB8A7FF)
+val LedgerTertiaryDim = Color(0xFF7668B5)
+val LedgerOnTertiary = Color(0xFF211A49)
+val LedgerError = Color(0xFFFF8A80)
+val LedgerOnError = Color(0xFF3B0906)
 
-// Tonal containers -- warm-shifted so filled chips, the nav indicator, and assist surfaces stay
-// inside the ledger's graphite/paper family instead of Material's default violet-grey.
-val LedgerAccentContainerDark = Color(0xFF4A160F)
-val LedgerOnAccentContainerDark = Color(0xFFFFDAD2)
-val LedgerSecondaryContainerDark = Color(0xFF3A3728)
-val LedgerOnSecondaryContainerDark = Color(0xFFE5DFC7)
-val LedgerTertiaryContainerDark = Color(0xFF302D20)
-val LedgerOnTertiaryContainerDark = Color(0xFFDBD6C0)
-val LedgerErrorContainerDark = Color(0xFF5C1A14)
+val LedgerAccentContainerDark = Color(0xFF68241F)
+val LedgerOnAccentContainerDark = Color(0xFFFFDAD5)
+val LedgerSecondaryContainerDark = Color(0xFF30393B)
+val LedgerOnSecondaryContainerDark = Color(0xFFD8E1E2)
+val LedgerTertiaryContainerDark = Color(0xFF39305F)
+val LedgerOnTertiaryContainerDark = Color(0xFFE6DEFF)
+val LedgerErrorContainerDark = Color(0xFF5C1A16)
 val LedgerOnErrorContainerDark = Color(0xFFFFDAD5)
 
-val LedgerAccentContainerLight = Color(0xFFFFDAD2)
-val LedgerOnAccentContainerLight = Color(0xFF3A0E08)
-val LedgerSecondaryContainerLight = Color(0xFFE5DFC7)
-val LedgerOnSecondaryContainerLight = Color(0xFF201E10)
-val LedgerTertiaryContainerLight = Color(0xFFDBD6C0)
-val LedgerOnTertiaryContainerLight = Color(0xFF1C1A0F)
+val LedgerAccentContainerLight = Color(0xFFFFDAD5)
+val LedgerOnAccentContainerLight = Color(0xFF5A1712)
+val LedgerSecondaryContainerLight = Color(0xFFDCE4E5)
+val LedgerOnSecondaryContainerLight = Color(0xFF182123)
+val LedgerTertiaryContainerLight = Color(0xFFE8E0FF)
+val LedgerOnTertiaryContainerLight = Color(0xFF251B52)
 val LedgerErrorContainerLight = Color(0xFFFFDAD5)
-val LedgerOnErrorContainerLight = Color(0xFF410300)
+val LedgerOnErrorContainerLight = Color(0xFF410002)
 
-// Functional status color -- deliberately separate from the brand accent above, so a plateau
-// flag never reads as "the app's red button." Used only for PlateauStatus (PROGRESSING /
-// PLATEAUING / REGRESSING) and PR-moment highlighting, never for chrome or navigation.
-val LedgerProgressing = Color(0xFF5E8C5A)
-val LedgerPlateauing = Color(0xFFC98A2E)
+// Semantic fitness colors. These never replace the brand accent for action chrome.
+val NightMint = Color(0xFF9BD8B2)
+val NightAmber = Color(0xFFF2B866)
+val NightViolet = Color(0xFFB8A7FF)
+val LedgerProgressing = NightMint
+val LedgerPlateauing = NightAmber
 val LedgerRegressing = LedgerError
+
+// Explicit aliases for new presentation code and design-token readability.
+val NightBackground = LedgerBackgroundDark
+val NightSurface = LedgerSurfaceDark
+val NightSurfaceRaised = LedgerSurfaceVariantDark
+val NightCoral = LedgerAccent
+val NightCoralShade = LedgerAccentDim

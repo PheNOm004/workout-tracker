@@ -10,4 +10,9 @@ object Spacing {
     val Medium: Dp = 12.dp
     val Large: Dp = 16.dp
     val ExtraLarge: Dp = 24.dp
+
+    val ScreenEdge: Dp = Large
+    val SectionGap: Dp = ExtraLarge
+    val CardPadding: Dp = Medium
+    val ControlGap: Dp = Small
 }

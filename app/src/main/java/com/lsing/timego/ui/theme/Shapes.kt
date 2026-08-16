@@ -4,13 +4,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
-// Near-rectangular scale -- a ruled ledger page reads flat, not soft/bubbly. extraLarge (used by
-// ModalBottomSheet's top corners) keeps enough radius that a sheet doesn't dome oddly near the
-// top edge, but pulled down hard from the prior 28dp -- see the original comment this replaces.
+// Softly controlled console surfaces: enough radius to feel touch-friendly, without the bubbly
+// dashboard look of the previous system.
 val TimeGoShapes = Shapes(
-    extraSmall = RoundedCornerShape(2.dp),
-    small = RoundedCornerShape(2.dp),
-    medium = RoundedCornerShape(4.dp),
-    large = RoundedCornerShape(4.dp),
-    extraLarge = RoundedCornerShape(12.dp),
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(10.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(20.dp),
 )
