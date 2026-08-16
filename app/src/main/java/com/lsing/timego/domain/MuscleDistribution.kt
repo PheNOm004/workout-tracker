@@ -6,6 +6,21 @@ import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.WorkoutSession
 import java.time.LocalDate
 
+fun muscleDistributionForTimeframe(
+    timeframe: ProgressTimeframe,
+    sessions: List<WorkoutSession>,
+    sets: List<SetLog>,
+    exercisesById: Map<Long, Exercise>,
+    today: LocalDate,
+): Map<String, Float> {
+    val since = timeframe.sinceDate(sessions.minOfOrNull { it.date }, today)
+    val sessionDateById = sessions.associate { it.id to it.date }
+    val rawDistribution = muscleGroupVolumeDistribution(sets, exercisesById, sessionDateById, since)
+    val maxVolume = rawDistribution.values.maxOrNull() ?: return emptyMap()
+    if (maxVolume <= 0.0) return emptyMap()
+    return rawDistribution.mapValues { (_, volume) -> (volume / maxVolume).toFloat() }
+}
+
 /** Total volume per muscle group across WEIGHT_REPS/HOLD sets logged on or after [since] -- an
  *  exercise contributes its volume to every muscle group it's tagged with, scaled by that
  *  group's entry in [Exercise.muscleWeights] (defaulting to 100% when unspecified) -- e.g. a

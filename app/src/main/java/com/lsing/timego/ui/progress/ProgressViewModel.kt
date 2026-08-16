@@ -11,7 +11,7 @@ import com.lsing.timego.domain.PersonalRecord
 import com.lsing.timego.domain.TrainingStats
 import com.lsing.timego.domain.bodyMassIndex
 import com.lsing.timego.domain.muscleGroupStrengthCurve
-import com.lsing.timego.domain.muscleGroupVolumeDistribution
+import com.lsing.timego.domain.muscleDistributionForTimeframe
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.personalRecords
 import com.lsing.timego.domain.strengthCurve
@@ -91,16 +91,16 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                     val exercisesById = repository.exercises.first().associateBy { it.id }
                     _records.value = personalRecords(allSets, sessionDateById, exercisesById)
 
-                    val earliestSessionDate = sessions.minOfOrNull { it.date }
-                    val since = timeframe.sinceDate(earliestSessionDate, LocalDate.now())
+                    val today = LocalDate.now()
+                    val since = timeframe.sinceDate(sessions.minOfOrNull { it.date }, today)
                     _trainingStats.value = trainingStats(sessions, allSets, since)
-                    val rawDistribution = muscleGroupVolumeDistribution(allSets, exercisesById, sessionDateById, since)
-                    val maxVolume = rawDistribution.values.maxOrNull() ?: 0.0
-                    _muscleDistribution.value = if (maxVolume > 0.0) {
-                        rawDistribution.mapValues { (_, volume) -> (volume / maxVolume).toFloat() }
-                    } else {
-                        emptyMap()
-                    }
+                    _muscleDistribution.value = muscleDistributionForTimeframe(
+                        timeframe = timeframe,
+                        sessions = sessions,
+                        sets = allSets,
+                        exercisesById = exercisesById,
+                        today = today,
+                    )
                 }
         }
         viewModelScope.launch {

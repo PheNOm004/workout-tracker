@@ -77,6 +77,30 @@ class MuscleDistributionTest {
     }
 
     @Test
+    fun `timeframe distribution excludes sessions outside the selected calendar window`() {
+        val bench = Exercise(id = 5, name = "Bench", muscleGroups = listOf("CHEST"), isCustom = false, category = "STRENGTH")
+        val squat = Exercise(id = 6, name = "Squat", muscleGroups = listOf("QUADS"), isCustom = false, category = "STRENGTH")
+        val sessions = listOf(
+            WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 1), routineId = null, startEpochMillis = 0, endEpochMillis = 0),
+            WorkoutSession(id = 2, date = LocalDate.of(2026, 8, 11), routineId = null, startEpochMillis = 0, endEpochMillis = 0),
+        )
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 6, weightKg = 200.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 2, exerciseId = 5, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+        )
+
+        val distribution = muscleDistributionForTimeframe(
+            timeframe = ProgressTimeframe.WEEK,
+            sessions = sessions,
+            sets = sets,
+            exercisesById = mapOf(5L to bench, 6L to squat),
+            today = LocalDate.of(2026, 8, 12),
+        )
+
+        assertEquals(mapOf("CHEST" to 1f), distribution)
+    }
+
+    @Test
     fun `trainingStats counts workouts, sets, volume, and estimates duration from set timestamps`() {
         val sessions = listOf(WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 10), routineId = null, startEpochMillis = 0, endEpochMillis = 0))
         val sets = listOf(

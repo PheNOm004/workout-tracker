@@ -17,9 +17,9 @@ class ProgressMathTest {
         val today = LocalDate.of(2026, 8, 12)
         val earliest = LocalDate.of(2026, 1, 1)
 
-        assertEquals(LocalDate.of(2026, 8, 5), ProgressTimeframe.WEEK.sinceDate(earliest, today))
-        assertEquals(LocalDate.of(2026, 7, 13), ProgressTimeframe.MONTH.sinceDate(earliest, today))
-        assertEquals(LocalDate.of(2025, 8, 12), ProgressTimeframe.YEAR.sinceDate(earliest, today))
+        assertEquals(LocalDate.of(2026, 8, 6), ProgressTimeframe.WEEK.sinceDate(earliest, today))
+        assertEquals(LocalDate.of(2026, 7, 14), ProgressTimeframe.MONTH.sinceDate(earliest, today))
+        assertEquals(LocalDate.of(2025, 8, 13), ProgressTimeframe.YEAR.sinceDate(earliest, today))
         assertEquals(earliest, ProgressTimeframe.LIFETIME.sinceDate(earliest, today))
     }
 

@@ -17,9 +17,9 @@ enum class ProgressTimeframe {
     /** LIFETIME falls back to [today] (not some far-past constant) when there's no session data
      *  yet, so an empty-history user sees "no sets logged" rather than an arbitrary window. */
     fun sinceDate(earliestSessionDate: LocalDate?, today: LocalDate): LocalDate = when (this) {
-        WEEK -> today.minusDays(7)
-        MONTH -> today.minusDays(30)
-        YEAR -> today.minusDays(365)
+        WEEK -> today.minusDays(6)
+        MONTH -> today.minusDays(29)
+        YEAR -> today.minusDays(364)
         LIFETIME -> earliestSessionDate ?: today
     }
 }
