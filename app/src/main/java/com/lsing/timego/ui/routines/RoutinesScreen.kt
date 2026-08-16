@@ -52,7 +52,57 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
 
     LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
         item {
-            SectionHeader(title = "Settings", topPadding = Spacing.ExtraSmall)
+            Text(
+                "Routines",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
+            )
+            Text(
+                "Prepare the next session before you step in.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = Spacing.Small),
+            )
+            SectionHeader(
+                title = "Your routines",
+                topPadding = Spacing.ExtraSmall,
+                trailing = { Button(onClick = { showRoutineForm = true }) { Text("+ New routine") } },
+            )
+        }
+        if (routines.isEmpty()) {
+            item {
+                Text(
+                    "No routines yet. Create one to plan which days you train.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = Spacing.Small),
+                )
+                Button(onClick = { showRoutineForm = true }) { Text("Create your first routine") }
+            }
+        }
+        if (untrainedGroups.isNotEmpty()) {
+            item {
+                Text(
+                    "Not trained in a while",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.Large, bottom = Spacing.ExtraSmall),
+                )
+                FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
+                    untrainedGroups.forEach { group ->
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(formatEnumLabel(group)) },
+                            colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.error),
+                            border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = MaterialTheme.colorScheme.error),
+                            modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
+                        )
+                    }
+                }
+            }
+        }
+        item {
+            SectionHeader(title = "Workout settings", topPadding = Spacing.Large)
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
                 Text(
                     "Hold-exercise start delay",
@@ -69,46 +119,16 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
-        if (untrainedGroups.isNotEmpty()) {
-            item {
-                Text(
-                    "Not trained in a while",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.ExtraSmall),
-                )
-                FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
-                    untrainedGroups.forEach { group ->
-                        AssistChip(
-                            onClick = {},
-                            label = { Text(formatEnumLabel(group)) },
-                            colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.error),
-                            border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = MaterialTheme.colorScheme.error),
-                            modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
-                        )
-                    }
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            }
-        }
-        item {
-            SectionHeader(
-                title = "Your Routines",
-                topPadding = Spacing.ExtraSmall,
-                trailing = { Button(onClick = { showRoutineForm = true }) { Text("+ New routine") } },
-            )
-        }
-        if (routines.isEmpty()) {
-            item {
-                Text(
-                    "No routines yet -- create one to plan which days you train which exercises.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
         items(routines, key = { it.id }) { routine ->
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Spacing.ExtraSmall)
+                    .then(if (routine == routines.firstOrNull()) Modifier.padding(Spacing.Small) else Modifier),
+            ) {
+                if (routine == routines.firstOrNull()) {
+                    Text("Next routine", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                }
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         routine.name,
@@ -116,7 +136,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                         modifier = Modifier.weight(1f).padding(Spacing.Medium, Spacing.Medium, Spacing.Medium, Spacing.ExtraSmall),
                     )
                     IconButton(onClick = { viewModel.deleteRoutine(routine.id) }) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Delete ${routine.name}")
+                        Icon(Icons.Filled.Delete, contentDescription = "Delete ${routine.name}", tint = MaterialTheme.colorScheme.error)
                     }
                 }
                 if (routine.daysOfWeek.isEmpty()) {
@@ -137,7 +157,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                         }
                     }
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = Spacing.ExtraSmall))
             }
         }
     }
