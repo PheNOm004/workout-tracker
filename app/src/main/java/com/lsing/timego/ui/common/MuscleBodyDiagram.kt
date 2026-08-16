@@ -70,7 +70,7 @@ private fun hexToColor(hex: String): Color {
  *  (there's no other way to get exactly 0f once [intensities] is volume-normalized against the max
  *  group), so those shapes render in the same neutral color as the untracked detail shapes rather
  *  than the heat scale's low end -- otherwise every untrained muscle reads as "trained a little"
- *  cyan, which is misleading. Trained shapes come from [heatColor] (cyan = low, red = high) re-lit
+ *  green, which is misleading. Trained shapes come from [heatColor] (neutral/mint = low, coral = high) re-lit
  *  per shape via [recolorByLightness] using that shape's own traced shading, so muscle definition
  *  survives instead of flattening to one flat color per group. A gradient legend renders below the
  *  diagram so the scale is actually readable. */

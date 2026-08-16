@@ -1,12 +1,8 @@
 package com.lsing.timego.ui.progress
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -32,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,6 +51,9 @@ import com.lsing.timego.ui.common.StatTile
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
+import com.lsing.timego.ui.theme.NightCoral
+import com.lsing.timego.ui.theme.NightCoralShade
+import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -96,11 +94,24 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
 
     LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
         item {
+            Text(
+                "Progress",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
+            )
+            Text(
+                "A clear read on how your training is moving.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = Spacing.Small),
+            )
+        }
+        item {
             SectionHeader("Consistency", topPadding = Spacing.ExtraSmall)
             HeatmapGrid(
                 ratios = volumeRatios,
-                lightColor = Color(0xFFE12D23),
-                darkColor = Color(0xFF5C1A14),
+                lightColor = NightCoral,
+                darkColor = NightCoralShade,
                 onDateClick = { date -> viewModel.selectHistoryDate(date) },
             )
         }
@@ -172,7 +183,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 val selectedExercise = exercisesWithRecords[selectedIndex]
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Medium)) {
                         // Exercise name dropped -- it's already the centered item on the wheel
@@ -180,10 +192,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                         AnimatedContent(
                             targetState = selectedExercise.id,
                             transitionSpec = {
-                                (fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
-                                    scaleIn(initialScale = 0.92f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))) togetherWith
-                                    (fadeOut(spring(stiffness = Spring.StiffnessHigh)) +
-                                        scaleOut(targetScale = 0.92f, animationSpec = spring(stiffness = Spring.StiffnessHigh)))
+                                fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit)
                             },
                         ) { exerciseId ->
                             val exerciseRecords = recordsByExercise[exerciseId].orEmpty()
@@ -281,10 +290,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             AnimatedContent(
                 targetState = curveKey,
                 transitionSpec = {
-                    (fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
-                        scaleIn(initialScale = 0.92f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))) togetherWith
-                        (fadeOut(spring(stiffness = Spring.StiffnessHigh)) +
-                            scaleOut(targetScale = 0.92f, animationSpec = spring(stiffness = Spring.StiffnessHigh)))
+                    fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit)
                 },
             ) {
                 if (strengthCurve.isEmpty()) {

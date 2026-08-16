@@ -7,8 +7,8 @@ import org.junit.Test
 class MuscleHeatColorTest {
     @Test
     fun `heatColor at the extremes matches the legend's graphite and ember stops`() {
-        assertEquals("#8A8367", heatColor(0f))
-        assertEquals("#E12D23", heatColor(1f))
+        assertEquals("#30383B", heatColor(0f))
+        assertEquals("#FF6B5E", heatColor(1f))
     }
 
     @Test
