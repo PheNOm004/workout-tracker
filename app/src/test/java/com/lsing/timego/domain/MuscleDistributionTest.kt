@@ -98,6 +98,16 @@ class MuscleDistributionTest {
         )
 
         assertEquals(mapOf("CHEST" to 1f), distribution)
+
+        val lifetimeDistribution = muscleDistributionForTimeframe(
+            timeframe = ProgressTimeframe.LIFETIME,
+            sessions = sessions,
+            sets = sets,
+            exercisesById = mapOf(5L to bench, 6L to squat),
+            today = LocalDate.of(2026, 8, 12),
+        )
+
+        assertEquals(mapOf("CHEST" to 0.5f, "QUADS" to 1f), lifetimeDistribution)
     }
 
     @Test

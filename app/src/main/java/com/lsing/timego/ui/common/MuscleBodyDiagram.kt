@@ -75,7 +75,11 @@ private fun hexToColor(hex: String): Color {
  *  survives instead of flattening to one flat color per group. A gradient legend renders below the
  *  diagram so the scale is actually readable. */
 @Composable
-fun MuscleBodyDiagram(intensities: Map<String, Float>, modifier: Modifier = Modifier) {
+fun MuscleBodyDiagram(
+    intensities: Map<String, Float>,
+    periodLabel: String = "this period",
+    modifier: Modifier = Modifier,
+) {
     // Theme-adaptive mid-grey rather than onSurface (too stark -- white on dark, black on
     // light) or a fixed color (disappears against a same-toned background on one theme).
     val outlineColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -114,12 +118,16 @@ fun MuscleBodyDiagram(intensities: Map<String, Float>, modifier: Modifier = Modi
                 }
             }
         }
-        HeatLegend(detailColor = detailColor, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+        HeatLegend(
+            detailColor = detailColor,
+            periodLabel = periodLabel,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        )
     }
 }
 
 @Composable
-private fun HeatLegend(detailColor: Color, modifier: Modifier = Modifier) {
+private fun HeatLegend(detailColor: Color, periodLabel: String, modifier: Modifier = Modifier) {
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gradientColors = remember { heatStopHexes().map(::hexToColor) }
 
@@ -127,7 +135,7 @@ private fun HeatLegend(detailColor: Color, modifier: Modifier = Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(detailColor))
             Spacer(modifier = Modifier.width(6.dp))
-            Text("Untrained", style = MaterialTheme.typography.labelSmall, color = labelColor)
+            Text("Untrained · $periodLabel", style = MaterialTheme.typography.labelSmall, color = labelColor)
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
             Text("Low", style = MaterialTheme.typography.labelSmall, color = labelColor)

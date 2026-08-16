@@ -147,6 +147,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 )
                 MuscleBodyDiagram(
                     intensities = muscleDistribution,
+                    periodLabel = timeframeLabel(timeframe),
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 )
             }
