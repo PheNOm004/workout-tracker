@@ -27,9 +27,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -273,6 +275,7 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, on
                             category = exercise.category,
                             met = if (exercise.category == ExerciseCategory.CARDIO.name) MET_CARDIO else MET_WARMUP,
                             bodyWeightKg = latestBodyWeightKg,
+                            delaySeconds = holdDelaySeconds,
                             onLog = { duration, distance -> viewModel.logCardioSet(exercise.id, duration, distance) },
                         )
                         else -> StrengthLogRow(
@@ -467,14 +470,23 @@ private fun CardioLogRow(
     category: String,
     met: Double,
     bodyWeightKg: Double?,
+    delaySeconds: Int,
     onLog: (durationMinutes: Double, distanceKm: Double?) -> Unit,
 ) {
     var expanded by remember(exerciseName) { mutableStateOf(false) }
+    var useTimer by remember(exerciseName) { mutableStateOf(false) }
     var durationText by remember(exerciseName) { mutableStateOf("") }
     var distanceText by remember(exerciseName) { mutableStateOf("") }
+    var phase by remember(exerciseName) { mutableStateOf<HoldTimerPhase?>(null) }
     val duration = durationText.toDoubleOrNull()
     val distance = distanceText.toDoubleOrNull()
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
+
+    LaunchedEffect(phase) {
+        val current = phase ?: return@LaunchedEffect
+        delay(1000)
+        phase = current.tick()
+    }
 
     ExerciseCard(expanded) {
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded) { expanded = !expanded }
@@ -495,38 +507,81 @@ private fun CardioLogRow(
                     )
                 }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = durationText,
-                    onValueChange = { durationText = it },
-                    label = { Text("minutes") },
-                    textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f).padding(end = Spacing.Small),
-                )
-                OutlinedTextField(
-                    value = distanceText,
-                    onValueChange = { distanceText = it },
-                    label = { Text("km (optional)") },
-                    textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f).padding(end = Spacing.Small),
-                )
-                Button(onClick = {
-                    if (duration != null && duration > 0) {
-                        onLog(duration, distance)
-                        durationText = ""
-                        distanceText = ""
+            OutlinedTextField(
+                value = distanceText,
+                onValueChange = { distanceText = it },
+                label = { Text("km (optional)") },
+                textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.padding(horizontal = Spacing.Medium),
+            )
+            if (!useTimer) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OutlinedTextField(
+                        value = durationText,
+                        onValueChange = { durationText = it },
+                        label = { Text("minutes") },
+                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                    )
+                    Button(onClick = {
+                        if (duration != null && duration > 0) {
+                            onLog(duration, distance)
+                            durationText = ""
+                            distanceText = ""
+                        }
+                    }) {
+                        Text("Log")
                     }
-                }) {
-                    Text("Log")
+                }
+                OutlinedButton(
+                    onClick = { useTimer = true },
+                    modifier = Modifier.padding(horizontal = Spacing.Medium),
+                ) { Text("Use timer") }
+            } else {
+                when (val currentPhase = phase) {
+                    null -> Row(
+                        modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Button(onClick = {
+                            phase = if (delaySeconds <= 0) HoldTimerPhase.Running(0) else HoldTimerPhase.CountingDown(delaySeconds)
+                        }) { Text("Start timer") }
+                        TextButton(onClick = { useTimer = false }) { Text("Enter manually") }
+                    }
+                    is HoldTimerPhase.CountingDown -> Row(
+                        modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Starting in ${currentPhase.secondsRemaining}s...", style = LedgerFigureValue, modifier = Modifier.weight(1f))
+                        Button(onClick = { phase = null }) { Text("Cancel") }
+                    }
+                    is HoldTimerPhase.Running -> Row(
+                        modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(formatElapsedSeconds(currentPhase.elapsedSeconds), style = LedgerFigureValue, modifier = Modifier.weight(1f))
+                        Button(onClick = {
+                            onLog(currentPhase.elapsedSeconds / 60.0, distance)
+                            phase = null
+                            useTimer = false
+                            distanceText = ""
+                        }) { Text("Stop & Log") }
+                    }
                 }
             }
         }
     }
+}
+
+private fun formatElapsedSeconds(totalSeconds: Int): String {
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%02d:%02d".format(minutes, seconds)
 }
 
 @Composable
