@@ -1,6 +1,7 @@
 package com.lsing.timego.domain
 
 import com.lsing.timego.data.Exercise
+import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.SetLog
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -75,3 +76,14 @@ fun muscleGroupsWorkedInSession(
         .flatMap { log -> exercisesById[log.exerciseId]?.let(::primaryMuscleGroups).orEmpty() }
         .toSet()
 }
+
+/** True when a session (or day) has no primary-mover muscle groups to name because every
+ *  non-warmup set logged was cardio/duration-based (no meaningful primary mover) -- distinguishes
+ *  an actual cardio day from a session that just happened to hit nothing above the primary-mover
+ *  threshold. Warm-up sets are excluded from the check, same convention as the recommendation
+ *  baselines. A session with no non-warmup sets at all counts as cardio-only vacuously; callers
+ *  needing a distinct "nothing logged" case should check [setLogs] emptiness themselves. */
+fun isCardioOnlySession(setLogs: List<SetLog>, exercisesById: Map<Long, Exercise>): Boolean =
+    setLogs.filterNot { it.isWarmup }.all { log ->
+        exercisesById[log.exerciseId]?.loggingType == LoggingType.DURATION_DISTANCE.name
+    }

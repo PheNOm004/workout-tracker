@@ -22,12 +22,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.ExerciseCategory
+import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.ui.theme.Spacing
 
 /** Title-Case display label for an ExerciseCategory or MuscleGroup enum name, e.g. "FULL_BODY" ->
  *  "Full Body". Shared here since both category and muscle-group headers need it. */
 fun formatEnumLabel(rawName: String): String =
     rawName.lowercase().split("_").joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
+
+/** Formats a set of muscle-group names into a short display label, e.g. {CHEST, TRICEPS} ->
+ *  "Chest & Triceps" -- shared by the logging landing page's last-session/recommended sections
+ *  and the workout-history dialog. Ordered by [MuscleGroup]'s own declaration order (front-to-back
+ *  anatomical grouping) rather than alphabetically, so e.g. "Chest & Triceps" reads naturally
+ *  instead of "Chest & Quads & Triceps" in an arbitrary order. Four or more distinct groups
+ *  collapses to "Full Body" instead of a long list -- past that point naming every group stops
+ *  being useful summary information. Empty input returns "" so callers can supply their own
+ *  fallback copy (e.g. "Everything's trained" vs. "Cardio"). */
+fun formatMuscleGroupList(groups: Collection<String>): String {
+    val ordered = groups.distinct().sortedBy { name -> MuscleGroup.entries.indexOfFirst { it.name == name } }
+    return when {
+        ordered.isEmpty() -> ""
+        ordered.size <= 3 -> ordered.map(::formatEnumLabel).let { names ->
+            if (names.size == 1) names[0] else names.dropLast(1).joinToString(", ") + " & " + names.last()
+        }
+        else -> "Full Body"
+    }
+}
+
+/** Human-readable "what kind of day was this" label for a session, e.g. "Chest & Triceps". Falls
+ *  back to "Cardio" when [isCardioOnly] (no primary-mover muscle groups because every set was
+ *  duration/distance-based), or "Light Session" when there's simply nothing above the
+ *  primary-mover threshold (e.g. only synergist/stabilizer work was logged). Never invents a
+ *  muscle group that wasn't actually a primary mover -- see [formatMuscleGroupList]. */
+fun sessionDayLabel(muscleGroups: Set<String>, isCardioOnly: Boolean): String {
+    val listLabel = formatMuscleGroupList(muscleGroups)
+    if (listLabel.isNotEmpty()) return listLabel
+    return if (isCardioOnly) "Cardio" else "Light Session"
+}
 
 /** Strips hyphens/spaces and lowercases so a search for "pull up" or "pullup" matches an exercise
  *  named "Pull-Up" -- exercise names keep their real punctuation (no renaming), only the search

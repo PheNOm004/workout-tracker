@@ -39,4 +39,21 @@ class PathVerticesTest {
         val points = parsePathVertices("M0,0h5 5v3 3")
         assertEquals(listOf(0f to 0f, 5f to 0f, 10f to 0f, 10f to 3f, 10f to 6f), points)
     }
+
+    @Test
+    fun `boundingBox spans every point across multiple vertex lists`() {
+        val box = boundingBox(listOf(listOf(0f to 0f, 10f to 5f), listOf(-2f to 8f, 20f to 3f)))
+        assertEquals(floatArrayOf(-2f, 0f, 20f, 8f).toList(), box!!.toList())
+    }
+
+    @Test
+    fun `boundingBox expands each side by padding`() {
+        val box = boundingBox(listOf(listOf(0f to 0f, 10f to 10f)), padding = 5f)
+        assertEquals(floatArrayOf(-5f, -5f, 15f, 15f).toList(), box!!.toList())
+    }
+
+    @Test
+    fun `boundingBox returns null for empty input`() {
+        assertEquals(null, boundingBox(emptyList()))
+    }
 }

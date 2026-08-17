@@ -19,6 +19,7 @@ import com.lsing.timego.domain.RuleBasedOverloadSuggester
 import com.lsing.timego.domain.SessionAutoCloseDecision
 import com.lsing.timego.domain.SetPerformance
 import com.lsing.timego.domain.checkSessionAutoClose
+import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.rankUntrainedMuscleGroups
@@ -26,6 +27,7 @@ import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.sessionWorkingSetHistory
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.buildDayHistoryEntries
+import com.lsing.timego.ui.common.sessionDayLabel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,6 +43,7 @@ sealed interface SessionUiState {
 data class LastSessionSummary(
     val sets: Int,
     val muscleGroups: Set<String>,
+    val label: String,
     val durationMinutes: Long,
     val detail: List<DayHistoryEntry>,
 )
@@ -212,6 +215,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             LastSessionSummary(
                 sets = sets.size,
                 muscleGroups = muscleGroups,
+                label = sessionDayLabel(muscleGroups, isCardioOnlySession(sets, exercisesById)),
                 durationMinutes = (session.endEpochMillis ?: session.startEpochMillis).minus(session.startEpochMillis) / 60_000,
                 detail = detail,
             )

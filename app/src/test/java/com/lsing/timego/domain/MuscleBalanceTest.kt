@@ -203,4 +203,32 @@ class MuscleBalanceTest {
 
         assertEquals(setOf("QUADS"), result)
     }
+
+    @Test
+    fun `isCardioOnlySession is true when every non-warmup set is duration-distance logged`() {
+        val running = Exercise(id = 5, name = "Running", muscleGroups = listOf("FULL_BODY"), isCustom = false, loggingType = "DURATION_DISTANCE")
+        val setLogs = listOf(
+            SetLog(id = 1, sessionId = 10, exerciseId = 5, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0, durationMinutes = 20.0),
+        )
+
+        assertEquals(true, isCardioOnlySession(setLogs, mapOf(5L to running)))
+    }
+
+    @Test
+    fun `isCardioOnlySession is false when a weight-reps set is present`() {
+        val setLogs = listOf(
+            SetLog(id = 1, sessionId = 10, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+        )
+
+        assertEquals(false, isCardioOnlySession(setLogs, mapOf(1L to legsExercise)))
+    }
+
+    @Test
+    fun `isCardioOnlySession ignores warmup sets when deciding`() {
+        val warmupSquat = SetLog(id = 1, sessionId = 10, exerciseId = 1, weightKg = 20.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0, isWarmup = true)
+        val running = Exercise(id = 5, name = "Running", muscleGroups = listOf("FULL_BODY"), isCustom = false, loggingType = "DURATION_DISTANCE")
+        val cardioSet = SetLog(id = 2, sessionId = 10, exerciseId = 5, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0, durationMinutes = 20.0)
+
+        assertEquals(true, isCardioOnlySession(listOf(warmupSquat, cardioSet), mapOf(1L to legsExercise, 5L to running)))
+    }
 }

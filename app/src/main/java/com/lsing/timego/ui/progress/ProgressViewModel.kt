@@ -10,6 +10,7 @@ import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.PersonalRecord
 import com.lsing.timego.domain.TrainingStats
 import com.lsing.timego.domain.bodyMassIndex
+import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.muscleGroupStrengthCurve
 import com.lsing.timego.domain.muscleDistributionForTimeframe
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
@@ -20,6 +21,7 @@ import com.lsing.timego.domain.workoutVolumeRatios
 import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.buildDayHistoryEntries
+import com.lsing.timego.ui.common.sessionDayLabel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,6 +67,9 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
 
     private val _historyMuscleGroups = MutableStateFlow<Set<String>>(emptySet())
     val historyMuscleGroups: StateFlow<Set<String>> = _historyMuscleGroups.asStateFlow()
+
+    private val _historyLabel = MutableStateFlow<String?>(null)
+    val historyLabel: StateFlow<String?> = _historyLabel.asStateFlow()
 
     private val _weightCurve = MutableStateFlow<List<Pair<LocalDate, Double>>>(emptyList())
     val weightCurve: StateFlow<List<Pair<LocalDate, Double>>> = _weightCurve.asStateFlow()
@@ -166,6 +171,7 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
         if (date == null) {
             _historyForSelectedDate.value = emptyList()
             _historyMuscleGroups.value = emptySet()
+            _historyLabel.value = null
             return
         }
         viewModelScope.launch {
@@ -173,9 +179,11 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
             val exercisesById = _exercises.value.associateBy { it.id }
             val sets = repository.allSetLogs().filter { it.sessionId in sessionIds }.sortedBy { it.loggedAtEpochMillis }
             _historyForSelectedDate.value = buildDayHistoryEntries(sets, exercisesById)
-            _historyMuscleGroups.value = sessionIds.flatMap { sessionId ->
+            val muscleGroups = sessionIds.flatMap { sessionId ->
                 muscleGroupsWorkedInSession(sessionId, sets, _exercises.value)
             }.toSet()
+            _historyMuscleGroups.value = muscleGroups
+            _historyLabel.value = sessionDayLabel(muscleGroups, isCardioOnlySession(sets, exercisesById))
         }
     }
 }

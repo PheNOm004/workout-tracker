@@ -2,11 +2,13 @@ package com.lsing.timego.ui.common
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -28,11 +30,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.unit.dp
 import com.lsing.timego.data.MuscleGroup
+import com.lsing.timego.domain.boundingBox
 import com.lsing.timego.domain.diagramZoneIntensity
 import com.lsing.timego.domain.heatColor
 import com.lsing.timego.domain.heatStopHexes
 import com.lsing.timego.domain.parsePathVertices
 import com.lsing.timego.domain.recolorByLightness
+import com.lsing.timego.ui.theme.Spacing
 
 private data class BuiltMuscleShape(
     val path: Path,
@@ -123,6 +127,78 @@ fun MuscleBodyDiagram(
             periodLabel = periodLabel,
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         )
+    }
+}
+
+/** Renders only the anatomy shapes belonging to [muscleGroups], each half (front/back) cropped
+ *  tight to a bounding box around just those shapes instead of the full-body viewBox -- so a
+ *  session that only worked chest and triceps shows a compact chest+triceps cutout rather than a
+ *  mostly-empty full silhouette. A half with no matching shapes is omitted entirely (not rendered
+ *  as blank space) so e.g. an all-front-body session doesn't reserve dead width for an empty back
+ *  canvas. [accentColor] is shaded per shape by its traced lightness (same light/shadow definition
+ *  [MuscleBodyDiagram] preserves) via alpha rather than hue math, since this is a flat "in/out of
+ *  the set" signal rather than an intensity gradient -- there's no heat scale to map here. */
+@Composable
+fun CroppedMuscleDiagram(
+    muscleGroups: Set<String>,
+    accentColor: Color,
+    modifier: Modifier = Modifier,
+    emptyLabel: String = "Nothing yet",
+) {
+    val frontSpecs = remember(muscleGroups) {
+        FRONT_BODY_PATHS.filter { it.muscleGroup != null && it.muscleGroup.name in muscleGroups }
+    }
+    val backSpecs = remember(muscleGroups) {
+        BACK_BODY_PATHS.filter { it.muscleGroup != null && it.muscleGroup.name in muscleGroups }
+    }
+
+    if (frontSpecs.isEmpty() && backSpecs.isEmpty()) {
+        Text(emptyLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = modifier)
+        return
+    }
+
+    // Height-fixed by the caller (e.g. .height(120.dp)) -- each half sizes its own width from
+    // that fixed height via aspect ratio (matchHeightConstraintsFirst), rather than splitting the
+    // full row width evenly, since an even split combined with a tall/narrow crop (e.g. calves)
+    // was blowing past the row's height entirely: Compose doesn't clip a child that overflows its
+    // parent's bounds, so it visually spilled into the sections below instead of shrinking.
+    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.Medium, Alignment.CenterHorizontally)) {
+        if (frontSpecs.isNotEmpty()) {
+            CroppedMuscleHalf(specs = frontSpecs, accentColor = accentColor, modifier = Modifier.fillMaxHeight())
+        }
+        if (backSpecs.isNotEmpty()) {
+            CroppedMuscleHalf(specs = backSpecs, accentColor = accentColor, modifier = Modifier.fillMaxHeight())
+        }
+    }
+}
+
+@Composable
+private fun CroppedMuscleHalf(specs: List<MusclePathSpec>, accentColor: Color, modifier: Modifier = Modifier) {
+    val vertexLists = remember(specs) { specs.map { parsePathVertices(it.pathData) } }
+    val cropBox = remember(vertexLists) { boundingBox(vertexLists, padding = 20f) }
+
+    if (cropBox == null) return
+
+    val shapes = remember(specs, cropBox) {
+        val (x0, y0) = cropBox[0] to cropBox[1]
+        specs.indices.map { i ->
+            val path = Path().apply {
+                vertexLists[i].firstOrNull()?.let { (x, y) -> moveTo(x - x0, y - y0) }
+                vertexLists[i].drop(1).forEach { (x, y) -> lineTo(x - x0, y - y0) }
+                close()
+            }
+            path to specs[i].lightness
+        }
+    }
+    val aspect = ((cropBox[2] - cropBox[0]) / (cropBox[3] - cropBox[1])).coerceAtLeast(0.05f)
+
+    Canvas(modifier = modifier.aspectRatio(aspect, matchHeightConstraintsFirst = true)) {
+        val scaleFactor = size.height / (cropBox[3] - cropBox[1])
+        scale(scaleFactor, scaleFactor, pivot = Offset.Zero) {
+            shapes.forEach { (path, lightness) ->
+                drawPath(path, color = accentColor.copy(alpha = (0.55f + lightness * 0.45f).coerceIn(0.45f, 1f)))
+            }
+        }
     }
 }
 

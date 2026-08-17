@@ -59,6 +59,7 @@ import com.lsing.timego.domain.estimatedCalorieBurn
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.domain.tick
 import com.lsing.timego.ui.common.AnimatedExpand
+import com.lsing.timego.ui.common.CroppedMuscleDiagram
 import com.lsing.timego.ui.common.ExerciseSections
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.StatTile
@@ -66,6 +67,7 @@ import com.lsing.timego.ui.common.TrainingPulse
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.categoryVisual
 import com.lsing.timego.ui.common.formatEnumLabel
+import com.lsing.timego.ui.common.formatMuscleGroupList
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import kotlinx.coroutines.delay
 import com.lsing.timego.ui.theme.Spacing
@@ -126,6 +128,8 @@ private fun LogLandingContent(
             title = "Last session",
             entries = summary.lastSession.detail,
             onDismiss = { showLastSessionDetail = false },
+            muscleGroups = summary.lastSession.muscleGroups,
+            label = summary.lastSession.label,
         )
     }
 
@@ -135,24 +139,17 @@ private fun LogLandingContent(
             Text("No sessions logged yet.", style = MaterialTheme.typography.bodyMedium)
         } else {
             Column(modifier = Modifier.fillMaxWidth().clickable { showLastSessionDetail = true }) {
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Text(summary.lastSession.label, style = MaterialTheme.typography.titleMedium)
+                Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall)) {
                     StatTile("Sets", "${summary.lastSession.sets}", modifier = Modifier.weight(1f))
                     StatTile("Duration", "${summary.lastSession.durationMinutes} min", modifier = Modifier.weight(1f))
                 }
-                Text(
-                    "Trained",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = Spacing.Small),
+                CroppedMuscleDiagram(
+                    muscleGroups = summary.lastSession.muscleGroups,
+                    accentColor = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.fillMaxWidth().height(80.dp).padding(top = Spacing.Small),
                 )
-                if (summary.lastSession.muscleGroups.isEmpty()) {
-                    Text(
-                        "--",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                } else {
+                if (summary.lastSession.muscleGroups.isNotEmpty()) {
                     FlowRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
                         summary.lastSession.muscleGroups.sorted().forEach { group ->
                             AssistChip(
@@ -171,9 +168,14 @@ private fun LogLandingContent(
             Text("Everything's been trained recently -- nice balance.", style = MaterialTheme.typography.bodyMedium)
         } else {
             Text(
-                summary.recommendedMuscleGroups.joinToString(", ") { formatEnumLabel(it) },
+                formatMuscleGroupList(summary.recommendedMuscleGroups),
                 style = LedgerFigureValue,
                 color = MaterialTheme.colorScheme.primary,
+            )
+            CroppedMuscleDiagram(
+                muscleGroups = summary.recommendedMuscleGroups.toSet(),
+                accentColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth().height(80.dp).padding(top = Spacing.Small),
             )
         }
 

@@ -47,3 +47,17 @@ fun parsePathVertices(d: String): List<Pair<Float, Float>> {
     }
     return points
 }
+
+/** Tight bounding box (minX, minY, maxX, maxY) over every point in [vertexLists], expanded by
+ *  [padding] on each side -- backs the cropped muscle-group diagram, which draws only a subset of
+ *  the full anatomy figure and needs a viewBox scoped to just those shapes instead of the whole
+ *  body's. Returns null for empty input (no shapes to crop to). */
+fun boundingBox(vertexLists: List<List<Pair<Float, Float>>>, padding: Float = 0f): FloatArray? {
+    val allPoints = vertexLists.flatten()
+    if (allPoints.isEmpty()) return null
+    val minX = allPoints.minOf { it.first } - padding
+    val minY = allPoints.minOf { it.second } - padding
+    val maxX = allPoints.maxOf { it.first } + padding
+    val maxY = allPoints.maxOf { it.second } + padding
+    return floatArrayOf(minX, minY, maxX, maxY)
+}

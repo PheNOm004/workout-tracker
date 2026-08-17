@@ -67,10 +67,18 @@ fun WorkoutHistoryDialog(
     entries: List<DayHistoryEntry>,
     onDismiss: () -> Unit,
     muscleGroups: Set<String> = emptySet(),
+    label: String? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        title = {
+            Column {
+                Text(title)
+                if (label != null) {
+                    Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        },
         text = {
             Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 if (muscleGroups.isNotEmpty()) {
