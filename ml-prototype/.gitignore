@@ -1,5 +1,8 @@
 data/*.csv
 data/*.db
+data/*.db-*
+data/*audit*.json
+data/*audit*.md
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
