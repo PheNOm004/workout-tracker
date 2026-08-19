@@ -175,6 +175,18 @@ therefore a conservative history feature; a candidate for a new exercise still n
 metadata, a broad task-residual uncertainty model, and an abstention path rather than a fixed
 progression route.
 
+### Closed-session continuous-learning implementation
+
+The research harness now turns one closed session into at most one maximum completed work point
+per known exercise and measurement basis. Positive recorded total load uses `log1p(load * reps)`;
+where no total load was recorded, bodyweight work uses the separate `log1p(reps)` basis; holds use
+`log1p(seconds)`. The first personal observation for an exercise/basis is a neutral baseline, not
+transfer evidence. Only a later closed-session observation for that same exercise and basis may
+update the small time-varying demand-coordinate state. This keeps zero-load bodyweight records
+useful without inventing bodyweight or mixing reps-only work with loaded work. The current private
+aggregate audit has 26 baselines and one such update. It is still far below the evidence needed to
+claim a better predictor, calibrate it, port Kotlin code, or show a card.
+
 ## 2026-08-20 candidate-prior decision boundary
 
 Fresh source review confirms that no inspected public source supplies a suitable learned difficulty

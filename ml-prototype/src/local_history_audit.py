@@ -13,6 +13,16 @@ from pathlib import Path
 import sqlite3
 from collections import defaultdict
 
+from src.continuous_capability_model import (
+    ContinuousCapabilityConfig,
+    ContinuousCapabilityState,
+    update_from_performance_observation,
+)
+from src.continuous_observation_mapper import (
+    TIMEGO_MUSCLE_COORDINATES,
+    session_hold_performance_observations,
+    session_weighted_rep_performance_observations,
+)
 from src.observation_contract import HoldObservation, StaminaObservation, WeightedRepObservation, map_observation
 from src.temporal_performance_audit import PerformanceSessionEvidence, run_weighted_envelope_audit
 from src.timego_export_adapter import exercise_metadata_from_room_row, raw_set_log_from_room_row
@@ -29,6 +39,8 @@ class LocalHistoryAudit:
     comparable_same_exercise_observations: int
     weighted_extension_rate: float | None
     trusted_target_outcomes: int
+    continuous_baselines: int
+    continuous_updates: int
 
 
 _ROWS_SQL = """
@@ -62,7 +74,9 @@ def audit_database(database_path: Path) -> LocalHistoryAudit:
     stamina: list[StaminaObservation] = []
     trusted_target_outcomes = 0
     closed_weighted_by_session: dict[int, list[WeightedRepObservation]] = defaultdict(list)
+    closed_holds_by_session: dict[int, list[HoldObservation]] = defaultdict(list)
     session_end: dict[int, int] = {}
+    metadata_by_key = {}
 
     for row in rows:
         payload = dict(row)
@@ -70,6 +84,7 @@ def audit_database(database_path: Path) -> LocalHistoryAudit:
         if metadata is None:
             exclusions["unkeyed_or_custom"] += 1
             continue
+        metadata_by_key[metadata.catalogue_key] = metadata
         observation = map_observation(raw_set_log_from_room_row(payload, metadata.logging_type), metadata)
         if isinstance(observation, WeightedRepObservation):
             weighted.append(observation)
@@ -81,6 +96,10 @@ def audit_database(database_path: Path) -> LocalHistoryAudit:
         elif isinstance(observation, HoldObservation):
             holds.append(observation)
             trusted_target_outcomes += int(observation.target_met is not None)
+            session_end_value = payload.get("endEpochMillis")
+            if isinstance(session_end_value, int) and session_end_value > 0:
+                closed_holds_by_session[observation.session_id].append(observation)
+                session_end[observation.session_id] = session_end_value
         elif isinstance(observation, StaminaObservation):
             stamina.append(observation)
         else:
@@ -91,6 +110,37 @@ def audit_database(database_path: Path) -> LocalHistoryAudit:
         for session_id, observations in closed_weighted_by_session.items()
     ]
     chronology = run_weighted_envelope_audit(closed_sessions)
+    continuous_config = ContinuousCapabilityConfig(
+        coordinate_count=len(TIMEGO_MUSCLE_COORDINATES),
+        prior_variance=1.0,
+        process_variance_per_day=0.05,
+        observation_variance=0.5,
+    )
+    continuous_state = ContinuousCapabilityState.prior(continuous_config)
+    continuous_baselines = 0
+    continuous_updates = 0
+    for session_id in sorted(session_end, key=lambda key: (session_end[key], key)):
+        performance_observations = (
+            session_weighted_rep_performance_observations(
+                closed_weighted_by_session.get(session_id, ()),
+                metadata_by_key,
+                session_end[session_id],
+            )
+            + session_hold_performance_observations(
+                closed_holds_by_session.get(session_id, ()),
+                metadata_by_key,
+                session_end[session_id],
+            )
+        )
+        for performance_observation in sorted(performance_observations, key=lambda item: (item.set_id, item.catalogue_key)):
+            update = update_from_performance_observation(
+                continuous_state,
+                performance_observation,
+                continuous_config,
+            )
+            continuous_state = update.state
+            continuous_baselines += int(update.reason == "registered_personal_baseline")
+            continuous_updates += int(update.updated)
     return LocalHistoryAudit(
         total_logs=len(rows),
         weighted_rep_observations=len(weighted),
@@ -101,6 +151,8 @@ def audit_database(database_path: Path) -> LocalHistoryAudit:
         comparable_same_exercise_observations=chronology.comparable_observations,
         weighted_extension_rate=chronology.extension_rate,
         trusted_target_outcomes=trusted_target_outcomes,
+        continuous_baselines=continuous_baselines,
+        continuous_updates=continuous_updates,
     )
 
 

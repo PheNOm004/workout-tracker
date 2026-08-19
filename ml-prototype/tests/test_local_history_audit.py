@@ -64,3 +64,5 @@ def test_local_audit_reports_aggregate_contract_and_chronology_evidence(tmp_path
     assert result.comparable_same_exercise_observations == 1
     assert result.weighted_extension_rate == 1.0
     assert result.trusted_target_outcomes == 1
+    assert result.continuous_baselines == 1
+    assert result.continuous_updates == 1
