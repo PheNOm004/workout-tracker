@@ -212,6 +212,14 @@ private fun LogLandingContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = Spacing.ExtraSmall),
                     )
+                    summary.suggestedExercise?.let { exercise ->
+                        Text(
+                            "Try: ${exercise.name}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = Spacing.ExtraSmall),
+                        )
+                    }
                     CroppedMuscleDiagram(
                         // Size the artwork from the relevant body region only; the recommendation
                         // remains the only highlighted group set.

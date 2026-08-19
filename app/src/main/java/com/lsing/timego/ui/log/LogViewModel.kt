@@ -11,6 +11,7 @@ import com.lsing.timego.data.Routine
 import com.lsing.timego.data.SEED_EXERCISES
 import com.lsing.timego.data.SettingsRepository
 import com.lsing.timego.data.TimeGoDatabase
+import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.DEFAULT_WEIGHT_INCREMENT_KG
 import com.lsing.timego.domain.HoldPerformance
@@ -35,6 +36,7 @@ import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.repRangeAtWeight
 import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.sessionWorkingSetHistory
+import com.lsing.timego.domain.suggestedExerciseFor
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.buildDayHistoryEntries
 import com.lsing.timego.ui.common.sessionDayLabel
@@ -67,6 +69,7 @@ data class LastSessionSummary(
 data class LandingSummary(
     val lastSession: LastSessionSummary?,
     val recommendedMuscleGroups: List<String>,
+    val suggestedExercise: Exercise?,
 )
 
 /** [selectedRoutineId] null means freeform (all exercises shown, sessions logged with no routine
@@ -101,10 +104,18 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val _latestBodyWeightKg = MutableStateFlow<Double?>(null)
     val latestBodyWeightKg: StateFlow<Double?> = _latestBodyWeightKg.asStateFlow()
 
+    private val _trainingLean = MutableStateFlow(TrainingLean.BALANCED)
+
     private val _sessionState = MutableStateFlow<SessionUiState>(SessionUiState.Loading)
     val sessionState: StateFlow<SessionUiState> = _sessionState.asStateFlow()
 
-    private val _landingSummary = MutableStateFlow(LandingSummary(lastSession = null, recommendedMuscleGroups = emptyList()))
+    private val _landingSummary = MutableStateFlow(
+        LandingSummary(
+            lastSession = null,
+            recommendedMuscleGroups = emptyList(),
+            suggestedExercise = null,
+        ),
+    )
     val landingSummary: StateFlow<LandingSummary> = _landingSummary.asStateFlow()
 
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
@@ -113,6 +124,12 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
+        }
+        viewModelScope.launch {
+            settingsRepository.trainingLean.collect { lean ->
+                _trainingLean.value = lean
+                refreshLandingSummary()
+            }
         }
         viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
@@ -259,8 +276,18 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
         val recommendedSeeds = rankUntrainedMuscleGroups(allGroups, lastTrained, LocalDate.now()).take(2)
         val recommended = expandMuscleGroupRegions(recommendedSeeds).toList()
+        val suggestedExercise = suggestedExerciseFor(
+            targetGroups = recommended.toSet(),
+            exercises = allExercises,
+            lean = _trainingLean.value,
+            usageCounts = exerciseUsageFrequency(allSets, exercisesById),
+        )
 
-        _landingSummary.value = LandingSummary(lastSession = summary, recommendedMuscleGroups = recommended)
+        _landingSummary.value = LandingSummary(
+            lastSession = summary,
+            recommendedMuscleGroups = recommended,
+            suggestedExercise = suggestedExercise,
+        )
     }
 
     fun startSession(routineId: Long?) {
