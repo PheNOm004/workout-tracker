@@ -6,23 +6,41 @@ import org.junit.Test
 class ExerciseListSectionsTest {
 
     @Test
-    fun `formatMuscleGroupList joins two groups with an ampersand`() {
-        assertEquals("Chest & Triceps", formatMuscleGroupList(setOf("CHEST", "TRICEPS")))
+    fun `formatMuscleGroupList groups related detailed tags into compact regions`() {
+        assertEquals("Back & Arms", formatMuscleGroupList(setOf("LATS", "UPPER_BACK", "BICEPS", "FOREARMS")))
     }
 
     @Test
-    fun `formatMuscleGroupList joins three groups with commas and a trailing ampersand`() {
-        assertEquals("Chest, Front Delts & Triceps", formatMuscleGroupList(setOf("CHEST", "FRONT_DELTS", "TRICEPS")))
+    fun `formatMuscleGroupList joins three compact regions with commas and a trailing ampersand`() {
+        assertEquals("Chest, Shoulders & Arms", formatMuscleGroupList(setOf("CHEST", "FRONT_DELTS", "TRICEPS")))
     }
 
     @Test
-    fun `formatMuscleGroupList orders by anatomical declaration order not input order`() {
-        assertEquals("Chest & Triceps", formatMuscleGroupList(setOf("TRICEPS", "CHEST")))
+    fun `formatMuscleGroupList orders compact regions not input order`() {
+        assertEquals("Chest & Arms", formatMuscleGroupList(setOf("TRICEPS", "CHEST")))
     }
 
     @Test
-    fun `formatMuscleGroupList collapses four or more groups to Full Body`() {
-        assertEquals("Full Body", formatMuscleGroupList(setOf("CHEST", "TRICEPS", "QUADS", "CALVES")))
+    fun `formatMuscleGroupList does not call an upper body session Full Body`() {
+        assertEquals("Chest, Back, Shoulders & Arms", formatMuscleGroupList(setOf("CHEST", "LATS", "REAR_DELTS", "TRICEPS", "FOREARMS")))
+    }
+
+    @Test
+    fun `formatMuscleGroupList keeps shoulders and legs as distinct regions`() {
+        assertEquals(
+            "Shoulders & Legs",
+            formatMuscleGroupList(setOf("FRONT_DELTS", "SIDE_DELTS", "REAR_DELTS", "QUADS", "HAMSTRINGS", "GLUTES", "CALVES")),
+        )
+    }
+
+    @Test
+    fun `formatMuscleGroupList calls an explicit full body tag Full Body`() {
+        assertEquals("Full Body", formatMuscleGroupList(setOf("FULL_BODY", "LATS")))
+    }
+
+    @Test
+    fun `formatMuscleGroupList calls upper lower and core together Full Body`() {
+        assertEquals("Full Body", formatMuscleGroupList(setOf("CHEST", "QUADS", "ABS")))
     }
 
     @Test
@@ -37,7 +55,12 @@ class ExerciseListSectionsTest {
 
     @Test
     fun `sessionDayLabel returns the joined muscle-group label when non-empty`() {
-        assertEquals("Chest & Triceps", sessionDayLabel(setOf("CHEST", "TRICEPS"), isCardioOnly = false))
+        assertEquals("Back & Arms", sessionDayLabel(setOf("LATS", "UPPER_BACK", "BICEPS", "FOREARMS"), isCardioOnly = false))
+    }
+
+    @Test
+    fun `sessionDayLabel prefers Cardio for a cardio-only session even when tags exist`() {
+        assertEquals("Cardio", sessionDayLabel(setOf("FULL_BODY"), isCardioOnly = true))
     }
 
     @Test

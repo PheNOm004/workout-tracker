@@ -57,6 +57,30 @@ class MuscleDistributionTest {
     }
 
     @Test
+    fun `bodyweight exercise volume uses the stored bodyweight`() {
+        val sissySquat = Exercise(
+            id = 9,
+            name = "Sissy Squat",
+            muscleGroups = listOf("QUADS"),
+            isCustom = false,
+            category = "CALISTHENICS",
+            loggingType = "WEIGHT_REPS",
+        )
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 9, exerciseId = 9, weightKg = 80.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0),
+        )
+
+        val distribution = muscleGroupVolumeDistribution(
+            sets,
+            exercisesById = mapOf(9L to sissySquat),
+            sessionDateById = mapOf(9L to LocalDate.of(2026, 8, 10)),
+            since = LocalDate.of(2026, 8, 1),
+        )
+
+        assertEquals(800.0, distribution["QUADS"]!!, 0.001)
+    }
+
+    @Test
     fun `muscleGroupVolumeDistribution applies muscleWeights as a percentage of volume`() {
         val squat = Exercise(
             id = 1, name = "Squat", muscleGroups = listOf("QUADS", "GLUTES"), isCustom = false,
@@ -74,6 +98,47 @@ class MuscleDistributionTest {
         // GLUTES is explicitly weighted 60% -> 300.
         assertEquals(500.0, distribution["QUADS"]!!, 0.001)
         assertEquals(300.0, distribution["GLUTES"]!!, 0.001)
+    }
+
+    @Test
+    fun `muscleGroupIntensityForSession normalizes weighted contribution and excludes warmups`() {
+        val pullover = Exercise(
+            id = 7,
+            name = "Pullover",
+            muscleGroups = listOf("LATS", "CHEST"),
+            isCustom = false,
+            category = "STRENGTH",
+            muscleWeights = mapOf("CHEST" to 35),
+        )
+        val warmup = Exercise(
+            id = 8,
+            name = "Warmup",
+            muscleGroups = listOf("QUADS"),
+            isCustom = false,
+            category = "WARMUP",
+            loggingType = "DURATION_DISTANCE",
+        )
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 7, exerciseId = 7, weightKg = 10.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 7, exerciseId = 8, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 1, durationMinutes = 1.0),
+        )
+
+        val result = muscleGroupIntensityForSession(7, sets, mapOf(7L to pullover, 8L to warmup))
+
+        assertEquals(1.0f, result["LATS"]!!, 0.001f)
+        assertEquals(0.35f, result["CHEST"]!!, 0.001f)
+        assertEquals(null, result["QUADS"])
+    }
+
+    @Test
+    fun `orderedMuscleDistributionForChart keeps detailed spokes stable`() {
+        val input = linkedMapOf(
+            "TRICEPS" to 0.9f,
+            "TRAPS" to 0.2f,
+            "CHEST" to 1.0f,
+        )
+
+        assertEquals(listOf("CHEST", "TRAPS", "TRICEPS"), orderedMuscleDistributionForChart(input).keys.toList())
     }
 
     @Test

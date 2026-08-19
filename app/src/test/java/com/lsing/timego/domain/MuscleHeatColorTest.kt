@@ -18,6 +18,13 @@ class MuscleHeatColorTest {
     }
 
     @Test
+    fun `heat scale exposes the same low-to-high stops used by the legend`() {
+        assertEquals(listOf("#30383B", "#4A6A5D", "#9BD8B2", "#F2B866", "#FF6B5E"), heatStopHexes())
+        assertEquals(heatStopHexes().first(), heatColor(0f))
+        assertEquals(heatStopHexes().last(), heatColor(1f))
+    }
+
+    @Test
     fun `heatColor output is always a valid 6-digit hex color`() {
         val hexPattern = Regex("^#[0-9A-Fa-f]{6}$")
         listOf(0f, 0.1f, 0.35f, 0.5f, 0.72f, 0.99f, 1f).forEach {

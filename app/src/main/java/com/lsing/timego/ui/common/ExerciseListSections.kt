@@ -30,34 +30,90 @@ import com.lsing.timego.ui.theme.Spacing
 fun formatEnumLabel(rawName: String): String =
     rawName.lowercase().split("_").joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
 
-/** Formats a set of muscle-group names into a short display label, e.g. {CHEST, TRICEPS} ->
- *  "Chest & Triceps" -- shared by the logging landing page's last-session/recommended sections
- *  and the workout-history dialog. Ordered by [MuscleGroup]'s own declaration order (front-to-back
- *  anatomical grouping) rather than alphabetically, so e.g. "Chest & Triceps" reads naturally
- *  instead of "Chest & Quads & Triceps" in an arbitrary order. Four or more distinct groups
- *  collapses to "Full Body" instead of a long list -- past that point naming every group stops
- *  being useful summary information. Empty input returns "" so callers can supply their own
- *  fallback copy (e.g. "Everything's trained" vs. "Cardio"). */
+private enum class SessionBodyRegion {
+    UPPER_BODY,
+    LOWER_BODY,
+    CORE,
+}
+
+private enum class SessionDisplayRegion(
+    val label: String,
+    val bodyRegion: SessionBodyRegion,
+) {
+    CHEST("Chest", SessionBodyRegion.UPPER_BODY),
+    BACK("Back", SessionBodyRegion.UPPER_BODY),
+    SHOULDERS("Shoulders", SessionBodyRegion.UPPER_BODY),
+    ARMS("Arms", SessionBodyRegion.UPPER_BODY),
+    LEGS("Legs", SessionBodyRegion.LOWER_BODY),
+    CORE("Core", SessionBodyRegion.CORE),
+}
+
+private fun sessionDisplayRegion(group: String): SessionDisplayRegion? = when (group) {
+    MuscleGroup.CHEST.name -> SessionDisplayRegion.CHEST
+    MuscleGroup.LATS.name,
+    MuscleGroup.UPPER_BACK.name,
+    MuscleGroup.LOWER_BACK.name -> SessionDisplayRegion.BACK
+    MuscleGroup.FRONT_DELTS.name,
+    MuscleGroup.SIDE_DELTS.name,
+    MuscleGroup.REAR_DELTS.name,
+    MuscleGroup.TRAPS.name -> SessionDisplayRegion.SHOULDERS
+    MuscleGroup.BICEPS.name,
+    MuscleGroup.TRICEPS.name,
+    MuscleGroup.FOREARMS.name -> SessionDisplayRegion.ARMS
+    MuscleGroup.QUADS.name,
+    MuscleGroup.HAMSTRINGS.name,
+    MuscleGroup.GLUTES.name,
+    MuscleGroup.ADDUCTORS.name,
+    MuscleGroup.CALVES.name -> SessionDisplayRegion.LEGS
+    MuscleGroup.ABS.name,
+    MuscleGroup.OBLIQUES.name -> SessionDisplayRegion.CORE
+    else -> null
+}
+
+private fun joinDisplayLabels(labels: List<String>): String = when (labels.size) {
+    0 -> ""
+    1 -> labels[0]
+    else -> labels.dropLast(1).joinToString(", ") + " & " + labels.last()
+}
+
+/** Formats a set of detailed muscle-group names into a compact session label. Detailed anatomy
+ *  remains available to the heatmap and analytics; this summary deliberately groups it into
+ *  regions so a pull session such as LATS + UPPER_BACK + BICEPS + FOREARMS is shown as
+ *  "Back & Arms", not incorrectly as "Full Body". Full Body is reserved for an explicit
+ *  FULL_BODY tag or a set spanning upper body, lower body, and core. Empty input returns "" so
+ *  callers can supply their own fallback copy (e.g. "Cardio" or "Light Session"). */
 fun formatMuscleGroupList(groups: Collection<String>): String {
-    val ordered = groups.distinct().sortedBy { name -> MuscleGroup.entries.indexOfFirst { it.name == name } }
-    return when {
-        ordered.isEmpty() -> ""
-        ordered.size <= 3 -> ordered.map(::formatEnumLabel).let { names ->
-            if (names.size == 1) names[0] else names.dropLast(1).joinToString(", ") + " & " + names.last()
-        }
-        else -> "Full Body"
+    val distinctGroups = groups.distinct()
+    if (distinctGroups.isEmpty()) return ""
+    if (MuscleGroup.FULL_BODY.name in distinctGroups) return "Full Body"
+
+    val regions = distinctGroups
+        .mapNotNull(::sessionDisplayRegion)
+        .distinct()
+        .sortedBy { it.ordinal }
+    val bodyRegions = regions.map { it.bodyRegion }.toSet()
+    if (SessionBodyRegion.UPPER_BODY in bodyRegions &&
+        SessionBodyRegion.LOWER_BODY in bodyRegions &&
+        SessionBodyRegion.CORE in bodyRegions
+    ) {
+        return "Full Body"
     }
+
+    // Preserve a readable fallback if a future/custom muscle-group value is not in the compact map.
+    if (regions.isEmpty()) return joinDisplayLabels(distinctGroups.map(::formatEnumLabel).sorted())
+    return joinDisplayLabels(regions.map { it.label })
 }
 
 /** Human-readable "what kind of day was this" label for a session, e.g. "Chest & Triceps". Falls
- *  back to "Cardio" when [isCardioOnly] (no primary-mover muscle groups because every set was
- *  duration/distance-based), or "Light Session" when there's simply nothing above the
+ *  back to "Cardio" when [isCardioOnly], or "Light Session" when there's simply nothing above the
  *  primary-mover threshold (e.g. only synergist/stabilizer work was logged). Never invents a
- *  muscle group that wasn't actually a primary mover -- see [formatMuscleGroupList]. */
+ *  muscle group that wasn't actually present in the supplied affected-group set -- see
+ *  [formatMuscleGroupList]. */
 fun sessionDayLabel(muscleGroups: Set<String>, isCardioOnly: Boolean): String {
+    if (isCardioOnly) return "Cardio"
     val listLabel = formatMuscleGroupList(muscleGroups)
     if (listLabel.isNotEmpty()) return listLabel
-    return if (isCardioOnly) "Cardio" else "Light Session"
+    return "Light Session"
 }
 
 /** Strips hyphens/spaces and lowercases so a search for "pull up" or "pullup" matches an exercise

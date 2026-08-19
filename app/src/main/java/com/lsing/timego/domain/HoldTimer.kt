@@ -1,17 +1,27 @@
 package com.lsing.timego.domain
 
-/** Drives the live hold-exercise timer on `HoldLogRow` -- absent (null) represents idle, not part
- *  of this sealed class, since idle has no tick behavior of its own. */
+/** Drives the live hold/cardio timer -- absent (null) represents idle, not part of this sealed
+ *  class, since idle has no elapsed time of its own. */
 sealed class HoldTimerPhase {
     data class CountingDown(val secondsRemaining: Int) : HoldTimerPhase()
     data class Running(val elapsedSeconds: Int) : HoldTimerPhase()
 }
 
-/** Called once per second while a timer is active. [HoldTimerPhase.CountingDown] decrements until
- *  it would hit zero, then jumps straight to [HoldTimerPhase.Running] starting at 0 elapsed --
- *  there's no "0 seconds remaining" tick shown, the count-up begins immediately. */
-fun HoldTimerPhase.tick(): HoldTimerPhase = when (this) {
-    is HoldTimerPhase.CountingDown ->
-        if (secondsRemaining <= 1) HoldTimerPhase.Running(elapsedSeconds = 0) else HoldTimerPhase.CountingDown(secondsRemaining - 1)
-    is HoldTimerPhase.Running -> HoldTimerPhase.Running(elapsedSeconds + 1)
+/** Resolves the timer's phase from wall-clock timestamps rather than by counting ticks.
+ *
+ *  The previous model advanced one second per `delay(1000)` + recomposition, so every cycle cost
+ *  slightly more than a second and the error accumulated -- and because the displayed elapsed
+ *  value is what gets persisted as the set's duration, that drift was written into the logged
+ *  data, always short. Deriving from [startedAtEpochMillis] means a late or coalesced tick
+ *  corrects itself on the next pass instead of permanently losing time.
+ *
+ *  The countdown rounds up so a freshly started 5-second delay reads "5s" rather than "4s". */
+fun timerPhaseAt(startedAtEpochMillis: Long, delaySeconds: Int, nowEpochMillis: Long): HoldTimerPhase {
+    val elapsedMillis = (nowEpochMillis - startedAtEpochMillis).coerceAtLeast(0L)
+    val delayMillis = delaySeconds.coerceAtLeast(0) * 1000L
+    return if (elapsedMillis < delayMillis) {
+        HoldTimerPhase.CountingDown(secondsRemaining = ((delayMillis - elapsedMillis + 999) / 1000).toInt())
+    } else {
+        HoldTimerPhase.Running(elapsedSeconds = ((elapsedMillis - delayMillis) / 1000).toInt())
+    }
 }

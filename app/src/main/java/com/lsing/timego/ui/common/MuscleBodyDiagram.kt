@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.unit.dp
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.domain.boundingBox
+import com.lsing.timego.domain.diagramGroupsForHeatmap
 import com.lsing.timego.domain.diagramZoneIntensity
 import com.lsing.timego.domain.heatColor
 import com.lsing.timego.domain.heatStopHexes
@@ -135,23 +136,26 @@ fun MuscleBodyDiagram(
  *  session that only worked chest and triceps shows a compact chest+triceps cutout rather than a
  *  mostly-empty full silhouette. A half with no matching shapes is omitted entirely (not rendered
  *  as blank space) so e.g. an all-front-body session doesn't reserve dead width for an empty back
- *  canvas. [accentColor] is shaded per shape by its traced lightness (same light/shadow definition
- *  [MuscleBodyDiagram] preserves) via alpha rather than hue math, since this is a flat "in/out of
- *  the set" signal rather than an intensity gradient -- there's no heat scale to map here. */
+ *  canvas. With [intensities], the crop uses the same relative heat scale as the Progress tab;
+ *  without it, [accentColor] is shaded per shape as a binary "in/out of the set" signal. */
 @Composable
 fun CroppedMuscleDiagram(
     muscleGroups: Set<String>,
     accentColor: Color,
+    intensities: Map<String, Float> = emptyMap(),
+    highlightGroups: Set<String> = muscleGroups,
+    neutralizeUnhighlighted: Boolean = false,
     modifier: Modifier = Modifier,
     emptyLabel: String = "Nothing yet",
 ) {
-    val frontSpecs = remember(muscleGroups) {
-        FRONT_BODY_PATHS.filter { it.muscleGroup != null && it.muscleGroup.name in muscleGroups }
+    val drawableGroups = remember(muscleGroups) { diagramGroupsForHeatmap(muscleGroups) }
+    val drawableHighlightGroups = remember(highlightGroups) { diagramGroupsForHeatmap(highlightGroups) }
+    val frontSpecs = remember(drawableGroups) {
+        FRONT_BODY_PATHS.filter { it.muscleGroup != null && it.muscleGroup.name in drawableGroups }
     }
-    val backSpecs = remember(muscleGroups) {
-        BACK_BODY_PATHS.filter { it.muscleGroup != null && it.muscleGroup.name in muscleGroups }
+    val backSpecs = remember(drawableGroups) {
+        BACK_BODY_PATHS.filter { it.muscleGroup != null && it.muscleGroup.name in drawableGroups }
     }
-
     if (frontSpecs.isEmpty() && backSpecs.isEmpty()) {
         Text(emptyLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = modifier)
         return
@@ -164,16 +168,39 @@ fun CroppedMuscleDiagram(
     // parent's bounds, so it visually spilled into the sections below instead of shrinking.
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.Medium, Alignment.CenterHorizontally)) {
         if (frontSpecs.isNotEmpty()) {
-            CroppedMuscleHalf(specs = frontSpecs, accentColor = accentColor, modifier = Modifier.fillMaxHeight())
+            CroppedMuscleHalf(
+                specs = frontSpecs,
+                highlightGroups = drawableHighlightGroups,
+                neutralizeUnhighlighted = neutralizeUnhighlighted,
+                accentColor = accentColor,
+                intensities = intensities,
+                modifier = Modifier.fillMaxHeight(),
+            )
         }
         if (backSpecs.isNotEmpty()) {
-            CroppedMuscleHalf(specs = backSpecs, accentColor = accentColor, modifier = Modifier.fillMaxHeight())
+            CroppedMuscleHalf(
+                specs = backSpecs,
+                highlightGroups = drawableHighlightGroups,
+                neutralizeUnhighlighted = neutralizeUnhighlighted,
+                accentColor = accentColor,
+                intensities = intensities,
+                modifier = Modifier.fillMaxHeight(),
+            )
         }
     }
 }
 
+private data class CroppedMuscleShape(val path: Path, val lightness: Float, val muscleGroup: MuscleGroup?)
+
 @Composable
-private fun CroppedMuscleHalf(specs: List<MusclePathSpec>, accentColor: Color, modifier: Modifier = Modifier) {
+private fun CroppedMuscleHalf(
+    specs: List<MusclePathSpec>,
+    highlightGroups: Set<String>,
+    neutralizeUnhighlighted: Boolean,
+    accentColor: Color,
+    intensities: Map<String, Float>,
+    modifier: Modifier = Modifier,
+) {
     val vertexLists = remember(specs) { specs.map { parsePathVertices(it.pathData) } }
     val cropBox = remember(vertexLists) { boundingBox(vertexLists, padding = 20f) }
 
@@ -187,7 +214,7 @@ private fun CroppedMuscleHalf(specs: List<MusclePathSpec>, accentColor: Color, m
                 vertexLists[i].drop(1).forEach { (x, y) -> lineTo(x - x0, y - y0) }
                 close()
             }
-            path to specs[i].lightness
+            CroppedMuscleShape(path, specs[i].lightness, specs[i].muscleGroup)
         }
     }
     val aspect = ((cropBox[2] - cropBox[0]) / (cropBox[3] - cropBox[1])).coerceAtLeast(0.05f)
@@ -195,8 +222,20 @@ private fun CroppedMuscleHalf(specs: List<MusclePathSpec>, accentColor: Color, m
     Canvas(modifier = modifier.aspectRatio(aspect, matchHeightConstraintsFirst = true)) {
         val scaleFactor = size.height / (cropBox[3] - cropBox[1])
         scale(scaleFactor, scaleFactor, pivot = Offset.Zero) {
-            shapes.forEach { (path, lightness) ->
-                drawPath(path, color = accentColor.copy(alpha = (0.55f + lightness * 0.45f).coerceIn(0.45f, 1f)))
+            shapes.forEach { shape ->
+                val isHighlighted = shape.muscleGroup?.name in highlightGroups
+                // Context-only groups (e.g. chest/biceps pulled in just to size an upper-body
+                // recommendation crop) size the crop box but aren't drawn -- otherwise muscles
+                // that weren't actually recommended show up fully rendered next to the ones that
+                // were, misleadingly widening what looks "recommended".
+                if (neutralizeUnhighlighted && !isHighlighted) return@forEach
+                val intensity = shape.muscleGroup?.name?.let(intensities::get)
+                val color = if (intensity != null && intensity > 0f) {
+                    hexToColor(recolorByLightness(heatColor(intensity), shape.lightness))
+                } else {
+                    accentColor.copy(alpha = (0.55f + shape.lightness * 0.45f).coerceIn(0.45f, 1f))
+                }
+                drawPath(shape.path, color = color)
             }
         }
     }
@@ -226,4 +265,12 @@ private fun HeatLegend(detailColor: Color, periodLabel: String, modifier: Modifi
             Text("High", style = MaterialTheme.typography.labelSmall, color = labelColor)
         }
     }
+}
+
+/** Same heat-scale key used by the full Progress diagram, exposed for compact diagrams that
+ *  appear elsewhere in the app. Keeping the key shared prevents the landing page from making
+ *  the same colors mean something different from Progress. */
+@Composable
+fun MuscleHeatLegend(detailColor: Color, periodLabel: String, modifier: Modifier = Modifier) {
+    HeatLegend(detailColor = detailColor, periodLabel = periodLabel, modifier = modifier)
 }

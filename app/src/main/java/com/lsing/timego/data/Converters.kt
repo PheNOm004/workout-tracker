@@ -33,10 +33,15 @@ class Converters {
         if (value.isBlank()) {
             emptyMap()
         } else {
-            value.split(ENTRY_DELIMITER).associate { entry ->
-                val (group, weight) = entry.split(PAIR_DELIMITER)
-                group to weight.toInt()
-            }
+            // Skips malformed entries rather than throwing. A TypeConverter runs inside every
+            // read of the exercises table, so an unparseable pair here would surface as a crash
+            // on app open with no way for the user to recover the row -- dropping the weight
+            // degrades to the documented "missing group defaults to full credit" behaviour.
+            value.split(ENTRY_DELIMITER).mapNotNull { entry ->
+                val parts = entry.split(PAIR_DELIMITER)
+                val weight = parts.getOrNull(1)?.toIntOrNull()
+                if (parts.size == 2 && weight != null) parts[0] to weight else null
+            }.toMap()
         }
 
     private companion object {

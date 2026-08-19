@@ -17,6 +17,15 @@ import com.lsing.timego.ui.theme.NightViolet
 /** Icon and semantic accent shown per [ExerciseCategory]. */
 data class CategoryVisual(val icon: ImageVector, val accent: Color)
 
+/** Raw-string overload for callers holding an Exercise.category straight out of Room. An
+ *  unrecognised value falls back to STRENGTH rather than throwing: ExerciseCategory.valueOf in
+ *  a composable turns one bad row into a crash on every render of the exercise list. */
+@Composable
+fun categoryVisual(rawCategory: String): CategoryVisual =
+    categoryVisual(
+        ExerciseCategory.entries.firstOrNull { it.name == rawCategory } ?: ExerciseCategory.STRENGTH,
+    )
+
 @Composable
 fun categoryVisual(category: ExerciseCategory): CategoryVisual {
     val icon = when (category) {

@@ -192,6 +192,60 @@ class MuscleBalanceTest {
     }
 
     @Test
+    fun `muscleGroupsWorkedInSession excludes warmup-category exercises`() {
+        val warmup = Exercise(
+            id = 6,
+            name = "Jumping Jacks",
+            muscleGroups = listOf("FULL_BODY"),
+            isCustom = false,
+            category = "WARMUP",
+            loggingType = "DURATION_DISTANCE",
+        )
+        val setLogs = listOf(
+            SetLog(id = 1, sessionId = 10, exerciseId = 6, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0),
+        )
+
+        assertEquals(emptySet<String>(), muscleGroupsWorkedInSession(10, setLogs, listOf(warmup)))
+    }
+
+    @Test
+    fun `muscleGroupsAffectedInSession keeps secondary tags but excludes warmups`() {
+        val pullUp = Exercise(
+            id = 7,
+            name = "Pull-Up",
+            muscleGroups = listOf("LATS", "UPPER_BACK", "BICEPS"),
+            isCustom = false,
+            category = "CALISTHENICS",
+            muscleWeights = mapOf("UPPER_BACK" to 65, "BICEPS" to 40),
+        )
+        val warmup = Exercise(
+            id = 8,
+            name = "Jumping Jacks",
+            muscleGroups = listOf("FULL_BODY"),
+            isCustom = false,
+            category = "WARMUP",
+            loggingType = "DURATION_DISTANCE",
+        )
+        val setLogs = listOf(
+            SetLog(id = 1, sessionId = 10, exerciseId = 7, weightKg = 0.0, reps = 8, targetReps = 8, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 10, exerciseId = 8, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 1),
+        )
+
+        assertEquals(
+            setOf("LATS", "UPPER_BACK", "BICEPS"),
+            muscleGroupsAffectedInSession(10, setLogs, listOf(pullUp, warmup)),
+        )
+    }
+
+    @Test
+    fun `expandMuscleGroupRegions expands back and arms recommendations`() {
+        assertEquals(
+            setOf("LATS", "UPPER_BACK", "LOWER_BACK", "BICEPS", "TRICEPS", "FOREARMS"),
+            expandMuscleGroupRegions(setOf("UPPER_BACK", "BICEPS")),
+        )
+    }
+
+    @Test
     fun `muscleGroupsWorkedInSession dedupes when two exercises share a muscle group`() {
         val secondLegsExercise = Exercise(id = 3, name = "Leg Press", muscleGroups = listOf("QUADS"), isCustom = false)
         val setLogs = listOf(

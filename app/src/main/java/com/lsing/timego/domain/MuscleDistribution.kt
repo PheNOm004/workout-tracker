@@ -1,7 +1,9 @@
 package com.lsing.timego.domain
 
 import com.lsing.timego.data.Exercise
+import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
+import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.WorkoutSession
 import java.time.LocalDate
@@ -38,6 +40,7 @@ fun muscleGroupVolumeDistribution(
     val volumeByGroup = mutableMapOf<String, Double>()
     for (log in history) {
         val exercise = exercisesById[log.exerciseId] ?: continue
+        if (log.isWarmup || exercise.category == ExerciseCategory.WARMUP.name || exercise.category == ExerciseCategory.CARDIO.name) continue
         val volume = when (exercise.loggingType) {
             LoggingType.WEIGHT_REPS.name -> log.weightKg * log.reps
             LoggingType.HOLD.name -> (log.holdSeconds ?: 0).toDouble()
@@ -51,6 +54,38 @@ fun muscleGroupVolumeDistribution(
         }
     }
     return volumeByGroup
+}
+
+/** Keeps the detailed radar axes stable as the user logs different exercise sequences. The raw
+ * distribution map follows set/exercise insertion order, which would otherwise make the same
+ * muscle jump to a different spoke between recompositions. */
+fun orderedMuscleDistributionForChart(distribution: Map<String, Float>): Map<String, Float> =
+    linkedMapOf<String, Float>().apply {
+        MuscleGroup.entries
+            .filterNot { it == MuscleGroup.FULL_BODY }
+            .forEach { group ->
+                distribution[group.name]?.let { put(group.name, it) }
+            }
+    }
+
+/** Relative per-muscle contribution for one session, using the same weighted-volume calculation
+ *  as the Progress tab. The strongest group in the session is 1.0; secondary groups retain their
+ *  lower weighted intensity instead of receiving the same flat highlight as primary groups. */
+fun muscleGroupIntensityForSession(
+    sessionId: Long,
+    setLogs: List<SetLog>,
+    exercisesById: Map<Long, Exercise>,
+): Map<String, Float> {
+    val sessionSets = setLogs.filter { it.sessionId == sessionId }
+    val rawDistribution = muscleGroupVolumeDistribution(
+        history = sessionSets,
+        exercisesById = exercisesById,
+        sessionDateById = sessionSets.associate { it.sessionId to LocalDate.MIN },
+        since = LocalDate.MIN,
+    )
+    val maxVolume = rawDistribution.values.maxOrNull() ?: return emptyMap()
+    if (maxVolume <= 0.0) return emptyMap()
+    return rawDistribution.mapValues { (_, volume) -> (volume / maxVolume).toFloat() }
 }
 
 data class TrainingStats(

@@ -45,6 +45,70 @@ class SeedExercisesTest {
     }
 
     @Test
+    fun `every muscle tag is a declared muscle group`() {
+        val declared = MuscleGroup.entries.map { it.name }.toSet()
+        val unknown = SEED_EXERCISES.flatMap { exercise ->
+            exercise.muscleGroups.filter { it !in declared }.map { group -> exercise.name to group }
+        }
+        assertEquals(emptyList<Pair<String, String>>(), unknown)
+    }
+
+    @Test
+    fun `strength and calisthenics compounds have explicit secondary weights`() {
+        val unweightedCompounds = SEED_EXERCISES.filter { exercise ->
+            exercise.category == ExerciseCategory.STRENGTH.name || exercise.category == ExerciseCategory.CALISTHENICS.name
+        }.filter { it.muscleGroups.size > 1 && it.muscleWeights.isEmpty() }
+        assertEquals(emptyList<Exercise>(), unweightedCompounds)
+    }
+
+    @Test
+    fun `adductor exercises do not inflate glute volume`() {
+        val adductorNames = setOf(
+            "Hip Adductor Machine", "Adductor Squeeze (Ball)", "Copenhagen Adductor Raise",
+            "Cable Hip Adduction", "Standing Adductor Cable Raise", "Copenhagen Plank",
+            "Copenhagen Plank Raise",
+        )
+        val adductorExercises = SEED_EXERCISES.filter { it.name in adductorNames }
+        assertEquals(adductorNames, adductorExercises.map { it.name }.toSet())
+        assertEquals(true, adductorExercises.all { MuscleGroup.ADDUCTORS.name in it.muscleGroups })
+        assertEquals(true, adductorExercises.all { MuscleGroup.GLUTES.name !in it.muscleGroups })
+    }
+
+    @Test
+    fun `deadlift variants weight lower back as a contributor rather than an implicit primary`() {
+        val names = setOf(
+            "Conventional Deadlift", "Sumo Deadlift", "Rack Pull", "Trap Bar Deadlift",
+            "Deficit Deadlift", "Snatch-Grip Deadlift", "Deficit Sumo Deadlift", "Block Pull",
+            "Pin Pull (Deadlift)", "Jefferson Deadlift", "Banded Deadlift", "Chain Deadlift",
+            "Suitcase Deadlift",
+        )
+        val deadlifts = SEED_EXERCISES.filter { it.name in names }
+        assertEquals(names, deadlifts.map { it.name }.toSet())
+        assertEquals(true, deadlifts.all { (it.muscleWeights[MuscleGroup.LOWER_BACK.name] ?: 0) in 1..69 })
+        assertEquals(true, MuscleGroup.QUADS.name in SEED_EXERCISES.first { it.name == "Sumo Deadlift" }.muscleGroups)
+    }
+
+    @Test
+    fun `trap-relevant library exercises expose traps as weighted contributors`() {
+        val names = setOf(
+            "Seated Cable Row", "Seated Dumbbell Shoulder Press", "Reverse Cable Crossover",
+            "Conventional Deadlift", "Farmer's Carry", "Shrugs", "Prone Trap Raise",
+        )
+        val exercises = SEED_EXERCISES.filter { it.name in names }
+        assertEquals(names, exercises.map { it.name }.toSet())
+        assertEquals(emptyList<String>(), exercises.filter { MuscleGroup.TRAPS.name !in it.muscleGroups }.map { it.name })
+        assertEquals(emptyList<String>(), exercises.filter { (it.muscleWeights[MuscleGroup.TRAPS.name] ?: 100) !in 1..100 }.map { it.name })
+    }
+
+    @Test
+    fun `bodyweight-only knee-dominant exercises use bodyweight logging`() {
+        val bodyweightNames = setOf("Sissy Squat", "Nordic Hamstring Curl", "Reverse Nordic Curl")
+        val exercises = SEED_EXERCISES.filter { it.name in bodyweightNames }
+        assertEquals(bodyweightNames, exercises.map { it.name }.toSet())
+        assertEquals(true, exercises.all { it.category == ExerciseCategory.CALISTHENICS.name })
+    }
+
+    @Test
     fun `every muscleWeights value is between 1 and 100`() {
         val outOfRange = SEED_EXERCISES.filter { exercise -> exercise.muscleWeights.values.any { it !in 1..100 } }
         assertEquals(emptyList<Exercise>(), outOfRange)

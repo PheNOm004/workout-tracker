@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -17,12 +18,12 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises ORDER BY name")
     fun observeAll(): Flow<List<Exercise>>
 
-    @Query("SELECT COUNT(*) FROM exercises")
-    suspend fun count(): Int
-
     @Query("SELECT * FROM exercises WHERE id = :id")
     suspend fun getById(id: Long): Exercise?
 
-    @Query("UPDATE exercises SET loggingType = :loggingType WHERE name = :name")
-    suspend fun updateLoggingType(name: String, loggingType: String)
+    @Update
+    suspend fun update(exercise: Exercise)
+
+    @Update
+    suspend fun updateAll(exercises: List<Exercise>)
 }
