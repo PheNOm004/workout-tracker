@@ -26,7 +26,7 @@ Build a fully offline, phone-only adaptive coach in gated vertical slices. Start
 
 - [x] Task 1: Audit a read-only, ignored local export for modality outcome coverage, bodyweight correspondence, and missingness (2026-08-19; insufficient temporal evidence for a validated learner).
 - [ ] Task 2: Define weighted-rep, hold/bodyweight, and pace-capable stamina observation contracts; add anchors, metadata versioning, and identifiability fixtures. Research contract and v1 subset are built; schema 12 records future suggested-target provenance and schema 13 persists immutable built-in `catalogueKey` values. Ordinary weighted-rep/hold logs now build a conservative time-stamped performance envelope from direct evidence, while binary target outcomes remain a separate future signal. The current history resolves through keys without Room IDs/names; finish review of candidate safety/demand metadata before any learned candidate can be shown.
-- [ ] Task 3: Build closed-session chronological backtests with time-gap uncertainty, leakage tests, and abstention evaluation.
+- [ ] Task 3: Build closed-session chronological backtests with time-gap uncertainty, leakage tests, and abstention evaluation. The deterministic binary-target harness/baselines and continuous envelope audit pass synthetic tests. The current read-only export has three closed weighted-evidence sessions but zero later same-exercise comparisons, so it cannot produce a real validation score yet.
 
 ### Checkpoint: Research verdict
 
