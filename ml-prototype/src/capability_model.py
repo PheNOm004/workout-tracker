@@ -20,6 +20,7 @@ class CapabilityModelConfig:
     prior_variance: float
     process_variance_per_day: float
     maximum_interval_width: float
+    unseen_task_prior_variance: float | None = None
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,15 @@ class BinaryOutcome:
 
 
 @dataclass(frozen=True)
+class TaskDemandPrior:
+    """A task-demand distribution, never an exercise level or progression position."""
+
+    mean: float
+    variance: float
+    is_broad_unseen_prior: bool = False
+
+
+@dataclass(frozen=True)
 class PosteriorUpdate:
     posterior: CapabilityPosterior
     updated: bool
@@ -65,6 +75,21 @@ class CapabilityAssessment:
     probability: float | None
     lower_probability: float | None
     upper_probability: float | None
+    used_unseen_task_prior: bool = False
+
+
+def unseen_task_demand_prior(config: CapabilityModelConfig) -> TaskDemandPrior | None:
+    """Return the explicitly enabled broad residual prior for a declared but unseen task."""
+
+    if config.unseen_task_prior_variance is None:
+        return None
+    if config.unseen_task_prior_variance <= 0:
+        raise ValueError("unseen_task_prior_variance must be positive when configured")
+    return TaskDemandPrior(
+        mean=0.0,
+        variance=config.unseen_task_prior_variance,
+        is_broad_unseen_prior=True,
+    )
 
 
 def _sigmoid(value: float) -> float:
@@ -144,20 +169,42 @@ def assess_candidate(
     task_demand: float | None,
     anchor_supported: bool,
     config: CapabilityModelConfig,
+    task_demand_variance: float = 0.0,
+    task_demand_prior: TaskDemandPrior | None = None,
 ) -> CapabilityAssessment:
     """Return a calibrated estimate only for an identified, anchored candidate task."""
 
     _validate_dimensions(demand_vector, posterior)
+    if task_demand_prior is not None:
+        task_demand = task_demand_prior.mean
+        task_demand_variance = task_demand_prior.variance
     if task_demand is None or not anchor_supported:
         return CapabilityAssessment(True, "unidentified_task_demand", None, None, None)
+    if task_demand_variance < 0:
+        raise ValueError("task_demand_variance must be non-negative")
 
     linear = sum(mean * coordinate for mean, coordinate in zip(posterior.mean, demand_vector)) - task_demand
     standard_deviation = sqrt(
         sum(variance * coordinate * coordinate for variance, coordinate in zip(posterior.variance, demand_vector))
+        + task_demand_variance
     )
     probability = _sigmoid(linear)
     lower = _sigmoid(linear - 1.96 * standard_deviation)
     upper = _sigmoid(linear + 1.96 * standard_deviation)
     if upper - lower > config.maximum_interval_width:
-        return CapabilityAssessment(True, "uncertainty_too_high", None, None, None)
-    return CapabilityAssessment(False, None, probability, lower, upper)
+        return CapabilityAssessment(
+            True,
+            "uncertainty_too_high",
+            None,
+            None,
+            None,
+            task_demand_prior is not None and task_demand_prior.is_broad_unseen_prior,
+        )
+    return CapabilityAssessment(
+        False,
+        None,
+        probability,
+        lower,
+        upper,
+        task_demand_prior is not None and task_demand_prior.is_broad_unseen_prior,
+    )

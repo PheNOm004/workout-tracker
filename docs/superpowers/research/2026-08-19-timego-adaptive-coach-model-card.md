@@ -28,6 +28,15 @@ The prototype has two evidence layers. A conservative performance envelope learn
 
 The model output is restricted to local state, confidence interval, factual evidence, or an abstention/exclusion reason. It has no `nextExercise`, rank, prerequisite, or progression field.
 
+### Approved unseen-task uncertainty prior
+
+The user approved an offline broad task-residual prior on 2026-08-20. It is disabled unless a
+model configuration explicitly supplies a positive variance. When enabled it has no exercise name,
+level, rank, or order: its mean is zero and its configured variance is added to the candidate
+interval. A candidate using it must carry an audit flag and is shown only if the *entire combined
+capability-plus-task interval* passes the normal uncertainty gate. Ordinary capability and unknown
+metadata still abstain. This is a cold-start uncertainty assumption, not a hard-coded pathway.
+
 The review-only v1 draft is [`metadata/adaptive-coach-catalogue.2026-08-19.v1.json`](../../ml-prototype/metadata/adaptive-coach-catalogue.2026-08-19.v1.json). It contains immutable keys, modality, fixed demand coordinates, equipment, bodyweight form, and static exclusions. Loader tests reject progression-shaped fields and require repeated measurement coverage. Schema 13 now persists a `timego.seed.v1.*` key for every built-in seed row, and the offline adapter uses that key—not a mutable display name or Room ID—to recognise current history. It also converts Room's stored per-muscle percentages into normalised demand weights, defaulting an undeclared primary muscle to 1.0. This establishes direct historical identity and demand coverage. The reviewed v1 candidate set remains deliberately narrow; no unreviewed exercise becomes safe to recommend from it.
 
 ## Evaluation, privacy, and versioning

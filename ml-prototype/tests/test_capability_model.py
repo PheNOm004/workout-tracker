@@ -3,6 +3,7 @@ from src.capability_model import (
     CapabilityModelConfig,
     CapabilityPosterior,
     assess_candidate,
+    unseen_task_demand_prior,
     update_posterior,
 )
 
@@ -84,3 +85,56 @@ def test_confident_calibrated_candidate_has_a_probability_interval():
     assert not assessment.abstained
     assert assessment.lower_probability < assessment.probability < assessment.upper_probability
     assert assessment.lower_probability > 0.5
+
+
+def test_unseen_task_prior_is_not_available_until_explicitly_configured():
+    assert unseen_task_demand_prior(CONFIG) is None
+
+
+def test_broad_unseen_task_prior_abstains_at_ordinary_capability():
+    config = CapabilityModelConfig(
+        coordinate_count=1,
+        prior_variance=0.1,
+        process_variance_per_day=0.01,
+        maximum_interval_width=0.5,
+        unseen_task_prior_variance=4.0,
+    )
+    posterior = CapabilityPosterior(mean=(0.0,), variance=(0.01,), observed_at_ms=1_000)
+    prior = unseen_task_demand_prior(config)
+
+    assessment = assess_candidate(
+        posterior,
+        demand_vector=(1.0,),
+        task_demand=None,
+        task_demand_prior=prior,
+        anchor_supported=True,
+        config=config,
+    )
+
+    assert assessment.abstained
+    assert assessment.reason == "uncertainty_too_high"
+    assert assessment.used_unseen_task_prior
+
+
+def test_broad_unseen_task_prior_can_only_pass_when_its_entire_interval_is_safe():
+    config = CapabilityModelConfig(
+        coordinate_count=1,
+        prior_variance=0.1,
+        process_variance_per_day=0.01,
+        maximum_interval_width=0.5,
+        unseen_task_prior_variance=4.0,
+    )
+    posterior = CapabilityPosterior(mean=(10.0,), variance=(0.01,), observed_at_ms=1_000)
+    prior = unseen_task_demand_prior(config)
+
+    assessment = assess_candidate(
+        posterior,
+        demand_vector=(1.0,),
+        task_demand=None,
+        task_demand_prior=prior,
+        anchor_supported=True,
+        config=config,
+    )
+
+    assert not assessment.abstained
+    assert assessment.used_unseen_task_prior

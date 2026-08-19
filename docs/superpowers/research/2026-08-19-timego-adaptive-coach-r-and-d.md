@@ -188,16 +188,18 @@ useful muscle/equipment relations, but its application and entry data have licen
 that require per-entry review, and it supplies no personal task-performance prior
 ([source](https://github.com/wger-project/wger)).
 
-Therefore the product must make an explicit choice before it can show a **new** exercise:
+Before a new exercise can be shown, the product needs one of two explicit approaches:
 
 1. Strict own-history-only mode: use direct evidence and abstain for an unseen task until safe
-   bridge evidence exists. This is the current default.
+   bridge evidence exists.
 2. A conservative offline task-residual prior: a broad statistical uncertainty distribution that
    is not an exercise rank, level, or order. It can only pass a candidate when the entire
    uncertainty interval is safe; otherwise it abstains.
 
-Neither source review nor software can make that product choice silently. Do not adopt exercise
-`level` metadata, a population tier, or a deterministic fallback path as a substitute.
+**Decision recorded 2026-08-20:** the user approved option 2. The implementation defaults the
+prior to disabled, gives it no exercise-specific identity, and adds only its broad variance to a
+candidate interval. It still abstains unless that entire combined interval is safe. Do not adopt
+exercise `level` metadata, a population tier, or a deterministic fallback path as a substitute.
 - Personal logs, database exports, model snapshots containing identifiable workout history, and backup files remain local and untracked.
 
 ## Decision requested after R0/R1
