@@ -9,6 +9,7 @@ import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.Routine
 import com.lsing.timego.data.SEED_EXERCISES
+import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.SettingsRepository
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.TrainingLean
@@ -28,6 +29,7 @@ import com.lsing.timego.domain.exerciseUsageFrequency
 import com.lsing.timego.domain.exercisesRankedByFrequency
 import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
+import com.lsing.timego.domain.lastWorkingSetByExercise
 import com.lsing.timego.domain.latestWeightKg
 import com.lsing.timego.domain.muscleGroupsAffectedInSession
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
@@ -89,6 +91,9 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val _displayedExercises = MutableStateFlow<List<Exercise>>(emptyList())
     val displayedExercises: StateFlow<List<Exercise>> = _displayedExercises.asStateFlow()
 
+    private val _lastWorkingSets = MutableStateFlow<Map<Long, SetLog>>(emptyMap())
+    val lastWorkingSets: StateFlow<Map<Long, SetLog>> = _lastWorkingSets.asStateFlow()
+
     private val _suggestions = MutableStateFlow<Map<Long, OverloadSuggestion>>(emptyMap())
     val suggestions: StateFlow<Map<Long, OverloadSuggestion>> = _suggestions.asStateFlow()
 
@@ -133,11 +138,12 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
-            combine(repository.exercises, repository.setLogs) { exercises, setLogs ->
-                exercises to setLogs
-            }.collect { (list, setLogs) ->
+            combine(repository.exercises, repository.setLogs, repository.sessions) { exercises, setLogs, sessions ->
+                Triple(exercises, setLogs, sessions)
+            }.collect { (list, setLogs, sessions) ->
                 allExercises = list
                 exerciseUsageCounts = exerciseUsageFrequency(setLogs, list.associateBy { it.id })
+                _lastWorkingSets.value = lastWorkingSetByExercise(setLogs, sessions, list.associateBy { it.id })
                 // Session state first: refreshSuggestions reads the active session id to decide
                 // whether an exercise's suggestion should lock to this session's first working
                 // set. Computing it while _sessionState is still Loading made every suggestion

@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
+import com.lsing.timego.data.SetLog
 import com.lsing.timego.domain.HoldSuggestion
 import com.lsing.timego.domain.MET_CARDIO
 import com.lsing.timego.domain.MET_WARMUP
@@ -273,6 +274,7 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, on
     val exercises by viewModel.displayedExercises.collectAsState()
     val suggestions by viewModel.suggestions.collectAsState()
     val holdSuggestions by viewModel.holdSuggestions.collectAsState()
+    val lastWorkingSets by viewModel.lastWorkingSets.collectAsState()
     val routines by viewModel.routines.collectAsState()
     val selectedRoutineId by viewModel.selectedRoutineId.collectAsState()
     val latestBodyWeightKg by viewModel.latestBodyWeightKg.collectAsState()
@@ -352,6 +354,7 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, on
                             exerciseName = exercise.name,
                             category = exercise.category,
                             suggestion = suggestions[exercise.id],
+                            lastWorkingSet = lastWorkingSets[exercise.id],
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
                             onLog = { weight, reps, target, isWarmup, addedWeightKg, rpe ->
@@ -440,6 +443,7 @@ private fun StrengthLogRow(
     exerciseName: String,
     category: String,
     suggestion: com.lsing.timego.domain.OverloadSuggestion?,
+    lastWorkingSet: SetLog?,
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
     onLog: (weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean, addedWeightKg: Double?, rpe: Int?) -> Unit,
@@ -461,6 +465,14 @@ private fun StrengthLogRow(
             "${it.weightKg}kg x ${it.reps}"
         }
     }
+    val lastSetHint = lastWorkingSet?.let { set ->
+        val weight = if (isBodyweight && set.addedWeightKg != null) {
+            formatCalisthenicsWeight(set.addedWeightKg)
+        } else {
+            "${set.weightKg}kg"
+        }
+        "Last time: $weight x ${set.reps}"
+    }
 
     ExerciseCard(expanded) {
         ExerciseRowHeader(
@@ -477,6 +489,14 @@ private fun StrengthLogRow(
                     style = LedgerFigureValue.copy(fontSize = 13.sp),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
+                )
+            }
+            lastSetHint?.let { hint ->
+                Text(
+                    hint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
                 )
             }
             Row(
