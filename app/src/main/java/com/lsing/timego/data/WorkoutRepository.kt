@@ -34,6 +34,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
             if (existing.isCustom) return@mapNotNull null
             val corrected = existing.copy(
                 muscleGroups = seedExercise.muscleGroups,
+                catalogueKey = seedExercise.catalogueKey,
                 category = seedExercise.category,
                 loggingType = seedExercise.loggingType,
                 muscleWeights = seedExercise.muscleWeights,

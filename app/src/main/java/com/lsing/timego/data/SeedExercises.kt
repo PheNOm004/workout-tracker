@@ -1,16 +1,21 @@
 package com.lsing.timego.data
 
+import java.util.Locale
+
+private fun seedCatalogueKey(name: String): String =
+    "timego.seed.v1." + name.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]+"), "-").trim('-')
+
 private fun strength(name: String, vararg groups: MuscleGroup, weights: Map<MuscleGroup, Int> = emptyMap()) =
-    Exercise(name = name, muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.STRENGTH.name, loggingType = LoggingType.WEIGHT_REPS.name, muscleWeights = weights.mapKeys { it.key.name })
+    Exercise(name = name, catalogueKey = seedCatalogueKey(name), muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.STRENGTH.name, loggingType = LoggingType.WEIGHT_REPS.name, muscleWeights = weights.mapKeys { it.key.name })
 
 private fun calisthenics(name: String, vararg groups: MuscleGroup, loggingType: LoggingType = LoggingType.WEIGHT_REPS, weights: Map<MuscleGroup, Int> = emptyMap()) =
-    Exercise(name = name, muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.CALISTHENICS.name, loggingType = loggingType.name, muscleWeights = weights.mapKeys { it.key.name })
+    Exercise(name = name, catalogueKey = seedCatalogueKey(name), muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.CALISTHENICS.name, loggingType = loggingType.name, muscleWeights = weights.mapKeys { it.key.name })
 
 private fun warmup(name: String, vararg groups: MuscleGroup) =
-    Exercise(name = name, muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.WARMUP.name, loggingType = LoggingType.DURATION_DISTANCE.name)
+    Exercise(name = name, catalogueKey = seedCatalogueKey(name), muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.WARMUP.name, loggingType = LoggingType.DURATION_DISTANCE.name)
 
 private fun cardio(name: String, vararg groups: MuscleGroup) =
-    Exercise(name = name, muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.CARDIO.name, loggingType = LoggingType.DURATION_DISTANCE.name)
+    Exercise(name = name, catalogueKey = seedCatalogueKey(name), muscleGroups = groups.map { it.name }, isCustom = false, category = ExerciseCategory.CARDIO.name, loggingType = LoggingType.DURATION_DISTANCE.name)
 
 val SEED_EXERCISES = listOf(
     // Strength -- Chest

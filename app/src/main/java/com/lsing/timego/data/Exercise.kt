@@ -21,6 +21,9 @@ import androidx.room.PrimaryKey
 data class Exercise(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
+    /** Stable coach-catalogue identity for curated seeds. Custom exercises deliberately remain
+     * null until reviewed declarative metadata exists; local Room IDs/names are not model keys. */
+    val catalogueKey: String? = null,
     val muscleGroups: List<String>,
     val isCustom: Boolean,
     val category: String = ExerciseCategory.STRENGTH.name,

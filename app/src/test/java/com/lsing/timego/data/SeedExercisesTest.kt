@@ -45,6 +45,14 @@ class SeedExercisesTest {
     }
 
     @Test
+    fun `every built-in seed has a unique immutable catalogue key`() {
+        val keys = SEED_EXERCISES.map { it.catalogueKey }
+
+        assertEquals(true, keys.all { it?.startsWith("timego.seed.v1.") == true })
+        assertEquals(keys.size, keys.toSet().size)
+    }
+
+    @Test
     fun `every muscle tag is a declared muscle group`() {
         val declared = MuscleGroup.entries.map { it.name }.toSet()
         val unknown = SEED_EXERCISES.flatMap { exercise ->
