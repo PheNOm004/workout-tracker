@@ -27,6 +27,7 @@ import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
 import com.lsing.timego.domain.latestWeightKg
 import com.lsing.timego.domain.muscleGroupsAffectedInSession
+import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.muscleGroupIntensityForSession
 import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.repRangeAtWeight
@@ -230,13 +231,14 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             val sets = repository.setLogsForSession(session.id)
             val exercisesById = allExercises.associateBy { it.id }
             val muscleGroups = muscleGroupsAffectedInSession(session.id, sets, allExercises)
+            val primaryMuscleGroups = muscleGroupsWorkedInSession(session.id, sets, allExercises)
             val muscleIntensities = muscleGroupIntensityForSession(session.id, sets, exercisesById)
             val detail = buildDayHistoryEntries(sets, exercisesById)
             LastSessionSummary(
                 sets = sets.size,
                 muscleGroups = muscleGroups,
                 muscleIntensities = muscleIntensities,
-                label = sessionDayLabel(muscleGroups, isCardioOnlySession(sets, exercisesById)),
+                label = sessionDayLabel(primaryMuscleGroups, isCardioOnlySession(sets, exercisesById)),
                 durationMinutes = (session.endEpochMillis ?: session.startEpochMillis).minus(session.startEpochMillis) / 60_000,
                 detail = detail,
             )
