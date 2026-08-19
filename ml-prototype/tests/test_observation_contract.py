@@ -82,6 +82,49 @@ def test_calisthenics_weight_uses_the_already_total_persisted_load_once():
     assert result.effective_load_kg == 85.0
 
 
+def test_bodyweight_change_and_missing_rpe_are_preserved_without_imputation():
+    pull_up = ExerciseMetadata(
+        catalogue_key="timego.seed.v1.pull-up",
+        logging_type=LoggingType.WEIGHT_REPS,
+        demand_coordinates=("vertical_pull",),
+        equipment=("pull_up_bar",),
+        bodyweight_supported=True,
+    )
+    earlier = map_observation(
+        RawSetLog(
+            session_id=7,
+            set_id=18,
+            ended_at_ms=1_000,
+            logging_type=LoggingType.WEIGHT_REPS,
+            reps=5,
+            weight_kg=75.0,
+            bodyweight_kg=75.0,
+            rpe=None,
+        ),
+        pull_up,
+    )
+    later = map_observation(
+        RawSetLog(
+            session_id=8,
+            set_id=19,
+            ended_at_ms=2_000,
+            logging_type=LoggingType.WEIGHT_REPS,
+            reps=5,
+            weight_kg=80.0,
+            bodyweight_kg=80.0,
+            rpe=None,
+        ),
+        pull_up,
+    )
+
+    assert isinstance(earlier, WeightedRepObservation)
+    assert isinstance(later, WeightedRepObservation)
+    assert earlier.bodyweight_kg == 75.0
+    assert later.bodyweight_kg == 80.0
+    assert earlier.rpe is None
+    assert later.rpe is None
+
+
 def test_warmup_is_explicitly_excluded_from_capability_evidence():
     result = map_observation(
         RawSetLog(

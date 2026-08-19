@@ -5,7 +5,7 @@ Source of truth: [vault build design](C:/Users/lsing/.claude/obsidian_demo/Proje
 - [x] Approve the build design and explicitly authorise the read-only local data audit.
 - [x] Complete Task 0: strict phone-only backup and release-permission policy.
 - [x] Complete Task 1: local feasibility audit (the live history is not yet enough for an honest temporal learner validation).
-- [ ] Complete Task 2: observation/metadata contract and synthetic fixtures.
+- [x] Complete Task 2: observation/metadata contract and synthetic fixtures (2026-08-20).
 - [ ] Complete Task 3: chronological prototype backtest.
 - [ ] Review Checkpoint A: research verdict.
 - [ ] Complete Task 4: model contract and Kotlin parity vectors.
