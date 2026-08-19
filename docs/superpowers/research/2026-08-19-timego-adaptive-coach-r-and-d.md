@@ -183,9 +183,14 @@ where no total load was recorded, bodyweight work uses the separate `log1p(reps)
 `log1p(seconds)`. The first personal observation for an exercise/basis is a neutral baseline, not
 transfer evidence. Only a later closed-session observation for that same exercise and basis may
 update the small time-varying demand-coordinate state. This keeps zero-load bodyweight records
-useful without inventing bodyweight or mixing reps-only work with loaded work. The current private
-aggregate audit has 26 baselines and one such update. It is still far below the evidence needed to
-claim a better predictor, calibrate it, port Kotlin code, or show a card.
+useful without inventing bodyweight or mixing reps-only work with loaded work. The evaluator
+freezes state before a completed test session, scores every later same-exercise/basis observation
+against both the continuous learner and a same-basis last-observation baseline, then applies that
+session only after all scores are final. It emits aggregate MAE/RMSE and evidence counts only; it
+cannot expose personal rows and has no winner when there are zero boundaries. The current private
+aggregate audit has 26 baselines, one prediction boundary/update, and an aggregate tie (MAE
+0.1164). One boundary is still far below the evidence needed to claim a better predictor,
+calibrate it, port Kotlin code, or show a card.
 
 ## 2026-08-20 candidate-prior decision boundary
 

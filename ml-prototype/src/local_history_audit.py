@@ -13,10 +13,10 @@ from pathlib import Path
 import sqlite3
 from collections import defaultdict
 
-from src.continuous_capability_model import (
-    ContinuousCapabilityConfig,
-    ContinuousCapabilityState,
-    update_from_performance_observation,
+from src.continuous_capability_model import ContinuousCapabilityConfig
+from src.continuous_chronological_evaluator import (
+    ContinuousEvaluationSession,
+    run_continuous_chronological_evaluation,
 )
 from src.continuous_observation_mapper import (
     TIMEGO_MUSCLE_COORDINATES,
@@ -41,6 +41,12 @@ class LocalHistoryAudit:
     trusted_target_outcomes: int
     continuous_baselines: int
     continuous_updates: int
+    continuous_prediction_boundaries: int
+    continuous_candidate_mae: float | None
+    continuous_last_observation_mae: float | None
+    continuous_prediction_winner: str | None
+    continuous_insufficient_evidence_observations: int
+    continuous_insufficient_evidence: bool
 
 
 _ROWS_SQL = """
@@ -116,9 +122,7 @@ def audit_database(database_path: Path) -> LocalHistoryAudit:
         process_variance_per_day=0.05,
         observation_variance=0.5,
     )
-    continuous_state = ContinuousCapabilityState.prior(continuous_config)
-    continuous_baselines = 0
-    continuous_updates = 0
+    continuous_sessions: list[ContinuousEvaluationSession] = []
     for session_id in sorted(session_end, key=lambda key: (session_end[key], key)):
         performance_observations = (
             session_weighted_rep_performance_observations(
@@ -132,15 +136,14 @@ def audit_database(database_path: Path) -> LocalHistoryAudit:
                 session_end[session_id],
             )
         )
-        for performance_observation in sorted(performance_observations, key=lambda item: (item.set_id, item.catalogue_key)):
-            update = update_from_performance_observation(
-                continuous_state,
-                performance_observation,
-                continuous_config,
-            )
-            continuous_state = update.state
-            continuous_baselines += int(update.reason == "registered_personal_baseline")
-            continuous_updates += int(update.updated)
+        continuous_sessions.append(
+            ContinuousEvaluationSession(
+                session_id=session_id,
+                ended_at_ms=session_end[session_id],
+                observations=performance_observations,
+            ),
+        )
+    continuous_evaluation = run_continuous_chronological_evaluation(continuous_sessions, continuous_config)
     return LocalHistoryAudit(
         total_logs=len(rows),
         weighted_rep_observations=len(weighted),
@@ -151,8 +154,17 @@ def audit_database(database_path: Path) -> LocalHistoryAudit:
         comparable_same_exercise_observations=chronology.comparable_observations,
         weighted_extension_rate=chronology.extension_rate,
         trusted_target_outcomes=trusted_target_outcomes,
-        continuous_baselines=continuous_baselines,
-        continuous_updates=continuous_updates,
+        continuous_baselines=continuous_evaluation.first_observation_registrations,
+        continuous_updates=(
+            sum(len(session.observations) for session in continuous_sessions)
+            - continuous_evaluation.first_observation_registrations
+        ),
+        continuous_prediction_boundaries=continuous_evaluation.prediction_boundaries,
+        continuous_candidate_mae=continuous_evaluation.candidate_mae,
+        continuous_last_observation_mae=continuous_evaluation.baseline_mae,
+        continuous_prediction_winner=continuous_evaluation.winner,
+        continuous_insufficient_evidence_observations=continuous_evaluation.insufficient_evidence_observations,
+        continuous_insufficient_evidence=continuous_evaluation.insufficient_evidence,
     )
 
 

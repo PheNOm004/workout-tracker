@@ -1,3 +1,4 @@
+from math import log1p
 import sqlite3
 
 from src.local_history_audit import audit_database
@@ -66,3 +67,9 @@ def test_local_audit_reports_aggregate_contract_and_chronology_evidence(tmp_path
     assert result.trusted_target_outcomes == 1
     assert result.continuous_baselines == 1
     assert result.continuous_updates == 1
+    assert result.continuous_prediction_boundaries == 1
+    assert result.continuous_candidate_mae == log1p(70 * 6) - log1p(70 * 5)
+    assert result.continuous_last_observation_mae == log1p(70 * 6) - log1p(70 * 5)
+    assert result.continuous_prediction_winner == "tie"
+    assert result.continuous_insufficient_evidence_observations == 1
+    assert not result.continuous_insufficient_evidence
