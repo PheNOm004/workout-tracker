@@ -9,6 +9,8 @@ import com.lsing.timego.data.Routine
 import com.lsing.timego.data.SettingsRepository
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
+import com.lsing.timego.domain.exerciseUsageFrequency
+import com.lsing.timego.domain.exercisesRankedByFrequency
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
 import com.lsing.timego.domain.untrainedMuscleGroups
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,8 +47,13 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     init {
         viewModelScope.launch { repository.routines.collect { _routines.value = it } }
         viewModelScope.launch {
-            repository.exercises.collect { exerciseList ->
-                _exercises.value = exerciseList
+            combine(repository.exercises, repository.setLogs) { exerciseList, setLogs ->
+                exerciseList to setLogs
+            }.collect { (exerciseList, setLogs) ->
+                _exercises.value = exercisesRankedByFrequency(
+                    exerciseList,
+                    exerciseUsageFrequency(setLogs, exerciseList.associateBy { it.id }),
+                )
                 refreshUntrainedGroups(exerciseList)
             }
         }
