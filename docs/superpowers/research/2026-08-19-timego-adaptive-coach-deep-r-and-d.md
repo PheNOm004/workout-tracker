@@ -1,6 +1,6 @@
 # TimeGo adaptive coach — deep R&D findings and required plan revisions
 
-**Date:** 2026-08-19  
+**Date:** 2026-08-19
 **Scope:** Evidence review only. No Android feature, model, UI, personal-data audit, or recommendation behaviour is authorised by this note.
 
 ## Bottom line

@@ -1,7 +1,7 @@
 # TimeGo adaptive coach — research and decision brief
 
-**Date:** 2026-08-19  
-**Status:** R&D only — no product behaviour or app code approved by this note  
+**Date:** 2026-08-19
+**Status:** R&D only — no product behaviour or app code approved by this note
 **Question:** How can TimeGo *learn* a user's level from normal local workout logs and recommend suitable strength, calisthenics, and stamina work without a chatbot, a fixed exercise ladder, cloud services, telemetry, or runtime downloads?
 
 ## Executive conclusion
