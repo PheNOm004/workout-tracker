@@ -1,5 +1,6 @@
 from math import isclose
 
+import src.continuous_chronological_evaluator as evaluator
 from src.continuous_capability_model import ContinuousCapabilityConfig, PerformanceObservation
 from src.continuous_chronological_evaluator import (
     ContinuousEvaluationSession,
@@ -95,8 +96,28 @@ def test_measurement_bases_never_share_a_baseline_or_last_observation():
     assert isclose(result.baseline_mae, 2.0)
 
 
-def test_repeated_updates_in_one_basis_cannot_change_another_basis_prediction():
-    without_reps_only_update = run_continuous_chronological_evaluation(
+def test_repeated_updates_in_one_basis_cannot_change_another_basis_prediction(monkeypatch):
+    captured_predictions: list[tuple[int, float, float]] = []
+    observed_updates = []
+    original_prediction = evaluator._candidate_prediction_error
+    original_update = evaluator.update_from_performance_observation
+
+    def capture_prediction(state, performance_observation, baseline):
+        predicted, error = original_prediction(state, performance_observation, baseline)
+        if performance_observation.measurement_basis == "load_reps":
+            captured_predictions.append((performance_observation.session_id, predicted, error))
+        return predicted, error
+
+    def capture_update(state, performance_observation, capability_config):
+        result = original_update(state, performance_observation, capability_config)
+        if performance_observation.session_id == 3 and performance_observation.measurement_basis == "reps_only":
+            observed_updates.append((state, result))
+        return result
+
+    monkeypatch.setattr(evaluator, "_candidate_prediction_error", capture_prediction)
+    monkeypatch.setattr(evaluator, "update_from_performance_observation", capture_update)
+
+    run_continuous_chronological_evaluation(
         [
             session(1, 1_000, observation(1, 1_000, 1.0, measurement_basis="load_reps")),
             session(2, 2_000, observation(2, 2_000, 1.0, measurement_basis="reps_only")),
@@ -104,7 +125,7 @@ def test_repeated_updates_in_one_basis_cannot_change_another_basis_prediction():
         ],
         config(),
     )
-    with_reps_only_update = run_continuous_chronological_evaluation(
+    run_continuous_chronological_evaluation(
         [
             session(1, 1_000, observation(1, 1_000, 1.0, measurement_basis="load_reps")),
             session(2, 2_000, observation(2, 2_000, 1.0, measurement_basis="reps_only")),
@@ -114,11 +135,12 @@ def test_repeated_updates_in_one_basis_cannot_change_another_basis_prediction():
         config(),
     )
 
-    # The reps-only update has a non-zero state change, but the later load/reps prediction still
-    # uses its untouched load/reps state.  Both evaluation runs therefore retain MAE 2.0.
-    assert isclose(without_reps_only_update.candidate_mae, 2.0)
-    assert isclose(with_reps_only_update.candidate_mae, 2.0)
-    assert isclose(with_reps_only_update.baseline_mae, 2.0)
+    # Session three's reps-only observation performs a real update. It must not change the exact
+    # later load/reps prediction or signed error from the no-reps-only-update control.
+    prior_state, reps_only_update = observed_updates[0]
+    assert reps_only_update.updated
+    assert not isclose(reps_only_update.state.mean[0], prior_state.mean[0])
+    assert captured_predictions == [(3, 1.0, -2.0), (4, 1.0, -2.0)]
 
 
 def test_no_repeated_exercise_basis_boundary_reports_insufficient_evidence_not_a_winner():

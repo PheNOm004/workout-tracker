@@ -102,6 +102,16 @@ def _winner(candidate_mae: float | None, baseline_mae: float | None) -> str | No
     return "tie"
 
 
+def _candidate_prediction_error(
+    state: ContinuousCapabilityState,
+    observation: PerformanceObservation,
+    baseline: float,
+) -> tuple[float, float]:
+    predicted_change = sum(mean * demand for mean, demand in zip(state.mean, observation.demand_vector))
+    predicted_work_score = baseline + predicted_change
+    return predicted_work_score, predicted_work_score - observation.observed_work_score
+
+
 def run_continuous_chronological_evaluation(
     sessions: Sequence[ContinuousEvaluationSession],
     config: ContinuousCapabilityConfig,
@@ -143,10 +153,12 @@ def run_continuous_chronological_evaluation(
                 insufficient_evidence_observations += 1
                 continue
 
-            predicted_change = sum(
-                mean * demand for mean, demand in zip(state.mean, observation.demand_vector)
+            _, candidate_error = _candidate_prediction_error(
+                state,
+                observation,
+                baseline,
             )
-            candidate_errors.append(baseline + predicted_change - observation.observed_work_score)
+            candidate_errors.append(candidate_error)
             baseline_errors.append(prior_last_observation - observation.observed_work_score)
 
         # Apply the held-out session only after every one of its scores is final.
