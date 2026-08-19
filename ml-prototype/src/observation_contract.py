@@ -19,6 +19,14 @@ class LoggingType(str, Enum):
     DURATION_DISTANCE = "DURATION_DISTANCE"
 
 
+class TargetProvenance(str, Enum):
+    """Whether a target existed before the set, rather than being filled in after it."""
+
+    DECLARED_BEFORE_SET = "DECLARED_BEFORE_SET"
+    AUTO_FILLED_AFTER_SET = "AUTO_FILLED_AFTER_SET"
+    UNKNOWN = "UNKNOWN"
+
+
 @dataclass(frozen=True)
 class ExerciseMetadata:
     """Versioned catalogue identity and declarative measurement attributes only."""
@@ -49,6 +57,7 @@ class RawSetLog:
     bodyweight_kg: float | None = None
     rpe: float | None = None
     is_warmup: bool = False
+    target_provenance: TargetProvenance = TargetProvenance.UNKNOWN
 
 
 @dataclass(frozen=True)
@@ -65,7 +74,7 @@ class WeightedRepObservation:
     reps: int
     target_reps: int | None
     target_met: bool | None
-    external_load_kg: float
+    effective_load_kg: float
     bodyweight_kg: float | None
     rpe: float | None
 
@@ -100,8 +109,12 @@ Observation: TypeAlias = (
 )
 
 
-def _target_met(actual: float, target: float | int | None) -> bool | None:
-    if target is None or target <= 0:
+def _target_met(
+    actual: float,
+    target: float | int | None,
+    provenance: TargetProvenance,
+) -> bool | None:
+    if provenance != TargetProvenance.DECLARED_BEFORE_SET or target is None or target <= 0:
         return None
     return actual >= target
 
@@ -126,11 +139,10 @@ def map_observation(raw: RawSetLog, metadata: ExerciseMetadata) -> Observation:
     if raw.logging_type == LoggingType.WEIGHT_REPS:
         if raw.reps is None or raw.reps <= 0:
             return ExcludedObservation("missing_reps")
-        weight = raw.weight_kg or 0.0
-        added_weight = raw.added_weight_kg or 0.0
-        if weight < 0 or added_weight < 0:
+        effective_load = raw.weight_kg or 0.0
+        if effective_load < 0:
             return ExcludedObservation("invalid_load")
-        if weight + added_weight == 0 and not metadata.bodyweight_supported:
+        if effective_load == 0 and not metadata.bodyweight_supported:
             return ExcludedObservation("missing_load")
         return WeightedRepObservation(
             catalogue_key=metadata.catalogue_key,
@@ -139,8 +151,10 @@ def map_observation(raw: RawSetLog, metadata: ExerciseMetadata) -> Observation:
             ended_at_ms=raw.ended_at_ms,
             reps=raw.reps,
             target_reps=raw.target_reps,
-            target_met=_target_met(raw.reps, raw.target_reps),
-            external_load_kg=weight + added_weight,
+            target_met=_target_met(raw.reps, raw.target_reps, raw.target_provenance),
+            # TimeGo persists calisthenics weightKg as the total bodyweight-plus-added load.
+            # addedWeightKg is only a display aid, so incorporating it here would double-count.
+            effective_load_kg=effective_load,
             bodyweight_kg=raw.bodyweight_kg,
             rpe=raw.rpe,
         )
@@ -155,7 +169,7 @@ def map_observation(raw: RawSetLog, metadata: ExerciseMetadata) -> Observation:
             ended_at_ms=raw.ended_at_ms,
             hold_seconds=raw.hold_seconds,
             target_hold_seconds=raw.target_hold_seconds,
-            target_met=_target_met(raw.hold_seconds, raw.target_hold_seconds),
+            target_met=_target_met(raw.hold_seconds, raw.target_hold_seconds, raw.target_provenance),
             bodyweight_kg=raw.bodyweight_kg,
             rpe=raw.rpe,
         )

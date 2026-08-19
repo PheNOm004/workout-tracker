@@ -52,8 +52,8 @@ The proposed separation of weighted repetitions, holds, and cardio is necessary,
 
 | Modality | Initial evidence that can be used | Boundary that prevents an overclaim |
 |---|---|---|
-| Weighted reps | completed load/reps; target-rep hit/miss when a target exists; optional RPE; bodyweight already captured in stored calisthenics total load | A self-selected completed set is a lower bound, not proof that the dose was ideal. Missing RPE is unknown. |
-| Holds | achieved/target duration, excluding warm-ups as defined by the audit | Treat holds as their own likelihood; do not convert them to E1RM. |
+| Weighted reps | completed load/reps; target-rep hit/miss only when a target was recorded before the set; optional RPE; bodyweight already captured in stored calisthenics total load | A self-selected completed set is a lower bound, not proof that the dose was ideal. Historical auto-filled targets and missing RPE are unknown. |
+| Holds | achieved/target duration only when the target pre-dates the hold, excluding warm-ups as defined by the audit | Treat holds as their own likelihood; do not convert them to E1RM. |
 | Stamina | only `duration + distance` can yield an objective pace-like observation with the current schema | Duration-only history lacks intensity and an explicit target/outcome. It may describe recent volume, but the first learner must abstain from a stamina-capability recommendation unless the audit proves a valid task/outcome subset. |
 
 **Revision:** R0 must audit *target availability and outcome coverage per modality*, not merely number of rows. R1’s first visible-candidate research should be limited to weighted reps and holds unless the audit supports the stamina contract. “Stamina later” is an acceptable, honest result.

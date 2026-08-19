@@ -33,8 +33,11 @@ The model learns the athlete's state. A later policy may learn how to choose amo
 has too few completed-session boundaries to validate a temporal learner; missing RPE and
 duration-only cardio are retained as unknown/unsupported rather than imputed. The research module
 now has explicit weighted-rep, hold, and pace-capable stamina observations plus exclusion reasons.
-The remaining R0 metadata review/model-card work is deliberately separate from any recommendation
-UI.
+The implementation audit also found that historical `targetReps`/hold targets can be auto-filled
+from the completed value and therefore do **not** establish achieved/missed outcomes without new
+target provenance. Calisthenics `weightKg` already stores total bodyweight plus added load, so the
+mapper reads it once and never double-counts `addedWeightKg`. The remaining R0 metadata
+review/model-card work is deliberately separate from any recommendation UI.
 
 - [ ] Make one read-only, ignored local research export of the TimeGo database. Do not copy raw personal data into Git, test fixtures, screenshots, or reports.
 - [ ] Audit the available records by exercise and modality: sessions, working sets, timestamps, load/reps, bodyweight, optional RPE, targets achieved/missed, holds, duration, and distance. Report missingness explicitly; never turn an absent RPE or later log into a negative outcome.

@@ -1,0 +1,104 @@
+{
+  "catalogue_version": "2026-08-19.v1",
+  "coordinate_schema": [
+    "horizontal_push",
+    "vertical_pull",
+    "lower_body",
+    "trunk",
+    "locomotion"
+  ],
+  "seed_aliases": {
+    "Barbell Back Squat": "timego.seed.v1.barbell-back-squat",
+    "Barbell Bench Press": "timego.seed.v1.barbell-bench-press",
+    "Bodyweight Squat": "timego.seed.v1.bodyweight-squat",
+    "Cycling": "timego.seed.v1.steady-cycle",
+    "Hollow Body Hold": "timego.seed.v1.hollow-body-hold",
+    "Lat Pulldown": "timego.seed.v1.lat-pulldown",
+    "Plank": "timego.seed.v1.plank",
+    "Pull-Up": "timego.seed.v1.pull-up",
+    "Push-Up": "timego.seed.v1.bodyweight-push-up",
+    "Running": "timego.seed.v1.steady-run"
+  },
+  "entries": [
+    {
+      "catalogue_key": "timego.seed.v1.barbell-bench-press",
+      "logging_type": "WEIGHT_REPS",
+      "demand_coordinates": {"horizontal_push": 1.0},
+      "equipment": ["barbell", "bench"],
+      "bodyweight_supported": false,
+      "static_exclusions": []
+    },
+    {
+      "catalogue_key": "timego.seed.v1.bodyweight-push-up",
+      "logging_type": "WEIGHT_REPS",
+      "demand_coordinates": {"horizontal_push": 0.9, "trunk": 0.2},
+      "equipment": [],
+      "bodyweight_supported": true,
+      "static_exclusions": []
+    },
+    {
+      "catalogue_key": "timego.seed.v1.pull-up",
+      "logging_type": "WEIGHT_REPS",
+      "demand_coordinates": {"vertical_pull": 1.0, "trunk": 0.2},
+      "equipment": ["pull_up_bar"],
+      "bodyweight_supported": true,
+      "static_exclusions": ["requires_pull_up_bar"]
+    },
+    {
+      "catalogue_key": "timego.seed.v1.lat-pulldown",
+      "logging_type": "WEIGHT_REPS",
+      "demand_coordinates": {"vertical_pull": 0.9},
+      "equipment": ["cable_machine"],
+      "bodyweight_supported": false,
+      "static_exclusions": ["requires_cable_machine"]
+    },
+    {
+      "catalogue_key": "timego.seed.v1.barbell-back-squat",
+      "logging_type": "WEIGHT_REPS",
+      "demand_coordinates": {"lower_body": 1.0, "trunk": 0.3},
+      "equipment": ["barbell", "rack"],
+      "bodyweight_supported": false,
+      "static_exclusions": ["requires_rack"]
+    },
+    {
+      "catalogue_key": "timego.seed.v1.bodyweight-squat",
+      "logging_type": "WEIGHT_REPS",
+      "demand_coordinates": {"lower_body": 0.8},
+      "equipment": [],
+      "bodyweight_supported": true,
+      "static_exclusions": []
+    },
+    {
+      "catalogue_key": "timego.seed.v1.plank",
+      "logging_type": "HOLD",
+      "demand_coordinates": {"trunk": 1.0},
+      "equipment": [],
+      "bodyweight_supported": true,
+      "static_exclusions": []
+    },
+    {
+      "catalogue_key": "timego.seed.v1.hollow-body-hold",
+      "logging_type": "HOLD",
+      "demand_coordinates": {"trunk": 0.9},
+      "equipment": [],
+      "bodyweight_supported": true,
+      "static_exclusions": []
+    },
+    {
+      "catalogue_key": "timego.seed.v1.steady-run",
+      "logging_type": "DURATION_DISTANCE",
+      "demand_coordinates": {"locomotion": 1.0},
+      "equipment": [],
+      "bodyweight_supported": true,
+      "static_exclusions": []
+    },
+    {
+      "catalogue_key": "timego.seed.v1.steady-cycle",
+      "logging_type": "DURATION_DISTANCE",
+      "demand_coordinates": {"locomotion": 0.8, "lower_body": 0.3},
+      "equipment": ["stationary_bike"],
+      "bodyweight_supported": false,
+      "static_exclusions": ["requires_stationary_bike"]
+    }
+  ]
+}

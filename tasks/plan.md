@@ -25,7 +25,7 @@ Build a fully offline, phone-only adaptive coach in gated vertical slices. Start
 ### Phase 1: Local research
 
 - [x] Task 1: Audit a read-only, ignored local export for modality outcome coverage, bodyweight correspondence, and missingness (2026-08-19; insufficient temporal evidence for a validated learner).
-- [ ] Task 2: Define weighted-rep, hold/bodyweight, and pace-capable stamina observation contracts; add anchors, metadata versioning, and identifiability fixtures.
+- [ ] Task 2: Define weighted-rep, hold/bodyweight, and pace-capable stamina observation contracts; add anchors, metadata versioning, and identifiability fixtures. Research contract and v1 subset are built; expand/review the seed-to-key map before claiming live coverage.
 - [ ] Task 3: Build closed-session chronological backtests with time-gap uncertainty, leakage tests, and abstention evaluation.
 
 ### Checkpoint: Research verdict

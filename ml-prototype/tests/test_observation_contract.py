@@ -45,15 +45,41 @@ def test_weighted_rep_log_becomes_a_modality_specific_observation():
             reps=8,
             target_reps=8,
             weight_kg=60.0,
-            added_weight_kg=5.0,
             bodyweight_kg=80.0,
         ),
         WEIGHTED,
     )
 
     assert isinstance(result, WeightedRepObservation)
-    assert result.external_load_kg == 65.0
-    assert result.target_met is True
+    assert result.effective_load_kg == 60.0
+    assert result.target_met is None
+
+
+def test_calisthenics_weight_uses_the_already_total_persisted_load_once():
+    bodyweight_weighted = ExerciseMetadata(
+        catalogue_key="weighted-pull-up-v1",
+        logging_type=LoggingType.WEIGHT_REPS,
+        demand_coordinates=("vertical_pull",),
+        equipment=("bar",),
+        bodyweight_supported=True,
+    )
+
+    result = map_observation(
+        RawSetLog(
+            session_id=7,
+            set_id=17,
+            ended_at_ms=1000,
+            logging_type=LoggingType.WEIGHT_REPS,
+            reps=5,
+            weight_kg=85.0,
+            added_weight_kg=5.0,
+            bodyweight_kg=80.0,
+        ),
+        bodyweight_weighted,
+    )
+
+    assert isinstance(result, WeightedRepObservation)
+    assert result.effective_load_kg == 85.0
 
 
 def test_warmup_is_explicitly_excluded_from_capability_evidence():
