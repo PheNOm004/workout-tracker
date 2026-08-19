@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,12 +12,13 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,25 +52,23 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.domain.HoldSuggestion
-import com.lsing.timego.domain.HoldTimerPhase
 import com.lsing.timego.domain.MET_CARDIO
 import com.lsing.timego.domain.MET_WARMUP
 import com.lsing.timego.domain.averagePaceMinPerKm
+import com.lsing.timego.domain.diagramGroupsForRecommendationCrop
 import com.lsing.timego.domain.estimatedCalorieBurn
 import com.lsing.timego.domain.formatCalisthenicsWeight
-import com.lsing.timego.domain.tick
 import com.lsing.timego.ui.common.AnimatedExpand
 import com.lsing.timego.ui.common.CroppedMuscleDiagram
 import com.lsing.timego.ui.common.ExerciseSections
+import com.lsing.timego.ui.common.MuscleHeatLegend
 import com.lsing.timego.ui.common.SectionHeader
-import com.lsing.timego.ui.common.StatTile
+import com.lsing.timego.ui.common.TimerControls
 import com.lsing.timego.ui.common.TrainingPulse
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.categoryVisual
-import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.common.formatMuscleGroupList
 import com.lsing.timego.ui.theme.LedgerFigureValue
-import kotlinx.coroutines.delay
 import com.lsing.timego.ui.theme.Spacing
 
 @Composable
@@ -133,31 +132,61 @@ private fun LogLandingContent(
         )
     }
 
-    Column(modifier = Modifier.padding(Spacing.Large)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.Large),
+    ) {
         SectionHeader("Last session", topPadding = Spacing.ExtraSmall)
         if (summary.lastSession == null) {
             Text("No sessions logged yet.", style = MaterialTheme.typography.bodyMedium)
         } else {
-            Column(modifier = Modifier.fillMaxWidth().clickable { showLastSessionDetail = true }) {
-                Text(summary.lastSession.label, style = MaterialTheme.typography.titleMedium)
-                Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall)) {
-                    StatTile("Sets", "${summary.lastSession.sets}", modifier = Modifier.weight(1f))
-                    StatTile("Duration", "${summary.lastSession.durationMinutes} min", modifier = Modifier.weight(1f))
-                }
-                CroppedMuscleDiagram(
-                    muscleGroups = summary.lastSession.muscleGroups,
-                    accentColor = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.fillMaxWidth().height(80.dp).padding(top = Spacing.Small),
-                )
-                if (summary.lastSession.muscleGroups.isNotEmpty()) {
-                    FlowRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                        summary.lastSession.muscleGroups.sorted().forEach { group ->
-                            AssistChip(
-                                onClick = {},
-                                label = { Text(formatEnumLabel(group)) },
-                                modifier = Modifier.padding(end = 4.dp, bottom = 4.dp),
-                            )
-                        }
+            Surface(
+                modifier = Modifier.fillMaxWidth().clickable { showLastSessionDetail = true },
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+            ) {
+                Column(modifier = Modifier.padding(Spacing.Medium)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            summary.lastSession.label,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Icon(
+                            Icons.Filled.ChevronRight,
+                            contentDescription = "View last session details",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.Medium),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        LandingMetric("Sets", "${summary.lastSession.sets}", Modifier.weight(1f))
+                        androidx.compose.material3.VerticalDivider(
+                            modifier = Modifier.height(40.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
+                        LandingMetric(
+                            "Duration",
+                            "${summary.lastSession.durationMinutes} min",
+                            Modifier.weight(1f),
+                        )
+                    }
+                    CroppedMuscleDiagram(
+                        muscleGroups = summary.lastSession.muscleGroups,
+                        intensities = summary.lastSession.muscleIntensities,
+                        accentColor = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.fillMaxWidth().height(148.dp).padding(top = Spacing.Medium),
+                    )
+                    if (summary.lastSession.muscleGroups.isNotEmpty()) {
+                        MuscleHeatLegend(
+                            detailColor = MaterialTheme.colorScheme.surfaceVariant,
+                            periodLabel = "this session",
+                            modifier = Modifier.padding(top = Spacing.Small),
+                        )
                     }
                 }
             }
@@ -167,16 +196,36 @@ private fun LogLandingContent(
         if (summary.recommendedMuscleGroups.isEmpty()) {
             Text("Everything's been trained recently -- nice balance.", style = MaterialTheme.typography.bodyMedium)
         } else {
-            Text(
-                formatMuscleGroupList(summary.recommendedMuscleGroups),
-                style = LedgerFigureValue,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            CroppedMuscleDiagram(
-                muscleGroups = summary.recommendedMuscleGroups.toSet(),
-                accentColor = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.fillMaxWidth().height(80.dp).padding(top = Spacing.Small),
-            )
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+            ) {
+                Column(modifier = Modifier.padding(Spacing.Medium)) {
+                    Text(
+                        formatMuscleGroupList(summary.recommendedMuscleGroups),
+                        style = LedgerFigureValue,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        "A fresh focus based on what has gone longest without training.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.ExtraSmall),
+                    )
+                    CroppedMuscleDiagram(
+                        // Size the artwork from the relevant body region only; the recommendation
+                        // remains the only highlighted group set.
+                        muscleGroups = diagramGroupsForRecommendationCrop(
+                            summary.recommendedMuscleGroups.toSet(),
+                        ),
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        highlightGroups = summary.recommendedMuscleGroups.toSet(),
+                        neutralizeUnhighlighted = true,
+                        modifier = Modifier.fillMaxWidth().height(148.dp).padding(top = Spacing.Small),
+                    )
+                }
+            }
         }
 
         if (isSessionActive) {
@@ -197,6 +246,18 @@ private fun LogLandingContent(
                 }
             }
         }
+
+        // Leave enough scrollable room for the final landing card to clear the persistent bottom
+        // navigation bar when the user scrolls to the recommendation artwork.
+        Spacer(modifier = Modifier.height(Spacing.ExtraLarge + 64.dp))
+    }
+}
+
+@Composable
+private fun LandingMetric(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.padding(horizontal = Spacing.Small)) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = LedgerFigureValue, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -384,7 +445,7 @@ private fun StrengthLogRow(
     var repsText by remember(exerciseName) { mutableStateOf("") }
     var rpeText by remember(exerciseName) { mutableStateOf("") }
     var isWarmup by remember(exerciseName) { mutableStateOf(false) }
-    val visual = categoryVisual(ExerciseCategory.valueOf(category))
+    val visual = categoryVisual(category)
     val suggestionHint = suggestion?.let {
         if (isBodyweight) {
             val addedK = latestBodyWeightKg?.let { bw -> it.weightKg - bw } ?: it.weightKg
@@ -418,61 +479,66 @@ private fun StrengthLogRow(
                 Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
                 Text("Warmup set", style = MaterialTheme.typography.bodySmall)
             }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = weightText,
-                    onValueChange = { weightText = it },
-                    label = { Text(if (isBodyweight) "added kg" else "kg") },
-                    placeholder = if (isBodyweight) { { Text("0") } } else null,
-                    textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f).padding(end = Spacing.Small),
-                )
-                OutlinedTextField(
-                    value = repsText,
-                    onValueChange = { repsText = it },
-                    label = { Text("reps") },
-                    textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f).padding(end = Spacing.Small),
-                )
-                OutlinedTextField(
-                    value = rpeText,
-                    onValueChange = { rpeText = it },
-                    label = { Text("RPE") },
-                    placeholder = { Text("optional") },
-                    textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f).padding(end = Spacing.Small),
-                )
-                Button(onClick = {
-                    val reps = repsText.toIntOrNull()
-                    val rpe = rpeText.toIntOrNull()?.coerceIn(1, 10)
-                    if (isBodyweight) {
-                        val addedWeight = weightText.toDoubleOrNull() ?: 0.0
-                        if (reps != null) {
-                            val totalWeight = (latestBodyWeightKg ?: 0.0) + addedWeight
-                            onLog(totalWeight, reps, suggestion?.reps ?: reps, isWarmup, addedWeight, rpe)
-                            weightText = ""
-                            repsText = ""
-                            rpeText = ""
-                            isWarmup = false
+            Column(modifier = Modifier.fillMaxWidth().padding(Spacing.Medium)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = weightText,
+                        onValueChange = { weightText = it },
+                        label = { Text(if (isBodyweight) "added kg" else "kg") },
+                        placeholder = if (isBodyweight) { { Text("0") } } else null,
+                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                    )
+                    OutlinedTextField(
+                        value = repsText,
+                        onValueChange = { repsText = it },
+                        label = { Text("reps") },
+                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.Small),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OutlinedTextField(
+                        value = rpeText,
+                        onValueChange = { rpeText = it },
+                        label = { Text("RPE") },
+                        placeholder = { Text("1-10") },
+                        singleLine = true,
+                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                    )
+                    Button(onClick = {
+                        val reps = repsText.toIntOrNull()
+                        val rpe = rpeText.toIntOrNull()?.coerceIn(1, 10)
+                        if (isBodyweight) {
+                            val addedWeight = weightText.toDoubleOrNull() ?: 0.0
+                            if (reps != null) {
+                                val totalWeight = (latestBodyWeightKg ?: 0.0) + addedWeight
+                                onLog(totalWeight, reps, suggestion?.reps ?: reps, isWarmup, addedWeight, rpe)
+                                weightText = ""
+                                repsText = ""
+                                rpeText = ""
+                                isWarmup = false
+                            }
+                        } else {
+                            val weight = weightText.toDoubleOrNull()
+                            if (weight != null && reps != null) {
+                                onLog(weight, reps, suggestion?.reps ?: reps, isWarmup, null, rpe)
+                                weightText = ""
+                                repsText = ""
+                                rpeText = ""
+                                isWarmup = false
+                            }
                         }
-                    } else {
-                        val weight = weightText.toDoubleOrNull()
-                        if (weight != null && reps != null) {
-                            onLog(weight, reps, suggestion?.reps ?: reps, isWarmup, null, rpe)
-                            weightText = ""
-                            repsText = ""
-                            rpeText = ""
-                            isWarmup = false
-                        }
+                    }) {
+                        Text("Log set")
                     }
-                }) {
-                    Text("Log set")
                 }
             }
         }
@@ -492,16 +558,9 @@ private fun CardioLogRow(
     var useTimer by remember(exerciseName) { mutableStateOf(false) }
     var durationText by remember(exerciseName) { mutableStateOf("") }
     var distanceText by remember(exerciseName) { mutableStateOf("") }
-    var phase by remember(exerciseName) { mutableStateOf<HoldTimerPhase?>(null) }
     val duration = durationText.toDoubleOrNull()
     val distance = distanceText.toDoubleOrNull()
-    val visual = categoryVisual(ExerciseCategory.valueOf(category))
-
-    LaunchedEffect(phase) {
-        val current = phase ?: return@LaunchedEffect
-        delay(1000)
-        phase = current.tick()
-    }
+    val visual = categoryVisual(category)
 
     ExerciseCard(expanded) {
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded) { expanded = !expanded }
@@ -558,36 +617,16 @@ private fun CardioLogRow(
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
                 ) { Text("Use timer") }
             } else {
-                when (val currentPhase = phase) {
-                    null -> Row(
-                        modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Button(onClick = {
-                            phase = if (delaySeconds <= 0) HoldTimerPhase.Running(0) else HoldTimerPhase.CountingDown(delaySeconds)
-                        }) { Text("Start timer") }
-                        TextButton(onClick = { useTimer = false }) { Text("Enter manually") }
-                    }
-                    is HoldTimerPhase.CountingDown -> Row(
-                        modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("Starting in ${currentPhase.secondsRemaining}s...", style = LedgerFigureValue, modifier = Modifier.weight(1f))
-                        Button(onClick = { phase = null }) { Text("Cancel") }
-                    }
-                    is HoldTimerPhase.Running -> Row(
-                        modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(formatElapsedSeconds(currentPhase.elapsedSeconds), style = LedgerFigureValue, modifier = Modifier.weight(1f))
-                        Button(onClick = {
-                            onLog(currentPhase.elapsedSeconds / 60.0, distance)
-                            phase = null
-                            useTimer = false
-                            distanceText = ""
-                        }) { Text("Stop & Log") }
-                    }
-                }
+                TimerControls(
+                    delaySeconds = delaySeconds,
+                    formatElapsed = ::formatElapsedSeconds,
+                    onEnterManually = { useTimer = false },
+                    onStop = { elapsedSeconds ->
+                        onLog(elapsedSeconds / 60.0, distance)
+                        useTimer = false
+                        distanceText = ""
+                    },
+                )
             }
         }
     }
@@ -611,14 +650,7 @@ private fun HoldLogRow(
     var isWarmup by remember(exerciseName) { mutableStateOf(false) }
     var useTimer by remember(exerciseName) { mutableStateOf(true) }
     var manualDurationText by remember(exerciseName) { mutableStateOf("") }
-    var phase by remember(exerciseName) { mutableStateOf<HoldTimerPhase?>(null) }
-    val visual = categoryVisual(ExerciseCategory.valueOf(category))
-
-    LaunchedEffect(phase) {
-        val current = phase ?: return@LaunchedEffect
-        delay(1000)
-        phase = current.tick()
-    }
+    val visual = categoryVisual(category)
 
     ExerciseCard(expanded) {
         ExerciseRowHeader(
@@ -671,50 +703,15 @@ private fun HoldLogRow(
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
                 ) { Text("Use timer instead") }
             } else {
-                when (val currentPhase = phase) {
-                null -> Row(
-                    modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Button(onClick = {
-                        phase = if (delaySeconds <= 0) HoldTimerPhase.Running(0) else HoldTimerPhase.CountingDown(delaySeconds)
-                    }) {
-                        Text("Start timer")
-                    }
-                    TextButton(onClick = { useTimer = false }) { Text("Enter manually") }
-                }
-                is HoldTimerPhase.CountingDown -> Row(
-                    modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "Starting in ${currentPhase.secondsRemaining}s...",
-                        style = LedgerFigureValue,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Button(onClick = { phase = null }) {
-                        Text("Cancel")
-                    }
-                }
-                is HoldTimerPhase.Running -> Row(
-                    modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "${currentPhase.elapsedSeconds}s",
-                        style = LedgerFigureValue,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Button(onClick = {
-                        val seconds = currentPhase.elapsedSeconds
+                TimerControls(
+                    delaySeconds = delaySeconds,
+                    formatElapsed = { "${it}s" },
+                    onEnterManually = { useTimer = false },
+                    onStop = { seconds ->
                         onLog(seconds, suggestion?.targetDurationSeconds ?: seconds, isWarmup)
-                        phase = null
                         isWarmup = false
-                    }) {
-                        Text("Stop & Log")
-                    }
-                }
-                }
+                    },
+                )
             }
         }
     }
