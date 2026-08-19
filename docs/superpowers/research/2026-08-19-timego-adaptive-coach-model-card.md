@@ -18,7 +18,7 @@ The released app is self-contained on the phone: no account, cloud, telemetry, r
 | Hold | Non-warm-up with positive duration. A summary retains the longest demonstrated hold and the freshness of the latest evidence. | An E1RM-equivalent score or an assumed all-out effort. |
 | Cardio | Positive duration plus distance produces pace. | Stamina capability from duration-only volume. |
 | RPE/body metrics | They are present at the relevant observation. | A default effort value or exact same-day order. |
-| Exercise metadata | A versioned immutable catalogue key and reviewed attributes exist. | A key derived from Room IDs, display names, ranks, or prerequisite paths. |
+| Exercise metadata | A versioned immutable catalogue key, category, declared muscle contribution weights, and reviewed candidate attributes exist. | A key derived from Room IDs, display names, ranks, or prerequisite paths. |
 
 The contract records explicit exclusions for warm-ups, missing/invalid measurements, modality mismatches, unknown target outcomes, unknown metadata, and duration-only cardio.
 
@@ -28,7 +28,7 @@ The prototype has two evidence layers. A conservative performance envelope learn
 
 The model output is restricted to local state, confidence interval, factual evidence, or an abstention/exclusion reason. It has no `nextExercise`, rank, prerequisite, or progression field.
 
-The review-only v1 draft is [`metadata/adaptive-coach-catalogue.2026-08-19.v1.json`](../../ml-prototype/metadata/adaptive-coach-catalogue.2026-08-19.v1.json). It contains immutable keys, modality, fixed demand coordinates, equipment, bodyweight form, and static exclusions. Loader tests reject progression-shaped fields and require repeated measurement coverage. Schema 13 now persists a `timego.seed.v1.*` key for every built-in seed row, and the offline adapter uses that key—not a mutable display name or Room ID—to recognise current history. This establishes direct historical identity coverage; it does not make an incomplete candidate catalogue safe to recommend from.
+The review-only v1 draft is [`metadata/adaptive-coach-catalogue.2026-08-19.v1.json`](../../ml-prototype/metadata/adaptive-coach-catalogue.2026-08-19.v1.json). It contains immutable keys, modality, fixed demand coordinates, equipment, bodyweight form, and static exclusions. Loader tests reject progression-shaped fields and require repeated measurement coverage. Schema 13 now persists a `timego.seed.v1.*` key for every built-in seed row, and the offline adapter uses that key—not a mutable display name or Room ID—to recognise current history. It also converts Room's stored per-muscle percentages into normalised demand weights, defaulting an undeclared primary muscle to 1.0. This establishes direct historical identity and demand coverage; it does not make an incomplete candidate catalogue safe to recommend from.
 
 ## Evaluation, privacy, and versioning
 

@@ -26,6 +26,28 @@ def _logging_type(value: Any) -> LoggingType | None:
         return None
 
 
+def _muscle_weights(value: Any) -> dict[str, float]:
+    if isinstance(value, Mapping):
+        entries = value.items()
+    elif isinstance(value, str):
+        entries = (
+            tuple(item.split("\x1f", 1))
+            for item in value.split("\x1e")
+            if "\x1f" in item
+        )
+    else:
+        return {}
+    parsed: dict[str, float] = {}
+    for group, raw_weight in entries:
+        try:
+            weight = float(raw_weight)
+        except (TypeError, ValueError):
+            continue
+        if isinstance(group, str) and group and 0.0 < weight <= 100.0:
+            parsed[group] = weight / 100.0
+    return parsed
+
+
 def exercise_metadata_from_room_row(row: Mapping[str, Any]) -> ExerciseMetadata | None:
     """Return only declared seed metadata; neither the display name nor Room ID is identity."""
 
@@ -37,11 +59,14 @@ def exercise_metadata_from_room_row(row: Mapping[str, Any]) -> ExerciseMetadata 
     if logging_type is None or not demands:
         return None
     category = row.get("category")
+    weights = _muscle_weights(row.get("muscleWeights"))
     return ExerciseMetadata(
         catalogue_key=key,
         logging_type=logging_type,
         demand_coordinates=tuple(sorted(demands)),
         equipment=(),
+        demand_weights=tuple(sorted((demand, weights.get(demand, 1.0)) for demand in demands)),
+        category=category if isinstance(category, str) else None,
         bodyweight_supported=category == "CALISTHENICS",
     )
 

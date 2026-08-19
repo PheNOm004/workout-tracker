@@ -176,6 +176,25 @@ def test_catalogue_fingerprint_is_stable_and_does_not_depend_on_display_name_or_
     assert catalogue_fingerprint([WEIGHTED]) == catalogue_fingerprint([reordered])
 
 
+def test_catalogue_fingerprint_changes_when_declared_demand_weight_changes():
+    lighter_triceps = ExerciseMetadata(
+        catalogue_key=WEIGHTED.catalogue_key,
+        logging_type=WEIGHTED.logging_type,
+        demand_coordinates=WEIGHTED.demand_coordinates,
+        equipment=WEIGHTED.equipment,
+        demand_weights=(("horizontal_push", 0.9),),
+    )
+    heavier_triceps = ExerciseMetadata(
+        catalogue_key=WEIGHTED.catalogue_key,
+        logging_type=WEIGHTED.logging_type,
+        demand_coordinates=WEIGHTED.demand_coordinates,
+        equipment=WEIGHTED.equipment,
+        demand_weights=(("horizontal_push", 1.0),),
+    )
+
+    assert catalogue_fingerprint([lighter_triceps]) != catalogue_fingerprint([heavier_triceps])
+
+
 def test_anchor_check_requires_repeated_measurement_for_each_demand_vector():
     lone_anchor = ExerciseMetadata(
         catalogue_key="incline-press-v1",

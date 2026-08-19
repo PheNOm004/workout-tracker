@@ -35,6 +35,9 @@ class ExerciseMetadata:
     logging_type: LoggingType
     demand_coordinates: tuple[str, ...]
     equipment: tuple[str, ...]
+    demand_weights: tuple[tuple[str, float], ...] = ()
+    category: str | None = None
+    static_exclusions: tuple[str, ...] = ()
     bodyweight_supported: bool = False
 
 
@@ -200,7 +203,10 @@ def catalogue_fingerprint(metadata: list[ExerciseMetadata]) -> str:
             "catalogue_key": item.catalogue_key,
             "logging_type": item.logging_type.value,
             "demand_coordinates": sorted(item.demand_coordinates),
+            "demand_weights": sorted(item.demand_weights),
             "equipment": sorted(item.equipment),
+            "category": item.category,
+            "static_exclusions": sorted(item.static_exclusions),
             "bodyweight_supported": item.bodyweight_supported,
         }
         for item in metadata
