@@ -35,12 +35,20 @@ Build a fully offline, phone-only adaptive coach in gated vertical slices. Start
 - [ ] Stamina is excluded unless its separate evidence gate passes.
 - [ ] User reviews real-history explanations before Kotlin work begins.
 
+### Phase 1.5: Provisional hidden shadow foundation (user-authorised 2026-08-20)
+
+The user authorised Tasks 4–7 to proceed before a real-history promotion verdict, solely as a
+fully hidden, local engineering foundation. See
+`docs/superpowers/plans/2026-08-20-timego-provisional-shadow-foundation.md`. This changes neither
+the existing UI nor the research gate: the port remains provisional and cannot create candidates,
+recommendations, policy outcomes, or a card. Tasks 8–10 remain blocked on later evidence.
+
 ### Phase 2: Phone-side model and shadow mode
 
-- [ ] Task 4: Freeze language-independent synthetic parity vectors and a versioned model contract.
-- [ ] Task 5: Implement the pure Kotlin domain model with rebuild-equals-incremental tests.
-- [ ] Task 6: Integrate read-only analysis from Room into `LogViewModel` off the UI thread, with no visible behaviour change.
-- [ ] Task 7: Add additive local cache/audit persistence and validate invalidation, stale-write rejection, and rebuild against a full rebuild.
+- [ ] Task 4: Freeze a **provisional** language-independent synthetic parity contract and vectors. It remains hidden pending validation.
+- [ ] Task 5: Implement the provisional pure Kotlin domain model with rebuild-equals-incremental tests.
+- [ ] Task 6: Integrate hidden read-only analysis from atomic Room snapshots off the UI thread, with no visible behaviour change.
+- [ ] Task 7: Add additive local shadow cache/audit persistence and validate invalidation, stale-write rejection, and rebuild against a full rebuild.
 
 ### Checkpoint: Shadow verdict
 
