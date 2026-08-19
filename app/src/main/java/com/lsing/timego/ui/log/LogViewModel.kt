@@ -23,6 +23,8 @@ import com.lsing.timego.domain.SessionAutoCloseDecision
 import com.lsing.timego.domain.SetPerformance
 import com.lsing.timego.domain.checkSessionAutoClose
 import com.lsing.timego.domain.expandMuscleGroupRegions
+import com.lsing.timego.domain.exerciseUsageFrequency
+import com.lsing.timego.domain.exercisesRankedByFrequency
 import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
 import com.lsing.timego.domain.latestWeightKg
@@ -39,6 +41,7 @@ import com.lsing.timego.ui.common.sessionDayLabel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -77,6 +80,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val holdSuggester = RuleBasedHoldSuggester()
 
     private var allExercises: List<Exercise> = emptyList()
+    private var exerciseUsageCounts: Map<Long, Int> = emptyMap()
     private var hasAutoSelectedTodaysRoutine = false
 
     private val _displayedExercises = MutableStateFlow<List<Exercise>>(emptyList())
@@ -112,8 +116,11 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
-            repository.exercises.collect { list ->
+            combine(repository.exercises, repository.setLogs) { exercises, setLogs ->
+                exercises to setLogs
+            }.collect { (list, setLogs) ->
                 allExercises = list
+                exerciseUsageCounts = exerciseUsageFrequency(setLogs, list.associateBy { it.id })
                 // Session state first: refreshSuggestions reads the active session id to decide
                 // whether an exercise's suggestion should lock to this session's first working
                 // set. Computing it while _sessionState is still Loading made every suggestion
@@ -152,12 +159,13 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun refreshDisplayedExercises() {
         val routineId = _selectedRoutineId.value
-        _displayedExercises.value = if (routineId == null) {
+        val filteredExercises = if (routineId == null) {
             allExercises
         } else {
             val exerciseIds = repository.exercisesForRoutine(routineId).map { it.exerciseId }.toSet()
             allExercises.filter { it.id in exerciseIds }
         }
+        _displayedExercises.value = exercisesRankedByFrequency(filteredExercises, exerciseUsageCounts)
     }
 
     /** Splits suggestion computation by loggingType: WEIGHT_REPS exercises get a weight/reps
