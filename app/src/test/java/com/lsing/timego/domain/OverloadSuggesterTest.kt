@@ -37,7 +37,8 @@ class OverloadSuggesterTest {
             SetPerformance(weightKg = 60.0, reps = 6, targetReps = 8),
         )
         val result = suggester.suggestNext(history, emptyList())
-        assertEquals(54.0, result!!.weightKg, 0.001)
+        // 60 * 0.9 = 54.0, which no plate set can make -- rounded down to the nearest loadable 2.5.
+        assertEquals(52.5, result!!.weightKg, 0.001)
         assertEquals("Deload: missed target reps twice in a row", result.note)
         assertEquals(PlateauStatus.REGRESSING, result.plateauStatus)
     }
@@ -85,5 +86,65 @@ class OverloadSuggesterTest {
     @Test
     fun `both histories empty returns null`() {
         assertNull(suggester.suggestNext(emptyList(), emptyList()))
+    }
+
+    @Test
+    fun `repRange present but reps below ceiling adds a rep, ignoring old targetReps comparison`() {
+        // last.reps (8) >= last.targetReps (8) would have escalated under the old rule -- proves
+        // the ceiling comparison now takes priority once a repRange exists.
+        val history = listOf(SetPerformance(weightKg = 60.0, reps = 8, targetReps = 8))
+        val result = suggester.suggestNext(history, emptyList(), repRange = RepRange(floor = 6, ceiling = 10))
+        assertEquals(60.0, result!!.weightKg, 0.001)
+        assertEquals(9, result.reps)
+    }
+
+    @Test
+    fun `ceiling hit at rpe 6 escalates the full increment`() {
+        val history = listOf(SetPerformance(weightKg = 60.0, reps = 10, targetReps = 8, rpe = 6))
+        val result = suggester.suggestNext(history, emptyList(), repRange = RepRange(floor = 6, ceiling = 10))
+        assertEquals(62.5, result!!.weightKg, 0.001)
+        assertEquals(10, result.reps)
+        assertEquals("Ceiling hit with reps in reserve -- increasing weight.", result.note)
+    }
+
+    @Test
+    fun `ceiling hit at rpe 8 with default increment collapses PARTIAL to HOLD`() {
+        // Half of the smallest loadable barbell step (2.5kg) isn't itself loadable, so PARTIAL
+        // degenerates to holding weight -- documented, not a bug.
+        val history = listOf(SetPerformance(weightKg = 60.0, reps = 10, targetReps = 8, rpe = 8))
+        val result = suggester.suggestNext(history, emptyList(), repRange = RepRange(floor = 6, ceiling = 10))
+        assertEquals(60.0, result!!.weightKg, 0.001)
+        assertEquals("Ceiling hit at max effort -- hold before adding load.", result.note)
+    }
+
+    @Test
+    fun `ceiling hit at rpe 8 with a larger increment produces a genuine partial step`() {
+        val history = listOf(SetPerformance(weightKg = 60.0, reps = 10, targetReps = 8, rpe = 8))
+        val result = suggester.suggestNext(history, emptyList(), weightIncrementKg = 10.0, repRange = RepRange(floor = 6, ceiling = 10))
+        assertEquals(65.0, result!!.weightKg, 0.001)
+        assertEquals("Ceiling hit but close to your limit -- small increase.", result.note)
+    }
+
+    @Test
+    fun `ceiling hit at rpe 9 holds weight`() {
+        val history = listOf(SetPerformance(weightKg = 60.0, reps = 10, targetReps = 8, rpe = 9))
+        val result = suggester.suggestNext(history, emptyList(), repRange = RepRange(floor = 6, ceiling = 10))
+        assertEquals(60.0, result!!.weightKg, 0.001)
+        assertEquals(10, result.reps)
+        assertEquals("Ceiling hit at max effort -- hold before adding load.", result.note)
+    }
+
+    @Test
+    fun `ceiling hit with no rpe logged escalates the full increment, same as rpe 6`() {
+        val history = listOf(SetPerformance(weightKg = 60.0, reps = 10, targetReps = 8, rpe = null))
+        val result = suggester.suggestNext(history, emptyList(), repRange = RepRange(floor = 6, ceiling = 10))
+        assertEquals(62.5, result!!.weightKg, 0.001)
+    }
+
+    @Test
+    fun `calisthenics ceiling hit at rpe 8 gets an unrounded half-increment, not a plate-rounded one`() {
+        val history = listOf(SetPerformance(weightKg = 15.0, reps = 10, targetReps = 8, rpe = 8))
+        val result = suggester.suggestNext(history, emptyList(), weightIncrementKg = null, repRange = RepRange(floor = 6, ceiling = 10))
+        assertEquals(16.25, result!!.weightKg, 0.001)
     }
 }
