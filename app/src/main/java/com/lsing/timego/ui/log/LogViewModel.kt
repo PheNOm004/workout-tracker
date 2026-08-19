@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lsing.timego.data.Exercise
+import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.Routine
@@ -11,18 +12,24 @@ import com.lsing.timego.data.SEED_EXERCISES
 import com.lsing.timego.data.SettingsRepository
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
+import com.lsing.timego.domain.DEFAULT_WEIGHT_INCREMENT_KG
 import com.lsing.timego.domain.HoldPerformance
 import com.lsing.timego.domain.HoldSuggestion
 import com.lsing.timego.domain.OverloadSuggestion
+import com.lsing.timego.domain.RepRange
 import com.lsing.timego.domain.RuleBasedHoldSuggester
 import com.lsing.timego.domain.RuleBasedOverloadSuggester
 import com.lsing.timego.domain.SessionAutoCloseDecision
 import com.lsing.timego.domain.SetPerformance
 import com.lsing.timego.domain.checkSessionAutoClose
+import com.lsing.timego.domain.expandMuscleGroupRegions
 import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
-import com.lsing.timego.domain.muscleGroupsWorkedInSession
+import com.lsing.timego.domain.latestWeightKg
+import com.lsing.timego.domain.muscleGroupsAffectedInSession
+import com.lsing.timego.domain.muscleGroupIntensityForSession
 import com.lsing.timego.domain.rankUntrainedMuscleGroups
+import com.lsing.timego.domain.repRangeAtWeight
 import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.sessionWorkingSetHistory
 import com.lsing.timego.ui.common.DayHistoryEntry
@@ -43,6 +50,7 @@ sealed interface SessionUiState {
 data class LastSessionSummary(
     val sets: Int,
     val muscleGroups: Set<String>,
+    val muscleIntensities: Map<String, Float>,
     val label: String,
     val durationMinutes: Long,
     val detail: List<DayHistoryEntry>,
@@ -105,9 +113,13 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             repository.seedMissingExercises(SEED_EXERCISES)
             repository.exercises.collect { list ->
                 allExercises = list
+                // Session state first: refreshSuggestions reads the active session id to decide
+                // whether an exercise's suggestion should lock to this session's first working
+                // set. Computing it while _sessionState is still Loading made every suggestion
+                // fall back to the between-session decision table on a cold start mid-session.
+                refreshSessionState()
                 refreshSuggestions(list)
                 refreshDisplayedExercises()
-                refreshSessionState()
             }
         }
         viewModelScope.launch {
@@ -121,8 +133,14 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+        // Collected, not read once: calisthenics sets compute their stored weightKg as
+        // bodyweight + added k at log time, so a bodyweight logged on the Progress tab has to
+        // reach this screen without a process restart -- otherwise the set is persisted against
+        // a stale (or absent) bodyweight and every 1RM/PR derived from it is wrong.
         viewModelScope.launch {
-            _latestBodyWeightKg.value = repository.latestBodyWeightKg()
+            repository.bodyMetrics.collect { metrics ->
+                _latestBodyWeightKg.value = latestWeightKg(metrics)
+            }
         }
     }
 
@@ -169,9 +187,10 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 val currentPerf = currentSessionWorkingSets.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
                 holdSuggester.suggestNext(historyPerf, currentPerf, exercise.name)?.let { holdMap[exercise.id] = it }
             } else {
-                val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
-                val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
-                suggester.suggestNext(historyPerf, currentPerf)?.let { map[exercise.id] = it }
+                val repRange = repRangeFor(exerciseSets, sessionHistory)
+                val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
+                val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
+                suggester.suggestNext(historyPerf, currentPerf, weightIncrementFor(exercise), repRange)?.let { map[exercise.id] = it }
             }
         }
         _suggestions.value = map
@@ -210,11 +229,13 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         val summary = lastSession?.let { session ->
             val sets = repository.setLogsForSession(session.id)
             val exercisesById = allExercises.associateBy { it.id }
-            val muscleGroups = muscleGroupsWorkedInSession(session.id, sets, allExercises)
+            val muscleGroups = muscleGroupsAffectedInSession(session.id, sets, allExercises)
+            val muscleIntensities = muscleGroupIntensityForSession(session.id, sets, exercisesById)
             val detail = buildDayHistoryEntries(sets, exercisesById)
             LastSessionSummary(
                 sets = sets.size,
                 muscleGroups = muscleGroups,
+                muscleIntensities = muscleIntensities,
                 label = sessionDayLabel(muscleGroups, isCardioOnlySession(sets, exercisesById)),
                 durationMinutes = (session.endEpochMillis ?: session.startEpochMillis).minus(session.startEpochMillis) / 60_000,
                 detail = detail,
@@ -225,8 +246,9 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         val sessionDateById = repository.allSessions().associate { it.id to it.date }
         val exercisesById = allExercises.associateBy { it.id }
         val lastTrained = lastTrainedDatesByMuscleGroup(allSets, exercisesById, sessionDateById)
-        val allGroups = MuscleGroup.entries.map { it.name }
-        val recommended = rankUntrainedMuscleGroups(allGroups, lastTrained, LocalDate.now()).take(2)
+        val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
+        val recommendedSeeds = rankUntrainedMuscleGroups(allGroups, lastTrained, LocalDate.now()).take(2)
+        val recommended = expandMuscleGroupRegions(recommendedSeeds).toList()
 
         _landingSummary.value = LandingSummary(lastSession = summary, recommendedMuscleGroups = recommended)
     }
@@ -249,10 +271,10 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun logSet(exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean = false, addedWeightKg: Double? = null) {
+    fun logSet(exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean = false, addedWeightKg: Double? = null, rpe: Int? = null) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
         viewModelScope.launch {
-            repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg)
+            repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe)
             refreshSuggestionForExercise(exerciseId)
         }
     }
@@ -277,7 +299,9 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
      *  from the 2026-08-10 logging-field-accuracy session). */
     private suspend fun refreshSuggestionForExercise(exerciseId: Long) {
         val exercise = allExercises.firstOrNull { it.id == exerciseId } ?: return
-        val (sessionHistory, currentSessionWorkingSets) = buildSuggestionInputs(exerciseId)
+        val inputs = buildSuggestionInputs(exerciseId)
+        val sessionHistory = inputs.sessionHistory
+        val currentSessionWorkingSets = inputs.currentSessionWorkingSets
         if (exercise.loggingType == LoggingType.HOLD.name) {
             val historyPerf = sessionHistory.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
             val currentPerf = currentSessionWorkingSets.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
@@ -288,9 +312,10 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 _holdSuggestions.value - exerciseId
             }
         } else {
-            val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
-            val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps) }
-            val suggestion = suggester.suggestNext(historyPerf, currentPerf)
+            val repRange = repRangeFor(inputs.allWorkingSets, sessionHistory)
+            val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
+            val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
+            val suggestion = suggester.suggestNext(historyPerf, currentPerf, weightIncrementFor(exercise), repRange)
             _suggestions.value = if (suggestion != null) {
                 _suggestions.value + (exerciseId to suggestion)
             } else {
@@ -299,10 +324,17 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private data class SuggestionInputs(
+        val sessionHistory: List<com.lsing.timego.data.SetLog>,
+        val currentSessionWorkingSets: List<com.lsing.timego.data.SetLog>,
+        val allWorkingSets: List<com.lsing.timego.data.SetLog>,
+    )
+
     /** Shared by [refreshSuggestionForExercise] -- fetches this exercise's full history once,
-     *  splits it into past-session representative performances and the active session's own
-     *  working sets so far (empty if no session is active, per [SessionUiState]). */
-    private suspend fun buildSuggestionInputs(exerciseId: Long): Pair<List<com.lsing.timego.data.SetLog>, List<com.lsing.timego.data.SetLog>> {
+     *  splits it into past-session representative performances, the active session's own working
+     *  sets so far (empty if no session is active, per [SessionUiState]), and the raw non-warmup
+     *  set list (for [repRangeFor], which needs every set at a weight, not one per session). */
+    private suspend fun buildSuggestionInputs(exerciseId: Long): SuggestionInputs {
         val allSets = repository.historyForExercise(exerciseId)
         val sessionStartById = repository.allSessions().associate { it.id to it.startEpochMillis }
         val sessionHistory = sessionWorkingSetHistory(allSets, sessionStartById)
@@ -312,8 +344,21 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             emptyList()
         }
-        return sessionHistory to currentSessionWorkingSets
+        return SuggestionInputs(sessionHistory, currentSessionWorkingSets, allSets.filterNot { it.isWarmup })
     }
+
+    /** [exerciseSets] must be the raw (unreduced) set list for this exercise -- repRangeAtWeight
+     *  needs every set at a given weight, not sessionHistory's one-representative-set-per-session
+     *  reduction. Null when there's no working weight yet (sessionHistory empty) or not enough
+     *  history at that weight -- both cases correctly fall back to today's behavior in the
+     *  suggester. */
+    private fun repRangeFor(exerciseSets: List<com.lsing.timego.data.SetLog>, sessionHistory: List<com.lsing.timego.data.SetLog>): RepRange? =
+        sessionHistory.lastOrNull()?.let { repRangeAtWeight(exerciseSets, it.weightKg) }
+
+    /** Null for calisthenics: their stored weight is bodyweight + added k, which has no plate
+     *  granularity to round to. Everything else steps in [DEFAULT_WEIGHT_INCREMENT_KG]. */
+    private fun weightIncrementFor(exercise: Exercise): Double? =
+        if (exercise.category == ExerciseCategory.CALISTHENICS.name) null else DEFAULT_WEIGHT_INCREMENT_KG
 
     fun addCustomExercise(name: String, muscleGroups: List<String>, category: String) {
         viewModelScope.launch {
