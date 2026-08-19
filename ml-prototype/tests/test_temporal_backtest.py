@@ -54,6 +54,8 @@ def test_backtest_predicts_a_closed_session_from_earlier_sessions_only():
     assert result.predictions[0].test_session_id == 2
     assert result.predictions[1].training_session_ids == (1, 2)
     assert result.evaluable_predictions == 2
+    assert result.last_observation_brier is not None
+    assert result.ewma_brier is not None
 
 
 def test_later_sessions_do_not_change_an_earlier_prediction():

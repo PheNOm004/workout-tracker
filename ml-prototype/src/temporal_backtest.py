@@ -44,6 +44,8 @@ class BacktestResult:
     evaluable_predictions: int
     abstentions: int
     brier_score: float | None
+    last_observation_brier: float | None
+    ewma_brier: float | None
 
 
 def _ordered_sessions(sessions: list[SessionEvidence]) -> list[SessionEvidence]:
@@ -128,11 +130,14 @@ def run_capability_backtest(
 
     ordered = _ordered_sessions(sessions)
     predictions: list[BacktestPrediction] = []
+    last_observation_errors: list[float] = []
+    ewma_errors: list[float] = []
     for index in range(1, len(ordered)):
         training = ordered[:index]
         test = ordered[index]
         training_ids = tuple(session.session_id for session in training)
         posterior = _fit_prior_sessions(training, config)
+        history = [outcome for session in training for outcome in _ordered_outcomes(session)]
         for outcome in _ordered_outcomes(test):
             prediction_state = advance_posterior_to(posterior, outcome.ended_at_ms, config)
             assessment = assess_candidate(
@@ -153,6 +158,14 @@ def run_capability_backtest(
                     abstention_reason=assessment.reason,
                 )
             )
+            if outcome.met_target is not None:
+                observed = 1.0 if outcome.met_target else 0.0
+                last = last_observation_probability(history, outcome)
+                ewma = ewma_probability(history, outcome)
+                if last is not None:
+                    last_observation_errors.append((last - observed) ** 2)
+                if ewma is not None:
+                    ewma_errors.append((ewma - observed) ** 2)
 
     evaluable = [
         prediction
@@ -170,4 +183,8 @@ def run_capability_backtest(
         evaluable_predictions=len(evaluable),
         abstentions=sum(prediction.abstained for prediction in predictions),
         brier_score=brier,
+        last_observation_brier=(sum(last_observation_errors) / len(last_observation_errors))
+        if last_observation_errors
+        else None,
+        ewma_brier=(sum(ewma_errors) / len(ewma_errors)) if ewma_errors else None,
     )
