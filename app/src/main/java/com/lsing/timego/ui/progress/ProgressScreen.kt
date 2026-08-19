@@ -40,6 +40,7 @@ import com.lsing.timego.domain.PrType
 import com.lsing.timego.domain.BmiCategory
 import com.lsing.timego.domain.bmiCategory
 import com.lsing.timego.domain.formatCalisthenicsWeight
+import com.lsing.timego.domain.orderedMuscleDistributionForChart
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.HeatmapGrid
 import com.lsing.timego.ui.common.HorizontalWheelPicker
@@ -81,7 +82,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
 
     val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsState()
     val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsState()
-    val historyMuscleGroups by viewModel.historyMuscleGroups.collectAsState()
     val historyLabel by viewModel.historyLabel.collectAsState()
 
     if (selectedHistoryDate != null) {
@@ -89,7 +89,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             title = "Workout on ${selectedHistoryDate!!}",
             entries = historyForSelectedDate,
             onDismiss = { viewModel.selectHistoryDate(null) },
-            muscleGroups = historyMuscleGroups,
             label = historyLabel,
         )
     }
@@ -144,7 +143,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 )
             } else {
                 RadarChart(
-                    values = muscleDistribution.mapKeys { (group, _) -> formatEnumLabel(group) },
+                    values = orderedMuscleDistributionForChart(muscleDistribution)
+                        .mapKeys { (group, _) -> formatEnumLabel(group) },
                     modifier = Modifier.fillMaxWidth().height(220.dp).padding(vertical = 8.dp),
                 )
                 MuscleBodyDiagram(

@@ -15,7 +15,6 @@ import com.lsing.timego.domain.latestHeightCm
 import com.lsing.timego.domain.latestWeightKg
 import com.lsing.timego.domain.muscleGroupStrengthCurve
 import com.lsing.timego.domain.muscleDistributionForTimeframe
-import com.lsing.timego.domain.muscleGroupsAffectedInSession
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.personalRecords
 import com.lsing.timego.domain.strengthCurve
@@ -76,9 +75,6 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
 
     private val _historyForSelectedDate = MutableStateFlow<List<DayHistoryEntry>>(emptyList())
     val historyForSelectedDate: StateFlow<List<DayHistoryEntry>> = _historyForSelectedDate.asStateFlow()
-
-    private val _historyMuscleGroups = MutableStateFlow<Set<String>>(emptySet())
-    val historyMuscleGroups: StateFlow<Set<String>> = _historyMuscleGroups.asStateFlow()
 
     private val _historyLabel = MutableStateFlow<String?>(null)
     val historyLabel: StateFlow<String?> = _historyLabel.asStateFlow()
@@ -204,7 +200,6 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
         _selectedHistoryDate.value = date
         if (date == null) {
             _historyForSelectedDate.value = emptyList()
-            _historyMuscleGroups.value = emptySet()
             _historyLabel.value = null
             return
         }
@@ -214,10 +209,6 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
             val exercisesById = _exercises.value.associateBy { it.id }
             val sets = repository.allSetLogs().filter { it.sessionId in sessionIds }.sortedBy { it.loggedAtEpochMillis }
             _historyForSelectedDate.value = buildDayHistoryEntries(sets, exercisesById)
-            val muscleGroups = sessionIds.flatMap { sessionId ->
-                muscleGroupsAffectedInSession(sessionId, sets, _exercises.value)
-            }.toSet()
-            _historyMuscleGroups.value = muscleGroups
             val primaryMuscleGroups = sessionIds.flatMap { sessionId ->
                 muscleGroupsWorkedInSession(sessionId, sets, _exercises.value)
             }.toSet()

@@ -1,14 +1,12 @@
 package com.lsing.timego.ui.common
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -66,7 +64,6 @@ fun WorkoutHistoryDialog(
     title: String,
     entries: List<DayHistoryEntry>,
     onDismiss: () -> Unit,
-    muscleGroups: Set<String> = emptySet(),
     label: String? = null,
 ) {
     AlertDialog(
@@ -81,17 +78,6 @@ fun WorkoutHistoryDialog(
         },
         text = {
             Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                if (muscleGroups.isNotEmpty()) {
-                    FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-                        muscleGroups.sorted().forEach { group ->
-                            AssistChip(
-                                onClick = {},
-                                label = { Text(formatEnumLabel(group)) },
-                                modifier = Modifier.padding(end = 4.dp),
-                            )
-                        }
-                    }
-                }
                 if (entries.isEmpty()) {
                     Text("No sets logged.")
                 } else {

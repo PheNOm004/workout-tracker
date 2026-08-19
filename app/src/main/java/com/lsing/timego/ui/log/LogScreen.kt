@@ -127,7 +127,6 @@ private fun LogLandingContent(
             title = "Last session",
             entries = summary.lastSession.detail,
             onDismiss = { showLastSessionDetail = false },
-            muscleGroups = summary.lastSession.muscleGroups,
             label = summary.lastSession.label,
         )
     }
