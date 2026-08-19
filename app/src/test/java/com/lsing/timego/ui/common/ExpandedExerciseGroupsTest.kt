@@ -12,32 +12,32 @@ class ExpandedExerciseGroupsTest {
     }
 
     @Test
-    fun `keeps the newest two groups when a third group opens`() {
+    fun `keeps only the newly opened group when a second group opens`() {
         val expanded = toggleExpandedExerciseGroupKeys(
-            listOf("STRENGTH:CHEST", "STRENGTH:BACK"),
-            "STRENGTH:SHOULDERS",
+            listOf("STRENGTH:CHEST"),
+            "STRENGTH:BACK",
         )
 
-        assertEquals(listOf("STRENGTH:BACK", "STRENGTH:SHOULDERS"), expanded)
+        assertEquals(listOf("STRENGTH:BACK"), expanded)
     }
 
     @Test
     fun `collapses only the tapped open group`() {
         val expanded = toggleExpandedExerciseGroupKeys(
-            listOf("STRENGTH:CHEST", "STRENGTH:BACK"),
-            "STRENGTH:BACK",
-        )
-
-        assertEquals(listOf("STRENGTH:CHEST"), expanded)
-    }
-
-    @Test
-    fun `reopening an evicted group makes it newest`() {
-        val expanded = toggleExpandedExerciseGroupKeys(
-            listOf("STRENGTH:BACK", "STRENGTH:SHOULDERS"),
+            listOf("STRENGTH:CHEST"),
             "STRENGTH:CHEST",
         )
 
-        assertEquals(listOf("STRENGTH:SHOULDERS", "STRENGTH:CHEST"), expanded)
+        assertEquals(emptyList<String>(), expanded)
+    }
+
+    @Test
+    fun `opening a former group replaces the current group`() {
+        val expanded = toggleExpandedExerciseGroupKeys(
+            listOf("STRENGTH:BACK"),
+            "STRENGTH:CHEST",
+        )
+
+        assertEquals(listOf("STRENGTH:CHEST"), expanded)
     }
 }

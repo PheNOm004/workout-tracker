@@ -1,6 +1,6 @@
 package com.lsing.timego.ui.common
 
-const val MAX_EXPANDED_EXERCISE_GROUPS = 2
+const val MAX_EXPANDED_EXERCISE_GROUPS = 1
 
 fun toggleExpandedExerciseGroupKeys(
     expandedKeys: List<String>,
