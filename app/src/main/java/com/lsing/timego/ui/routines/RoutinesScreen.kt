@@ -4,13 +4,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -19,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,6 +38,9 @@ import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.Spacing
+import java.time.format.DateTimeFormatter
+
+private val SESSION_HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
 @Composable
 fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
@@ -40,13 +48,45 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     val exercises by viewModel.exercises.collectAsState()
     val untrainedGroups by viewModel.untrainedGroups.collectAsState()
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsState()
+    val sessionHistory by viewModel.sessionHistory.collectAsState()
     var showRoutineForm by remember { mutableStateOf(false) }
+    var showSessionHistory by remember { mutableStateOf(false) }
+    var pendingDeleteSessionId by remember { mutableStateOf<Long?>(null) }
 
     if (showRoutineForm) {
         RoutineFormDialog(
             exercises = exercises,
             onDismiss = { showRoutineForm = false },
             onCreate = viewModel::createRoutine,
+        )
+    }
+
+    if (showSessionHistory) {
+        SessionHistoryDialog(
+            sessions = sessionHistory,
+            onDismiss = { showSessionHistory = false },
+            onDeleteRequest = { pendingDeleteSessionId = it },
+        )
+    }
+
+    pendingDeleteSessionId?.let { sessionId ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteSessionId = null },
+            title = { Text("Delete this session?") },
+            text = { Text("This permanently removes the session and every set logged in it. This can't be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteSession(sessionId)
+                    pendingDeleteSessionId = null
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteSessionId = null }) {
+                    Text("Cancel")
+                }
+            },
         )
     }
 
@@ -160,5 +200,61 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = Spacing.ExtraSmall))
             }
         }
+        if (sessionHistory.isNotEmpty()) {
+            item {
+                SectionHeader(title = "Session history", topPadding = Spacing.Large)
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
+                    Text(
+                        "Delete a mistaken or test session.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Button(onClick = { showSessionHistory = true }) {
+                        Text("View (${sessionHistory.size})")
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+        }
     }
+}
+
+/** Popup listing every closed session with a per-row delete affordance -- kept out of the main
+ *  Routines list (rather than inline) since it's a maintenance action, not something to see by
+ *  default every time the page opens. [onDeleteRequest] hands the tapped session's id back to the
+ *  caller rather than deleting directly, so the confirmation dialog stays owned by [RoutinesScreen]
+ *  and can layer on top of this one. */
+@Composable
+private fun SessionHistoryDialog(
+    sessions: List<SessionHistoryEntry>,
+    onDismiss: () -> Unit,
+    onDeleteRequest: (Long) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Session history") },
+        text = {
+            Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                sessions.forEach { entry ->
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.weight(1f).padding(vertical = Spacing.ExtraSmall)) {
+                            Text(entry.date.format(SESSION_HISTORY_DATE_FORMATTER), style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                "${entry.setCount} set${if (entry.setCount == 1) "" else "s"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        IconButton(onClick = { onDeleteRequest(entry.id) }) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Delete session on ${entry.date.format(SESSION_HISTORY_DATE_FORMATTER)}", tint = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+    )
 }

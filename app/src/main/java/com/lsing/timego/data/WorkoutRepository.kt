@@ -72,6 +72,18 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
 
     suspend fun setLogsForSession(sessionId: Long): List<SetLog> = db.setLogDao().forSession(sessionId)
 
+    /** Deletes a closed session and every set logged into it. No FK cascade exists on
+     *  [SetLog.sessionId], so both deletes are explicit, wrapped in one transaction so a crash
+     *  mid-delete can't leave orphaned set_logs behind. Callers are responsible for only offering
+     *  this on closed sessions (endEpochMillis != null) -- deleting the active session out from
+     *  under an in-progress Log screen isn't a case this repository guards against. */
+    suspend fun deleteSession(sessionId: Long) {
+        db.withTransaction {
+            db.setLogDao().deleteForSession(sessionId)
+            db.sessionDao().delete(sessionId)
+        }
+    }
+
     suspend fun logSet(
         sessionId: Long,
         exerciseId: Long,

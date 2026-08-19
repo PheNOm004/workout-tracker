@@ -14,8 +14,14 @@ import com.lsing.timego.domain.untrainedMuscleGroups
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+
+/** One closed past session, for the Routines page's deletable session-history list. Deliberately
+ *  excludes the active session (endEpochMillis == null) -- see [WorkoutRepository.deleteSession]'s
+ *  doc comment for why deleting an in-progress session isn't a supported case. */
+data class SessionHistoryEntry(val id: Long, val date: LocalDate, val setCount: Int)
 
 class RoutinesViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
@@ -33,6 +39,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
     val holdDelaySeconds: StateFlow<Int> = _holdDelaySeconds.asStateFlow()
 
+    private val _sessionHistory = MutableStateFlow<List<SessionHistoryEntry>>(emptyList())
+    val sessionHistory: StateFlow<List<SessionHistoryEntry>> = _sessionHistory.asStateFlow()
+
     init {
         viewModelScope.launch { repository.routines.collect { _routines.value = it } }
         viewModelScope.launch {
@@ -43,6 +52,15 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
         }
         viewModelScope.launch {
             settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
+        }
+        viewModelScope.launch {
+            combine(repository.sessions, repository.setLogs) { sessions, setLogs ->
+                val countsBySession = setLogs.groupingBy { it.sessionId }.eachCount()
+                sessions
+                    .filter { it.endEpochMillis != null }
+                    .sortedByDescending { it.endEpochMillis }
+                    .map { SessionHistoryEntry(it.id, it.date, countsBySession[it.id] ?: 0) }
+            }.collect { _sessionHistory.value = it }
         }
     }
 
@@ -65,5 +83,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
 
     fun deleteRoutine(routineId: Long) {
         viewModelScope.launch { repository.deleteRoutine(routineId) }
+    }
+
+    fun deleteSession(sessionId: Long) {
+        viewModelScope.launch { repository.deleteSession(sessionId) }
     }
 }
