@@ -41,4 +41,8 @@ data class SetLog(
      *  missing RPE as "no effort signal available," never coerce it to a default value. Gates the
      *  overload suggester's rep-ceiling escalation (see [com.lsing.timego.domain.escalationTierForRpe]). */
     val rpe: Int? = null,
+    /** Whether the persisted target was shown before the set. Historic/freeform rows remain
+     * [TargetProvenance.UNKNOWN], so downstream analysis cannot misread `target == reps` as a
+     * successful planned target. */
+    val targetProvenance: String = TargetProvenance.UNKNOWN.name,
 )

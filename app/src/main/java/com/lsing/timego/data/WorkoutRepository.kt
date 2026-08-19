@@ -93,6 +93,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         isWarmup: Boolean = false,
         addedWeightKg: Double? = null,
         rpe: Int? = null,
+        targetProvenance: String = TargetProvenance.UNKNOWN.name,
     ) {
         db.setLogDao().insert(
             SetLog(
@@ -105,6 +106,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                 isWarmup = isWarmup,
                 addedWeightKg = addedWeightKg,
                 rpe = rpe,
+                targetProvenance = targetProvenance,
             ),
         )
     }
@@ -124,7 +126,14 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         )
     }
 
-    suspend fun logHoldSet(sessionId: Long, exerciseId: Long, durationSeconds: Int, targetDurationSeconds: Int, isWarmup: Boolean = false) {
+    suspend fun logHoldSet(
+        sessionId: Long,
+        exerciseId: Long,
+        durationSeconds: Int,
+        targetDurationSeconds: Int,
+        isWarmup: Boolean = false,
+        targetProvenance: String = TargetProvenance.UNKNOWN.name,
+    ) {
         db.setLogDao().insert(
             SetLog(
                 sessionId = sessionId,
@@ -136,6 +145,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                 holdSeconds = durationSeconds,
                 targetHoldSeconds = targetDurationSeconds,
                 isWarmup = isWarmup,
+                targetProvenance = targetProvenance,
             ),
         )
     }

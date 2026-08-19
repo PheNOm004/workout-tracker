@@ -52,6 +52,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.SetLog
+import com.lsing.timego.data.TargetProvenance
+import com.lsing.timego.data.targetProvenanceFor
 import com.lsing.timego.domain.HoldSuggestion
 import com.lsing.timego.domain.MET_CARDIO
 import com.lsing.timego.domain.MET_WARMUP
@@ -352,7 +354,7 @@ private fun LoggingContent(
                             onToggle = {
                                 expandedExerciseIds = toggleExpandedExerciseIds(expandedExerciseIds, exercise.id)
                             },
-                            onLog = { duration, target, isWarmup -> viewModel.logHoldSet(exercise.id, duration, target, isWarmup) },
+                            onLog = { duration, target, isWarmup, targetProvenance -> viewModel.logHoldSet(exercise.id, duration, target, isWarmup, targetProvenance) },
                         )
                         LoggingType.DURATION_DISTANCE.name -> CardioLogRow(
                             exerciseName = exercise.name,
@@ -377,8 +379,8 @@ private fun LoggingContent(
                             onToggle = {
                                 expandedExerciseIds = toggleExpandedExerciseIds(expandedExerciseIds, exercise.id)
                             },
-                            onLog = { weight, reps, target, isWarmup, addedWeightKg, rpe ->
-                                viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg, rpe)
+                            onLog = { weight, reps, target, isWarmup, addedWeightKg, rpe, targetProvenance ->
+                                viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg, rpe, targetProvenance)
                             },
                         )
                     }
@@ -468,7 +470,7 @@ private fun StrengthLogRow(
     latestBodyWeightKg: Double?,
     expanded: Boolean,
     onToggle: () -> Unit,
-    onLog: (weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean, addedWeightKg: Double?, rpe: Int?) -> Unit,
+    onLog: (weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean, addedWeightKg: Double?, rpe: Int?, targetProvenance: TargetProvenance) -> Unit,
 ) {
     // Bodyweight exercises (Pull-Up, Push-Up, Dip, ...) ask for just the added weight k (e.g. a
     // weighted vest) -- blank/0 means bodyweight-only, not "no weight logged." weightKg (the
@@ -568,7 +570,7 @@ private fun StrengthLogRow(
                             val addedWeight = weightText.toDoubleOrNull() ?: 0.0
                             if (reps != null) {
                                 val totalWeight = (latestBodyWeightKg ?: 0.0) + addedWeight
-                                onLog(totalWeight, reps, suggestion?.reps ?: reps, isWarmup, addedWeight, rpe)
+                                onLog(totalWeight, reps, suggestion?.reps ?: reps, isWarmup, addedWeight, rpe, targetProvenanceFor(suggestion != null))
                                 weightText = ""
                                 repsText = ""
                                 rpeText = ""
@@ -577,7 +579,7 @@ private fun StrengthLogRow(
                         } else {
                             val weight = weightText.toDoubleOrNull()
                             if (weight != null && reps != null) {
-                                onLog(weight, reps, suggestion?.reps ?: reps, isWarmup, null, rpe)
+                                onLog(weight, reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
                                 weightText = ""
                                 repsText = ""
                                 rpeText = ""
@@ -695,7 +697,7 @@ private fun HoldLogRow(
     delaySeconds: Int,
     expanded: Boolean,
     onToggle: () -> Unit,
-    onLog: (durationSeconds: Int, targetDurationSeconds: Int, isWarmup: Boolean) -> Unit,
+    onLog: (durationSeconds: Int, targetDurationSeconds: Int, isWarmup: Boolean, targetProvenance: TargetProvenance) -> Unit,
 ) {
     var isWarmup by remember(exerciseName) { mutableStateOf(false) }
     var useTimer by remember(exerciseName) { mutableStateOf(true) }
@@ -742,7 +744,7 @@ private fun HoldLogRow(
                     )
                     Button(onClick = {
                         if (manualDuration != null && manualDuration > 0) {
-                            onLog(manualDuration, suggestion?.targetDurationSeconds ?: manualDuration, isWarmup)
+                            onLog(manualDuration, suggestion?.targetDurationSeconds ?: manualDuration, isWarmup, targetProvenanceFor(suggestion != null))
                             manualDurationText = ""
                             isWarmup = false
                         }
@@ -758,7 +760,7 @@ private fun HoldLogRow(
                     formatElapsed = { "${it}s" },
                     onEnterManually = { useTimer = false },
                     onStop = { seconds ->
-                        onLog(seconds, suggestion?.targetDurationSeconds ?: seconds, isWarmup)
+                        onLog(seconds, suggestion?.targetDurationSeconds ?: seconds, isWarmup, targetProvenanceFor(suggestion != null))
                         isWarmup = false
                     },
                 )

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lsing.timego.data.Exercise
+import com.lsing.timego.data.TargetProvenance
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
@@ -314,10 +315,19 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun logSet(exerciseId: Long, weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean = false, addedWeightKg: Double? = null, rpe: Int? = null) {
+    fun logSet(
+        exerciseId: Long,
+        weightKg: Double,
+        reps: Int,
+        targetReps: Int,
+        isWarmup: Boolean = false,
+        addedWeightKg: Double? = null,
+        rpe: Int? = null,
+        targetProvenance: TargetProvenance = TargetProvenance.UNKNOWN,
+    ) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
         viewModelScope.launch {
-            repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe)
+            repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name)
             refreshSuggestionForExercise(exerciseId)
         }
     }
@@ -329,10 +339,16 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun logHoldSet(exerciseId: Long, durationSeconds: Int, targetDurationSeconds: Int, isWarmup: Boolean = false) {
+    fun logHoldSet(
+        exerciseId: Long,
+        durationSeconds: Int,
+        targetDurationSeconds: Int,
+        isWarmup: Boolean = false,
+        targetProvenance: TargetProvenance = TargetProvenance.UNKNOWN,
+    ) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
         viewModelScope.launch {
-            repository.logHoldSet(sessionId, exerciseId, durationSeconds, targetDurationSeconds, isWarmup)
+            repository.logHoldSet(sessionId, exerciseId, durationSeconds, targetDurationSeconds, isWarmup, targetProvenance.name)
             refreshSuggestionForExercise(exerciseId)
         }
     }
