@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Limit the shared exercise browser to two expanded muscle-group exercise lists at a time.
+**Goal:** Limit the shared exercise browser to one expanded muscle-group exercise list at a time.
 
 **Architecture:** Add a pure string-key toggle helper under `ui/common`, then replace each muscle group's local Compose state in `ExerciseSections` with parent-owned, ordered state. Keys combine category and muscle group so a group remains unique across the entire browser.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Maximum simultaneous open muscle-group exercise lists: exactly 2.
+- Maximum simultaneous open muscle-group exercise lists: exactly 1.
 - Do not cap category headers.
 - Do not modify search behavior, individual exercise-card behavior, timers, logged data, or routine selection.
 
@@ -32,10 +32,10 @@
 
 ```kotlin
 @Test
-fun `keeps the newest two groups when a third group opens`() {
-    val expanded = toggleExpandedExerciseGroupKeys(listOf("STRENGTH:CHEST", "STRENGTH:BACK"), "STRENGTH:SHOULDERS")
+fun `keeps only the newly opened group when a second group opens`() {
+    val expanded = toggleExpandedExerciseGroupKeys(listOf("STRENGTH:CHEST"), "STRENGTH:BACK")
 
-    assertEquals(listOf("STRENGTH:BACK", "STRENGTH:SHOULDERS"), expanded)
+    assertEquals(listOf("STRENGTH:BACK"), expanded)
 }
 ```
 
@@ -50,7 +50,7 @@ Expected: compilation fails because `toggleExpandedExerciseGroupKeys` does not e
 - [ ] **Step 3: Implement the helper**
 
 ```kotlin
-const val MAX_EXPANDED_EXERCISE_GROUPS = 2
+const val MAX_EXPANDED_EXERCISE_GROUPS = 1
 
 fun toggleExpandedExerciseGroupKeys(
     expandedKeys: List<String>,
@@ -79,7 +79,7 @@ git commit -m "Limit expanded muscle groups"
 
 **Interfaces:**
 - Consumes: `toggleExpandedExerciseGroupKeys(List<String>, String): List<String>`.
-- Produces: a shared two-open-group accordion for every `ExerciseSections` caller.
+- Produces: a shared one-open-group accordion for every `ExerciseSections` caller.
 
 - [ ] **Step 1: Add parent state inside `ExerciseSections`**
 
@@ -129,15 +129,15 @@ git commit -m "Cap open muscle group exercise lists"
 - Modify: `C:/Users/lsing/.claude/obsidian_demo/Projects/TimeGo/08 Session Log.md`
 
 **Interfaces:**
-- Produces: a durable record that distinguishes the two-open muscle-group accordion from the existing individual exercise-card rule.
+- Produces: a durable record that distinguishes the one-open muscle-group accordion from the existing individual exercise-card rule.
 
 - [ ] **Step 1: Validate documentation coverage**
 
-Confirm the spec and plan state the two-group maximum, oldest-group eviction, shared Log/Routines scope, unchanged search, and unchanged card behavior.
+Confirm the spec and plan state the one-group maximum, current-group replacement, shared Log/Routines scope, unchanged search, and unchanged card behavior.
 
 - [ ] **Step 2: Update the vault**
 
-Replace the prior feature-catalog description that treated the three-card cap as the only exercise-list control. State that muscle-group lists have a separate global two-open limit. Append a dated session-log entry with the helper, UI ownership, commits, test/install result, and manual check.
+Replace the prior feature-catalog description that treated the three-card cap as the only exercise-list control. State that muscle-group lists have a separate global one-open limit. Append a dated session-log entry with the helper, UI ownership, commits, test/install result, and manual check.
 
 - [ ] **Step 3: Commit app documentation**
 
