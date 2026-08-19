@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
+import com.lsing.timego.data.SetLog
 import com.lsing.timego.domain.HoldSuggestion
 import com.lsing.timego.domain.MET_CARDIO
 import com.lsing.timego.domain.MET_WARMUP
@@ -58,6 +59,7 @@ import com.lsing.timego.domain.averagePaceMinPerKm
 import com.lsing.timego.domain.diagramGroupsForRecommendationCrop
 import com.lsing.timego.domain.estimatedCalorieBurn
 import com.lsing.timego.domain.formatCalisthenicsWeight
+import com.lsing.timego.domain.toggleExpandedExerciseIds
 import com.lsing.timego.ui.common.AnimatedExpand
 import com.lsing.timego.ui.common.CroppedMuscleDiagram
 import com.lsing.timego.ui.common.ExerciseSections
@@ -99,6 +101,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 )
             } else {
                 LoggingContent(
+                    sessionId = state.sessionId,
                     viewModel = viewModel,
                     onEndSession = viewModel::endActiveSession,
                     onBackToLanding = { peekingLanding = true },
@@ -212,6 +215,14 @@ private fun LogLandingContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = Spacing.ExtraSmall),
                     )
+                    summary.suggestedExercise?.let { exercise ->
+                        Text(
+                            "Try: ${exercise.name}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = Spacing.ExtraSmall),
+                        )
+                    }
                     CroppedMuscleDiagram(
                         // Size the artwork from the relevant body region only; the recommendation
                         // remains the only highlighted group set.
@@ -261,14 +272,21 @@ private fun LandingMetric(label: String, value: String, modifier: Modifier = Mod
 }
 
 @Composable
-private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, onBackToLanding: () -> Unit) {
+private fun LoggingContent(
+    sessionId: Long,
+    viewModel: LogViewModel,
+    onEndSession: () -> Unit,
+    onBackToLanding: () -> Unit,
+) {
     val exercises by viewModel.displayedExercises.collectAsState()
     val suggestions by viewModel.suggestions.collectAsState()
     val holdSuggestions by viewModel.holdSuggestions.collectAsState()
+    val lastWorkingSets by viewModel.lastWorkingSets.collectAsState()
     val routines by viewModel.routines.collectAsState()
     val selectedRoutineId by viewModel.selectedRoutineId.collectAsState()
     val latestBodyWeightKg by viewModel.latestBodyWeightKg.collectAsState()
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsState()
+    var expandedExerciseIds by remember(sessionId) { mutableStateOf<List<Long>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
 
     if (showAddDialog) {
@@ -330,6 +348,10 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, on
                             category = exercise.category,
                             suggestion = holdSuggestions[exercise.id],
                             delaySeconds = holdDelaySeconds,
+                            expanded = exercise.id in expandedExerciseIds,
+                            onToggle = {
+                                expandedExerciseIds = toggleExpandedExerciseIds(expandedExerciseIds, exercise.id)
+                            },
                             onLog = { duration, target, isWarmup -> viewModel.logHoldSet(exercise.id, duration, target, isWarmup) },
                         )
                         LoggingType.DURATION_DISTANCE.name -> CardioLogRow(
@@ -338,14 +360,23 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, on
                             met = if (exercise.category == ExerciseCategory.CARDIO.name) MET_CARDIO else MET_WARMUP,
                             bodyWeightKg = latestBodyWeightKg,
                             delaySeconds = holdDelaySeconds,
+                            expanded = exercise.id in expandedExerciseIds,
+                            onToggle = {
+                                expandedExerciseIds = toggleExpandedExerciseIds(expandedExerciseIds, exercise.id)
+                            },
                             onLog = { duration, distance -> viewModel.logCardioSet(exercise.id, duration, distance) },
                         )
                         else -> StrengthLogRow(
                             exerciseName = exercise.name,
                             category = exercise.category,
                             suggestion = suggestions[exercise.id],
+                            lastWorkingSet = lastWorkingSets[exercise.id],
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
+                            expanded = exercise.id in expandedExerciseIds,
+                            onToggle = {
+                                expandedExerciseIds = toggleExpandedExerciseIds(expandedExerciseIds, exercise.id)
+                            },
                             onLog = { weight, reps, target, isWarmup, addedWeightKg, rpe ->
                                 viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg, rpe)
                             },
@@ -432,11 +463,13 @@ private fun StrengthLogRow(
     exerciseName: String,
     category: String,
     suggestion: com.lsing.timego.domain.OverloadSuggestion?,
+    lastWorkingSet: SetLog?,
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
+    expanded: Boolean,
+    onToggle: () -> Unit,
     onLog: (weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean, addedWeightKg: Double?, rpe: Int?) -> Unit,
 ) {
-    var expanded by remember(exerciseName) { mutableStateOf(false) }
     // Bodyweight exercises (Pull-Up, Push-Up, Dip, ...) ask for just the added weight k (e.g. a
     // weighted vest) -- blank/0 means bodyweight-only, not "no weight logged." weightKg (the
     // absolute bodyweight+k total 1RM/PR/suggester math needs) is computed at log time, not typed.
@@ -453,6 +486,14 @@ private fun StrengthLogRow(
             "${it.weightKg}kg x ${it.reps}"
         }
     }
+    val lastSetHint = lastWorkingSet?.let { set ->
+        val weight = if (isBodyweight && set.addedWeightKg != null) {
+            formatCalisthenicsWeight(set.addedWeightKg)
+        } else {
+            "${set.weightKg}kg"
+        }
+        "Last time: $weight x ${set.reps}"
+    }
 
     ExerciseCard(expanded) {
         ExerciseRowHeader(
@@ -461,7 +502,7 @@ private fun StrengthLogRow(
             visual.accent,
             suggestionHint,
             expanded,
-        ) { expanded = !expanded }
+        ) { onToggle() }
         AnimatedExpand(expanded) {
             if (suggestion != null) {
                 Text(
@@ -469,6 +510,14 @@ private fun StrengthLogRow(
                     style = LedgerFigureValue.copy(fontSize = 13.sp),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
+                )
+            }
+            lastSetHint?.let { hint ->
+                Text(
+                    hint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
                 )
             }
             Row(
@@ -551,9 +600,10 @@ private fun CardioLogRow(
     met: Double,
     bodyWeightKg: Double?,
     delaySeconds: Int,
+    expanded: Boolean,
+    onToggle: () -> Unit,
     onLog: (durationMinutes: Double, distanceKm: Double?) -> Unit,
 ) {
-    var expanded by remember(exerciseName) { mutableStateOf(false) }
     var useTimer by remember(exerciseName) { mutableStateOf(false) }
     var durationText by remember(exerciseName) { mutableStateOf("") }
     var distanceText by remember(exerciseName) { mutableStateOf("") }
@@ -562,7 +612,7 @@ private fun CardioLogRow(
     val visual = categoryVisual(category)
 
     ExerciseCard(expanded) {
-        ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded) { expanded = !expanded }
+        ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded, onToggle)
         AnimatedExpand(expanded) {
             if (duration != null && duration > 0) {
                 val pace = distance?.let { averagePaceMinPerKm(duration, it) }
@@ -643,9 +693,10 @@ private fun HoldLogRow(
     category: String,
     suggestion: HoldSuggestion?,
     delaySeconds: Int,
+    expanded: Boolean,
+    onToggle: () -> Unit,
     onLog: (durationSeconds: Int, targetDurationSeconds: Int, isWarmup: Boolean) -> Unit,
 ) {
-    var expanded by remember(exerciseName) { mutableStateOf(false) }
     var isWarmup by remember(exerciseName) { mutableStateOf(false) }
     var useTimer by remember(exerciseName) { mutableStateOf(true) }
     var manualDurationText by remember(exerciseName) { mutableStateOf("") }
@@ -658,7 +709,7 @@ private fun HoldLogRow(
             visual.accent,
             suggestion?.let { "${it.targetDurationSeconds}s" },
             expanded,
-        ) { expanded = !expanded }
+        ) { onToggle() }
         AnimatedExpand(expanded) {
             if (suggestion != null) {
                 Text(

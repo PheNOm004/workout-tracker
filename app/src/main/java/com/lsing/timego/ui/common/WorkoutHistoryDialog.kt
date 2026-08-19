@@ -23,11 +23,23 @@ import com.lsing.timego.data.SetLog
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.Spacing
+import kotlin.math.roundToInt
 
 /** [setDescriptions] holds one entry per set of this exercise (e.g. "60.0kg x 8"), grouped
  *  together under a single [exerciseName] row rather than repeating the name once per set --
  *  see [buildDayHistoryEntries]. */
 data class DayHistoryEntry(val exerciseName: String, val setDescriptions: List<String>)
+
+private fun formatHistoryDuration(durationMinutes: Double?): String {
+    val totalSeconds = ((durationMinutes ?: 0.0).coerceAtLeast(0.0) * 60).roundToInt()
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return when {
+        minutes == 0 -> "${seconds}s"
+        seconds == 0 -> "$minutes min"
+        else -> "${minutes}m ${seconds}s"
+    }
+}
 
 /** Shared by the Progress screen's tap-a-heatmap-day history and the logging landing page's
  *  last-session detail -- both need "every set logged in this session/day, one row per exercise
@@ -41,7 +53,7 @@ fun buildDayHistoryEntries(setLogs: List<SetLog>, exercisesById: Map<Long, Exerc
             val description = when (exercise.loggingType) {
                 LoggingType.DURATION_DISTANCE.name -> {
                     val distance = log.distanceKm?.let { " -- ${it}km" } ?: ""
-                    "${log.durationMinutes ?: 0.0} min$distance"
+                    "${formatHistoryDuration(log.durationMinutes)}$distance"
                 }
                 LoggingType.HOLD.name -> "${log.holdSeconds ?: 0}s hold"
                 else -> if (exercise.category == ExerciseCategory.CALISTHENICS.name && log.addedWeightKg != null) {

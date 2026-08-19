@@ -8,7 +8,10 @@ import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.Routine
 import com.lsing.timego.data.SettingsRepository
 import com.lsing.timego.data.TimeGoDatabase
+import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.WorkoutRepository
+import com.lsing.timego.domain.exerciseUsageFrequency
+import com.lsing.timego.domain.exercisesRankedByFrequency
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
 import com.lsing.timego.domain.untrainedMuscleGroups
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,19 +42,30 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
     val holdDelaySeconds: StateFlow<Int> = _holdDelaySeconds.asStateFlow()
 
+    private val _trainingLean = MutableStateFlow(TrainingLean.BALANCED)
+    val trainingLean: StateFlow<TrainingLean> = _trainingLean.asStateFlow()
+
     private val _sessionHistory = MutableStateFlow<List<SessionHistoryEntry>>(emptyList())
     val sessionHistory: StateFlow<List<SessionHistoryEntry>> = _sessionHistory.asStateFlow()
 
     init {
         viewModelScope.launch { repository.routines.collect { _routines.value = it } }
         viewModelScope.launch {
-            repository.exercises.collect { exerciseList ->
-                _exercises.value = exerciseList
+            combine(repository.exercises, repository.setLogs) { exerciseList, setLogs ->
+                exerciseList to setLogs
+            }.collect { (exerciseList, setLogs) ->
+                _exercises.value = exercisesRankedByFrequency(
+                    exerciseList,
+                    exerciseUsageFrequency(setLogs, exerciseList.associateBy { it.id }),
+                )
                 refreshUntrainedGroups(exerciseList)
             }
         }
         viewModelScope.launch {
             settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
+        }
+        viewModelScope.launch {
+            settingsRepository.trainingLean.collect { _trainingLean.value = it }
         }
         viewModelScope.launch {
             combine(repository.sessions, repository.setLogs) { sessions, setLogs ->
@@ -66,6 +80,10 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
 
     fun setHoldDelaySeconds(seconds: Int) {
         viewModelScope.launch { settingsRepository.setHoldDelaySeconds(seconds.coerceIn(0, 30)) }
+    }
+
+    fun setTrainingLean(lean: TrainingLean) {
+        viewModelScope.launch { settingsRepository.setTrainingLean(lean) }
     }
 
     private suspend fun refreshUntrainedGroups(exerciseList: List<Exercise>) {

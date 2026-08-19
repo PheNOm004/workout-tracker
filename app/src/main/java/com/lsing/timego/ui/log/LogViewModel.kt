@@ -9,8 +9,10 @@ import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.Routine
 import com.lsing.timego.data.SEED_EXERCISES
+import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.SettingsRepository
 import com.lsing.timego.data.TimeGoDatabase
+import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.DEFAULT_WEIGHT_INCREMENT_KG
 import com.lsing.timego.domain.HoldPerformance
@@ -23,8 +25,11 @@ import com.lsing.timego.domain.SessionAutoCloseDecision
 import com.lsing.timego.domain.SetPerformance
 import com.lsing.timego.domain.checkSessionAutoClose
 import com.lsing.timego.domain.expandMuscleGroupRegions
+import com.lsing.timego.domain.exerciseUsageFrequency
+import com.lsing.timego.domain.exercisesRankedByFrequency
 import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
+import com.lsing.timego.domain.lastWorkingSetByExercise
 import com.lsing.timego.domain.latestWeightKg
 import com.lsing.timego.domain.muscleGroupsAffectedInSession
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
@@ -33,12 +38,14 @@ import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.repRangeAtWeight
 import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.sessionWorkingSetHistory
+import com.lsing.timego.domain.suggestedExerciseFor
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.buildDayHistoryEntries
 import com.lsing.timego.ui.common.sessionDayLabel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -64,6 +71,7 @@ data class LastSessionSummary(
 data class LandingSummary(
     val lastSession: LastSessionSummary?,
     val recommendedMuscleGroups: List<String>,
+    val suggestedExercise: Exercise?,
 )
 
 /** [selectedRoutineId] null means freeform (all exercises shown, sessions logged with no routine
@@ -77,10 +85,14 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val holdSuggester = RuleBasedHoldSuggester()
 
     private var allExercises: List<Exercise> = emptyList()
+    private var exerciseUsageCounts: Map<Long, Int> = emptyMap()
     private var hasAutoSelectedTodaysRoutine = false
 
     private val _displayedExercises = MutableStateFlow<List<Exercise>>(emptyList())
     val displayedExercises: StateFlow<List<Exercise>> = _displayedExercises.asStateFlow()
+
+    private val _lastWorkingSets = MutableStateFlow<Map<Long, SetLog>>(emptyMap())
+    val lastWorkingSets: StateFlow<Map<Long, SetLog>> = _lastWorkingSets.asStateFlow()
 
     private val _suggestions = MutableStateFlow<Map<Long, OverloadSuggestion>>(emptyMap())
     val suggestions: StateFlow<Map<Long, OverloadSuggestion>> = _suggestions.asStateFlow()
@@ -97,10 +109,18 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val _latestBodyWeightKg = MutableStateFlow<Double?>(null)
     val latestBodyWeightKg: StateFlow<Double?> = _latestBodyWeightKg.asStateFlow()
 
+    private val _trainingLean = MutableStateFlow(TrainingLean.BALANCED)
+
     private val _sessionState = MutableStateFlow<SessionUiState>(SessionUiState.Loading)
     val sessionState: StateFlow<SessionUiState> = _sessionState.asStateFlow()
 
-    private val _landingSummary = MutableStateFlow(LandingSummary(lastSession = null, recommendedMuscleGroups = emptyList()))
+    private val _landingSummary = MutableStateFlow(
+        LandingSummary(
+            lastSession = null,
+            recommendedMuscleGroups = emptyList(),
+            suggestedExercise = null,
+        ),
+    )
     val landingSummary: StateFlow<LandingSummary> = _landingSummary.asStateFlow()
 
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
@@ -111,9 +131,19 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
         }
         viewModelScope.launch {
+            settingsRepository.trainingLean.collect { lean ->
+                _trainingLean.value = lean
+                refreshLandingSummary()
+            }
+        }
+        viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
-            repository.exercises.collect { list ->
+            combine(repository.exercises, repository.setLogs, repository.sessions) { exercises, setLogs, sessions ->
+                Triple(exercises, setLogs, sessions)
+            }.collect { (list, setLogs, sessions) ->
                 allExercises = list
+                exerciseUsageCounts = exerciseUsageFrequency(setLogs, list.associateBy { it.id })
+                _lastWorkingSets.value = lastWorkingSetByExercise(setLogs, sessions, list.associateBy { it.id })
                 // Session state first: refreshSuggestions reads the active session id to decide
                 // whether an exercise's suggestion should lock to this session's first working
                 // set. Computing it while _sessionState is still Loading made every suggestion
@@ -152,12 +182,13 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun refreshDisplayedExercises() {
         val routineId = _selectedRoutineId.value
-        _displayedExercises.value = if (routineId == null) {
+        val filteredExercises = if (routineId == null) {
             allExercises
         } else {
             val exerciseIds = repository.exercisesForRoutine(routineId).map { it.exerciseId }.toSet()
             allExercises.filter { it.id in exerciseIds }
         }
+        _displayedExercises.value = exercisesRankedByFrequency(filteredExercises, exerciseUsageCounts)
     }
 
     /** Splits suggestion computation by loggingType: WEIGHT_REPS exercises get a weight/reps
@@ -251,8 +282,18 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
         val recommendedSeeds = rankUntrainedMuscleGroups(allGroups, lastTrained, LocalDate.now()).take(2)
         val recommended = expandMuscleGroupRegions(recommendedSeeds).toList()
+        val suggestedExercise = suggestedExerciseFor(
+            targetGroups = recommended.toSet(),
+            exercises = allExercises,
+            lean = _trainingLean.value,
+            usageCounts = exerciseUsageFrequency(allSets, exercisesById),
+        )
 
-        _landingSummary.value = LandingSummary(lastSession = summary, recommendedMuscleGroups = recommended)
+        _landingSummary.value = LandingSummary(
+            lastSession = summary,
+            recommendedMuscleGroups = recommended,
+            suggestedExercise = suggestedExercise,
+        )
     }
 
     fun startSession(routineId: Long?) {

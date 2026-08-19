@@ -18,6 +18,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.theme.LedgerFigureEmphasis
@@ -48,6 +50,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     val exercises by viewModel.exercises.collectAsState()
     val untrainedGroups by viewModel.untrainedGroups.collectAsState()
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsState()
+    val trainingLean by viewModel.trainingLean.collectAsState()
     val sessionHistory by viewModel.sessionHistory.collectAsState()
     var showRoutineForm by remember { mutableStateOf(false) }
     var showSessionHistory by remember { mutableStateOf(false) }
@@ -155,6 +158,29 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                 Text("${holdDelaySeconds}s", style = LedgerFigureEmphasis)
                 IconButton(onClick = { viewModel.setHoldDelaySeconds(holdDelaySeconds + 1) }) {
                     Icon(Icons.Filled.Add, contentDescription = "Increase delay")
+                }
+            }
+            Text(
+                "Suggested exercise style",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
+            )
+            FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
+                TrainingLean.entries.forEach { lean ->
+                    FilterChip(
+                        selected = trainingLean == lean,
+                        onClick = { viewModel.setTrainingLean(lean) },
+                        label = {
+                            Text(
+                                when (lean) {
+                                    TrainingLean.STRENGTH -> "Strength"
+                                    TrainingLean.BALANCED -> "Balanced"
+                                    TrainingLean.CALISTHENICS -> "Calisthenics"
+                                },
+                            )
+                        },
+                        modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
+                    )
                 }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
