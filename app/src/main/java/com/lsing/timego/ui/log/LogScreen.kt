@@ -286,8 +286,8 @@ private fun LoggingContent(viewModel: LogViewModel, onEndSession: () -> Unit, on
                             suggestion = suggestions[exercise.id],
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
-                            onLog = { weight, reps, target, isWarmup, addedWeightKg ->
-                                viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg)
+                            onLog = { weight, reps, target, isWarmup, addedWeightKg, rpe ->
+                                viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg, rpe)
                             },
                         )
                     }
@@ -374,7 +374,7 @@ private fun StrengthLogRow(
     suggestion: com.lsing.timego.domain.OverloadSuggestion?,
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
-    onLog: (weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean, addedWeightKg: Double?) -> Unit,
+    onLog: (weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean, addedWeightKg: Double?, rpe: Int?) -> Unit,
 ) {
     var expanded by remember(exerciseName) { mutableStateOf(false) }
     // Bodyweight exercises (Pull-Up, Push-Up, Dip, ...) ask for just the added weight k (e.g. a
@@ -382,6 +382,7 @@ private fun StrengthLogRow(
     // absolute bodyweight+k total 1RM/PR/suggester math needs) is computed at log time, not typed.
     var weightText by remember(exerciseName) { mutableStateOf("") }
     var repsText by remember(exerciseName) { mutableStateOf("") }
+    var rpeText by remember(exerciseName) { mutableStateOf("") }
     var isWarmup by remember(exerciseName) { mutableStateOf(false) }
     val visual = categoryVisual(ExerciseCategory.valueOf(category))
     val suggestionHint = suggestion?.let {
@@ -438,23 +439,35 @@ private fun StrengthLogRow(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                 )
+                OutlinedTextField(
+                    value = rpeText,
+                    onValueChange = { rpeText = it },
+                    label = { Text("RPE") },
+                    placeholder = { Text("optional") },
+                    textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                )
                 Button(onClick = {
                     val reps = repsText.toIntOrNull()
+                    val rpe = rpeText.toIntOrNull()?.coerceIn(1, 10)
                     if (isBodyweight) {
                         val addedWeight = weightText.toDoubleOrNull() ?: 0.0
                         if (reps != null) {
                             val totalWeight = (latestBodyWeightKg ?: 0.0) + addedWeight
-                            onLog(totalWeight, reps, suggestion?.reps ?: reps, isWarmup, addedWeight)
+                            onLog(totalWeight, reps, suggestion?.reps ?: reps, isWarmup, addedWeight, rpe)
                             weightText = ""
                             repsText = ""
+                            rpeText = ""
                             isWarmup = false
                         }
                     } else {
                         val weight = weightText.toDoubleOrNull()
                         if (weight != null && reps != null) {
-                            onLog(weight, reps, suggestion?.reps ?: reps, isWarmup, null)
+                            onLog(weight, reps, suggestion?.reps ?: reps, isWarmup, null, rpe)
                             weightText = ""
                             repsText = ""
+                            rpeText = ""
                             isWarmup = false
                         }
                     }
