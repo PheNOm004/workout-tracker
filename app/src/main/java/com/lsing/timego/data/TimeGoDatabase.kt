@@ -7,6 +7,9 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.lsing.timego.data.adaptive.ShadowAuditEntity
+import com.lsing.timego.data.adaptive.ShadowDao
+import com.lsing.timego.data.adaptive.ShadowSnapshotEntity
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -122,9 +125,34 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
     }
 }
 
+/** Strictly additive derived-cache storage. Canonical exercise, session, and set rows are never
+ * altered or backfilled: a missing cache is rebuilt from those existing rows on demand. */
+val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `shadow_snapshots` (" +
+                "`cacheKey` TEXT NOT NULL, `sourceFingerprint` TEXT NOT NULL, " +
+                "`modelContractHash` TEXT NOT NULL, `metadataHash` TEXT NOT NULL, " +
+                "`orderingPolicy` TEXT NOT NULL, `statePayload` TEXT NOT NULL, " +
+                "`sourceRowCount` INTEGER NOT NULL, `observationCount` INTEGER NOT NULL, " +
+                "`exclusionCount` INTEGER NOT NULL, `completionStatus` TEXT NOT NULL, " +
+                "`completedAtEpochMillis` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`cacheKey`))",
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `shadow_audit` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sourceFingerprint` TEXT NOT NULL, " +
+                "`modelContractHash` TEXT NOT NULL, `metadataHash` TEXT NOT NULL, " +
+                "`orderingPolicy` TEXT NOT NULL, `sourceRowCount` INTEGER NOT NULL, " +
+                "`observationCount` INTEGER NOT NULL, `exclusionCount` INTEGER NOT NULL, " +
+                "`rebuildStatus` TEXT NOT NULL, `recordedAtEpochMillis` INTEGER NOT NULL)",
+        )
+    }
+}
+
 @Database(
-    entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class],
-    version = 13,
+    entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class, ShadowSnapshotEntity::class, ShadowAuditEntity::class],
+    version = 14,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -134,6 +162,7 @@ abstract class TimeGoDatabase : RoomDatabase() {
     abstract fun setLogDao(): SetLogDao
     abstract fun routineDao(): RoutineDao
     abstract fun bodyMetricDao(): BodyMetricDao
+    abstract fun shadowDao(): ShadowDao
 
     companion object {
         @Volatile private var instance: TimeGoDatabase? = null
@@ -141,7 +170,7 @@ abstract class TimeGoDatabase : RoomDatabase() {
         fun getInstance(context: Context): TimeGoDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(context.applicationContext, TimeGoDatabase::class.java, "timego.db")
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                     .build()
                     .also { instance = it }
             }

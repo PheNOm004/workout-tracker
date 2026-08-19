@@ -29,6 +29,10 @@ interface SetLogDao {
     @Query("SELECT * FROM set_logs ORDER BY loggedAtEpochMillis")
     suspend fun allOrderedByTime(): List<SetLog>
 
+    /** Read once inside the hidden shadow snapshot transaction; mapper supplies final tuple order. */
+    @Query("SELECT * FROM set_logs ORDER BY loggedAtEpochMillis, id")
+    suspend fun allForShadowSnapshot(): List<SetLog>
+
     @Query("DELETE FROM set_logs WHERE sessionId = :sessionId")
     suspend fun deleteForSession(sessionId: Long)
 }

@@ -1,6 +1,19 @@
 package com.lsing.timego.data
 
 import androidx.room.withTransaction
+import com.lsing.timego.data.adaptive.ShadowAuditEntity
+import com.lsing.timego.data.adaptive.ShadowCacheKey
+import com.lsing.timego.data.adaptive.ShadowCacheCompatibility
+import com.lsing.timego.data.adaptive.ShadowCacheIdentity
+import com.lsing.timego.data.adaptive.ShadowCachePipeline
+import com.lsing.timego.data.adaptive.ShadowCacheWrite
+import com.lsing.timego.data.adaptive.ShadowCacheWriteDecision
+import com.lsing.timego.data.adaptive.ShadowCacheWriteDisposition
+import com.lsing.timego.data.adaptive.ShadowCacheWritePolicy
+import com.lsing.timego.data.adaptive.ShadowRebuildStatus
+import com.lsing.timego.data.adaptive.ShadowSnapshot
+import com.lsing.timego.data.adaptive.ShadowSnapshotEntity
+import com.lsing.timego.data.adaptive.ShadowSourceFingerprint
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
@@ -156,6 +169,133 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
     suspend fun allSetLogs(): List<SetLog> = db.setLogDao().getAll()
 
     suspend fun allSetLogsOrderedByTime(): List<SetLog> = db.setLogDao().allOrderedByTime()
+
+    /**
+     * One atomic, read-only source snapshot for the hidden provisional shadow.  It does not
+     * collect any existing UI Flows or alter the rule-based suggestion inputs.
+     */
+    suspend fun shadowSnapshot(): ShadowSnapshot = db.withTransaction {
+        captureShadowSnapshot()
+    }
+
+    /** Runs the complete hidden rebuild from one atomic source snapshot through the checked writer. */
+    suspend fun rebuildShadowCache(
+        pipeline: ShadowCachePipeline,
+        completedAtEpochMillis: Long = System.currentTimeMillis(),
+    ): ShadowCacheWriteDecision {
+        val captured = shadowSnapshot()
+        return persistShadowCache(pipeline.build(captured, completedAtEpochMillis))
+    }
+
+    /**
+     * Returns a cache only when current canonical source plus model, metadata, order, and status
+     * all match. A delete or version change therefore becomes unusable before another rebuild.
+     */
+    suspend fun usableShadowCache(identity: ShadowCacheIdentity): ShadowSnapshotEntity? = db.withTransaction {
+        val currentFingerprint = ShadowSourceFingerprint.from(captureShadowSnapshot())
+        val requested = identity.forSource(currentFingerprint)
+        db.shadowDao().snapshot()?.takeIf { persisted ->
+            persisted.completionStatus == ShadowRebuildStatus.COMPLETED.name &&
+                ShadowCacheCompatibility.isUsable(persisted.toCacheKey(), requested)
+        }
+    }
+
+    /**
+     * Atomically writes only a cache whose captured canonical source still matches. A changed or
+     * deleted source invalidates the old derived payload and leaves an aggregate stale audit fact
+     * so the hidden caller can capture again and rebuild without touching historic user rows.
+     */
+    suspend fun persistShadowCache(write: ShadowCacheWrite): ShadowCacheWriteDecision = db.withTransaction {
+        val currentSnapshot = captureShadowSnapshot()
+        val currentFingerprint = ShadowSourceFingerprint.from(currentSnapshot)
+        val dao = db.shadowDao()
+        val existing = dao.snapshot()?.toCacheKey()
+        val decision = ShadowCacheWritePolicy.decide(
+            captured = write.captured,
+            currentSourceFingerprint = currentFingerprint,
+            existing = existing,
+        )
+        if (decision.disposition == ShadowCacheWriteDisposition.STALE_DISCARDED) {
+            dao.deleteSnapshot()
+            dao.appendAudit(
+                auditFor(
+                    key = write.captured.copy(sourceFingerprint = currentFingerprint),
+                    sourceRowCount = currentSnapshot.rows.size,
+                    observationCount = 0,
+                    exclusionCount = 0,
+                    status = ShadowRebuildStatus.STALE_DISCARDED,
+                    recordedAtEpochMillis = write.completedAtEpochMillis,
+                ),
+            )
+            return@withTransaction decision
+        }
+
+        if (decision.disposition == ShadowCacheWriteDisposition.INVALIDATED) {
+            dao.deleteSnapshot()
+        }
+        dao.upsertSnapshot(
+            ShadowSnapshotEntity(
+                sourceFingerprint = write.captured.sourceFingerprint,
+                modelContractHash = write.captured.modelContractHash,
+                metadataHash = write.captured.metadataHash,
+                orderingPolicy = write.captured.orderingPolicy,
+                statePayload = write.statePayload,
+                sourceRowCount = currentSnapshot.rows.size,
+                observationCount = write.observationCount,
+                exclusionCount = write.exclusionCount,
+                completionStatus = ShadowRebuildStatus.COMPLETED.name,
+                completedAtEpochMillis = write.completedAtEpochMillis,
+            ),
+        )
+        dao.appendAudit(
+            auditFor(
+                key = write.captured,
+                sourceRowCount = currentSnapshot.rows.size,
+                observationCount = write.observationCount,
+                exclusionCount = write.exclusionCount,
+                status = if (decision.disposition == ShadowCacheWriteDisposition.INVALIDATED) {
+                    ShadowRebuildStatus.INVALIDATED
+                } else {
+                    ShadowRebuildStatus.COMPLETED
+                },
+                recordedAtEpochMillis = write.completedAtEpochMillis,
+            ),
+        )
+        decision
+    }
+
+    private suspend fun captureShadowSnapshot(): ShadowSnapshot =
+        ShadowSnapshot.from(
+            sessions = db.sessionDao().allForShadowSnapshot(),
+            setLogs = db.setLogDao().allForShadowSnapshot(),
+            exercises = db.exerciseDao().allForShadowSnapshot(),
+        )
+
+    private fun ShadowSnapshotEntity.toCacheKey() = ShadowCacheKey(
+        sourceFingerprint = sourceFingerprint,
+        modelContractHash = modelContractHash,
+        metadataHash = metadataHash,
+        orderingPolicy = orderingPolicy,
+    )
+
+    private fun auditFor(
+        key: ShadowCacheKey,
+        sourceRowCount: Int,
+        observationCount: Int,
+        exclusionCount: Int,
+        status: ShadowRebuildStatus,
+        recordedAtEpochMillis: Long,
+    ) = ShadowAuditEntity(
+        sourceFingerprint = key.sourceFingerprint,
+        modelContractHash = key.modelContractHash,
+        metadataHash = key.metadataHash,
+        orderingPolicy = key.orderingPolicy,
+        sourceRowCount = sourceRowCount,
+        observationCount = observationCount,
+        exclusionCount = exclusionCount,
+        rebuildStatus = status.name,
+        recordedAtEpochMillis = recordedAtEpochMillis,
+    )
 
     suspend fun logBodyMetric(date: LocalDate, weightKg: Double?, waistCm: Double?, heightCm: Double?) {
         db.bodyMetricDao().insert(BodyMetric(date = date, weightKg = weightKg, waistCm = waistCm, heightCm = heightCm))

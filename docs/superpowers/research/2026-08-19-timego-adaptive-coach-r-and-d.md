@@ -1,7 +1,8 @@
 # TimeGo adaptive coach — research and decision brief
 
 **Date:** 2026-08-19
-**Status:** R&D only — no product behaviour or app code approved by this note
+**Status:** R&D contract; a separate user decision authorised provisional hidden Android Tasks 4–7,
+but no visible product behaviour, candidate scoring, policy, or promotion claim
 **Question:** How can TimeGo *learn* a user's level from normal local workout logs and recommend suitable strength, calisthenics, and stamina work without a chatbot, a fixed exercise ladder, cloud services, telemetry, or runtime downloads?
 
 ## Executive conclusion
@@ -178,8 +179,10 @@ progression route.
 ### Closed-session continuous-learning implementation
 
 The research harness now turns one closed session into at most one maximum completed work point
-per known exercise and measurement basis. Positive recorded total load uses `log1p(load * reps)`;
-where no total load was recorded, bodyweight work uses the separate `log1p(reps)` basis; holds use
+per known exercise and measurement basis. Positive finite recorded total load uses `log1p(load * reps)`;
+exactly zero load uses the separate `log1p(reps)` basis only when reviewed metadata declares the
+exercise bodyweight-supported; negative/non-finite load and ordinary zero-load strength rows are
+excluded. Holds use
 `log1p(seconds)`. The first personal observation for an exercise/basis is a neutral baseline, not
 transfer evidence. Only a later closed-session observation for that same exercise and basis may
 update the small time-varying demand-coordinate state. This keeps zero-load bodyweight records
@@ -190,7 +193,21 @@ session only after all scores are final. It emits aggregate MAE/RMSE and evidenc
 cannot expose personal rows and has no winner when there are zero boundaries. The current private
 aggregate audit has 26 baselines, one prediction boundary/update, and an aggregate tie (MAE
 0.1164). One boundary is still far below the evidence needed to claim a better predictor,
-calibrate it, port Kotlin code, or show a card.
+calibrate it, promote a Kotlin model, or show a card. The separately authorised hidden Kotlin
+foundation is provisional implementation work and does not change that conclusion.
+
+### Provisional hidden Android foundation (2026-08-20)
+
+Tasks 4–7 now implement the synthetic parity contract, pure Kotlin replay, atomic Room snapshot
+mapper, and schema-14 rebuildable cache/audit pipeline. The mapper selects one maximum completed
+point per exercise/basis/closed session and applies the reviewed bodyweight eligibility rule. The
+replay freezes held-session prediction eligibility but applies actual observations sequentially
+using the evolving posterior. The checked cache read rejects source, model, metadata, order, or
+completion mismatches immediately. Migration coverage spans 11→12→13→14, 12→13→14, and 13→14.
+No runtime caller creates candidates, recommendations, policy events, telemetry, or visible UI.
+Research and shadow gates remain unpassed until substantially more later same-exercise/basis
+boundaries and trustworthy pre-set target outcomes support calibration, comparator, abstention,
+counterexample, self-correction, and user explanation review.
 
 ## 2026-08-20 candidate-prior decision boundary
 

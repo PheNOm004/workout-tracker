@@ -21,6 +21,10 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises WHERE id = :id")
     suspend fun getById(id: Long): Exercise?
 
+    /** Read once inside the hidden shadow snapshot transaction; never a live Flow. */
+    @Query("SELECT * FROM exercises ORDER BY id")
+    suspend fun allForShadowSnapshot(): List<Exercise>
+
     @Update
     suspend fun update(exercise: Exercise)
 

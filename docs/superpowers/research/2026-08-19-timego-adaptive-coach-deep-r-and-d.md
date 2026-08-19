@@ -123,3 +123,14 @@ No product code should add `INTERNET`, a telemetry SDK, remote configuration, dy
 ## Recommendation
 
 Proceed to the planned private, read-only R0 audit only after these revisions are merged into the design. The initial model should be permitted to return “insufficient evidence,” particularly for stamina and unseen exercise metadata. That is evidence of correct uncertainty handling—not a reason to fall back to a hardcoded roadmap.
+
+## Provisional implementation status — 2026-08-20
+
+The privacy, stable-key, deterministic snapshot/replay, and rebuildable-cache design requirements
+above now have a provisional hidden Android implementation through Tasks 4–7. Schema 14 remains
+strictly additive; checked reads reject stale source/model/metadata/order state, and device
+migration coverage starts from exported schemas 11, 12, and 13. This is implementation evidence,
+not a successful R1/R2 data verdict. The current private audit still has only 26 baselines, one
+tied later boundary (MAE 0.1164), zero trusted historic target outcomes, and zero later envelope
+comparisons. Candidate scoring, recommendation/event persistence, policy work, and visible UI
+remain unimplemented and blocked.

@@ -26,7 +26,7 @@ Build a fully offline, phone-only adaptive coach in gated vertical slices. Start
 
 - [x] Task 1: Audit a read-only, ignored local export for modality outcome coverage, bodyweight correspondence, and missingness (2026-08-19; insufficient temporal evidence for a validated learner).
 - [x] Task 2: Define weighted-rep, hold/bodyweight, and pace-capable stamina observation contracts; add anchors, metadata versioning, and identifiability fixtures (2026-08-20). Schema 12 records future suggested-target provenance and schema 13 persists immutable built-in `catalogueKey` values. Ordinary weighted-rep/hold logs build a conservative time-stamped performance envelope, while binary target outcomes remain a separate signal. The adapter preserves every stored muscle contribution weight for keyed history without Room IDs/names. The reviewed v1 candidate set is deliberately narrow; broader candidate expansion remains deferred, not a roadmap prerequisite.
-- [x] Task 3: Closed-session chronological evaluation is implemented for the continuous ordinary-log learner (2026-08-20). It freezes state before each completed session, compares predicted same-exercise/basis work scores with a same-basis last-observation baseline, then applies the whole session in deterministic set/key/basis order. Its aggregate-only report provides MAE/RMSE, boundary and insufficient-evidence counts, and never names a winner with zero boundaries; binary target calibration remains separate. Synthetic leakage, comparator, basis-separation, and no-boundary abstention tests pass. The read-only local audit has 26 baselines, one later prediction boundary/update, and an aggregate candidate/baseline tie (MAE 0.1164); one boundary is far too little for a validation claim, Android port, or visible card.
+- [x] Task 3: Closed-session chronological evaluation is implemented for the continuous ordinary-log learner (2026-08-20). It freezes state before each completed session, compares predicted same-exercise/basis work scores with a same-basis last-observation baseline, then applies the whole session in deterministic set/key/basis order. Its aggregate-only report provides MAE/RMSE, boundary and insufficient-evidence counts, and never names a winner with zero boundaries; binary target calibration remains separate. Synthetic leakage, comparator, basis-separation, and no-boundary abstention tests pass. The read-only local audit has 26 baselines, one later prediction boundary/update, and an aggregate candidate/baseline tie (MAE 0.1164); one boundary is far too little for a validation or promotion claim. The later user-authorised Android port is therefore provisional hidden infrastructure only and does not satisfy this gate or authorise a visible card.
 
 ### Checkpoint: Research verdict
 
@@ -45,10 +45,10 @@ recommendations, policy outcomes, or a card. Tasks 8–10 remain blocked on late
 
 ### Phase 2: Phone-side model and shadow mode
 
-- [ ] Task 4: Freeze a **provisional** language-independent synthetic parity contract and vectors. It remains hidden pending validation.
-- [ ] Task 5: Implement the provisional pure Kotlin domain model with rebuild-equals-incremental tests.
-- [ ] Task 6: Integrate hidden read-only analysis from atomic Room snapshots off the UI thread, with no visible behaviour change.
-- [ ] Task 7: Add additive local shadow cache/audit persistence and validate invalidation, stale-write rejection, and rebuild against a full rebuild.
+- [x] Task 4: Freeze a **provisional** language-independent synthetic parity contract and vectors (2026-08-20). The versioned, invented-only fixture covers a loaded baseline/update, independent reps-only and hold baselines, and diagonal long-gap variance widening. Kotlin reproduces the frozen values without Python, a model file, personal records, or a runtime dependency. This is implementation parity, not validation.
+- [x] Task 5: Implement the **provisional hidden** pure Kotlin domain model (2026-08-20). It keeps measurement bases independent, freezes held-session prediction eligibility, applies actual observations sequentially with evolving residual/variance, and preserves full-rebuild/ordered-incremental equivalence. It is not a promoted learner.
+- [x] Task 6: Implement the **provisional hidden** atomic Room snapshot and pure mapper/replay seam (2026-08-20). It selects one maximum completed observation per exercise/basis/closed session, permits zero-load reps-only evidence only for reviewed bodyweight-supported metadata, and does not alter current UI or rule-based suggestions.
+- [x] Task 7: Implement the **provisional hidden** schema-14 cache/audit and production rebuild pipeline (2026-08-20). It maps an atomic source snapshot, replays per basis, encodes derived state, atomically checks/writes cache plus aggregate audit, and makes source/model/metadata/order mismatches unusable through the checked read path. Migration coverage includes 11→12→13→14, 12→13→14, and 13→14. This does not pass Checkpoint A or B.
 
 ### Checkpoint: Shadow verdict
 
@@ -80,4 +80,4 @@ recommendations, policy outcomes, or a card. Tasks 8–10 remain blocked on late
 
 ## Approval requirement
 
-Do not start implementation until the user approves this plan and explicitly authorises the read-only local data audit. Each later phase requires its preceding checkpoint.
+The user approved the read-only audit and separately authorised only the provisional hidden Tasks 4–7 foundation. Tasks 8–10 and every visible/candidate/policy change still require the unpassed research and shadow checkpoints above.
