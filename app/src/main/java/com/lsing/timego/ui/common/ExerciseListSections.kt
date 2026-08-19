@@ -132,6 +132,7 @@ private fun normalizeForSearch(text: String): String =
 @Composable
 fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exercise) -> Unit) {
     var query by remember { mutableStateOf("") }
+    var expandedGroupKeys by remember { mutableStateOf<List<String>>(emptyList()) }
 
     OutlinedTextField(
         value = query,
@@ -184,13 +185,16 @@ fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exerci
                 }
                 byMuscleGroup.forEach { (group, groupExercises) ->
                     key(group) {
-                        var groupExpanded by remember(category, group) { mutableStateOf(false) }
+                        val groupKey = "${category.name}:$group"
+                        val groupExpanded = groupKey in expandedGroupKeys
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = Spacing.Small)
-                                .clickable { groupExpanded = !groupExpanded },
+                                .clickable {
+                                    expandedGroupKeys = toggleExpandedExerciseGroupKeys(expandedGroupKeys, groupKey)
+                                },
                         ) {
                             Icon(
                                 if (groupExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
