@@ -10,11 +10,11 @@ import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.PersonalRecord
 import com.lsing.timego.domain.TrainingStats
 import com.lsing.timego.domain.bodyMassIndex
-import com.lsing.timego.domain.frequencyDistributionForTimeframe
 import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.latestHeightCm
 import com.lsing.timego.domain.latestWeightKg
 import com.lsing.timego.domain.muscleGroupStrengthCurve
+import com.lsing.timego.domain.muscleDistributionForTimeframe
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.personalRecords
 import com.lsing.timego.domain.strengthCurve
@@ -129,7 +129,7 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                     allSets,
                     timeframe.sinceDate(sessions.minOfOrNull { it.date }, today),
                 )
-                _muscleDistribution.value = frequencyDistributionForTimeframe(
+                _muscleDistribution.value = muscleDistributionForTimeframe(
                     timeframe = timeframe,
                     sessions = sessions,
                     sets = allSets,
