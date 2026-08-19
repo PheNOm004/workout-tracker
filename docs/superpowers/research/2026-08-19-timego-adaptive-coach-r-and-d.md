@@ -174,6 +174,30 @@ tests ([Grgic et al., 2020](https://pmc.ncbi.nlm.nih.gov/articles/PMC7367986/)).
 therefore a conservative history feature; a candidate for a new exercise still needs declared
 metadata, a broad task-residual uncertainty model, and an abstention path rather than a fixed
 progression route.
+
+## 2026-08-20 candidate-prior decision boundary
+
+Fresh source review confirms that no inspected public source supplies a suitable learned difficulty
+model for TimeGo's strength and calisthenics library. Free Exercise DB is public-domain and can be
+used offline for equipment, force, mechanic, and muscle metadata, but its `level` field is
+editorial; using it as readiness, rank, or a prerequisite would recreate the rejected hard-coded
+roadmap ([source](https://github.com/yuhonas/free-exercise-db)). OpenPowerlifting is CC0 but only
+covers competition squat, bench, and deadlift data, so it cannot calibrate calisthenics or the
+broader library ([source](https://gitlab.com/openpowerlifting/opl-data/-/tree/main)). wger has
+useful muscle/equipment relations, but its application and entry data have licensing constraints
+that require per-entry review, and it supplies no personal task-performance prior
+([source](https://github.com/wger-project/wger)).
+
+Therefore the product must make an explicit choice before it can show a **new** exercise:
+
+1. Strict own-history-only mode: use direct evidence and abstain for an unseen task until safe
+   bridge evidence exists. This is the current default.
+2. A conservative offline task-residual prior: a broad statistical uncertainty distribution that
+   is not an exercise rank, level, or order. It can only pass a candidate when the entire
+   uncertainty interval is safe; otherwise it abstains.
+
+Neither source review nor software can make that product choice silently. Do not adopt exercise
+`level` metadata, a population tier, or a deterministic fallback path as a substitute.
 - Personal logs, database exports, model snapshots containing identifiable workout history, and backup files remain local and untracked.
 
 ## Decision requested after R0/R1
