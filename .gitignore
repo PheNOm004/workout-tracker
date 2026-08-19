@@ -9,3 +9,17 @@
 .cxx
 /.worktrees
 /.superpowers
+
+# Personal workout records stay local: never commit Room database copies, WAL files, or exports.
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+**/timego_database*
+/exports/
+/backups/
+/personal-records/
