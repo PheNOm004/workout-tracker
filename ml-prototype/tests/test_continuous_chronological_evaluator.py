@@ -95,6 +95,32 @@ def test_measurement_bases_never_share_a_baseline_or_last_observation():
     assert isclose(result.baseline_mae, 2.0)
 
 
+def test_repeated_updates_in_one_basis_cannot_change_another_basis_prediction():
+    without_reps_only_update = run_continuous_chronological_evaluation(
+        [
+            session(1, 1_000, observation(1, 1_000, 1.0, measurement_basis="load_reps")),
+            session(2, 2_000, observation(2, 2_000, 1.0, measurement_basis="reps_only")),
+            session(3, 3_000, observation(3, 3_000, 3.0, measurement_basis="load_reps")),
+        ],
+        config(),
+    )
+    with_reps_only_update = run_continuous_chronological_evaluation(
+        [
+            session(1, 1_000, observation(1, 1_000, 1.0, measurement_basis="load_reps")),
+            session(2, 2_000, observation(2, 2_000, 1.0, measurement_basis="reps_only")),
+            session(3, 3_000, observation(3, 3_000, 3.0, measurement_basis="reps_only")),
+            session(4, 4_000, observation(4, 4_000, 3.0, measurement_basis="load_reps")),
+        ],
+        config(),
+    )
+
+    # The reps-only update has a non-zero state change, but the later load/reps prediction still
+    # uses its untouched load/reps state.  Both evaluation runs therefore retain MAE 2.0.
+    assert isclose(without_reps_only_update.candidate_mae, 2.0)
+    assert isclose(with_reps_only_update.candidate_mae, 2.0)
+    assert isclose(with_reps_only_update.baseline_mae, 2.0)
+
+
 def test_no_repeated_exercise_basis_boundary_reports_insufficient_evidence_not_a_winner():
     result = run_continuous_chronological_evaluation(
         [

@@ -118,7 +118,7 @@ def run_continuous_chronological_evaluation(
     for session in ordered:
         _validate_session(session)
 
-    state = ContinuousCapabilityState.prior(config)
+    states_by_basis: dict[str, ContinuousCapabilityState] = {}
     last_observed_work: dict[tuple[str, str], float] = {}
     candidate_errors: list[float] = []
     baseline_errors: list[float] = []
@@ -132,6 +132,10 @@ def run_continuous_chronological_evaluation(
         # Evaluate from the pre-session snapshot.  This is intentionally separate from updates.
         for observation in observations:
             key = _observation_key(observation)
+            state = states_by_basis.get(
+                observation.measurement_basis,
+                ContinuousCapabilityState.prior(config),
+            )
             baseline = state.baseline_for(*key)
             prior_last_observation = last_observed_work.get(key)
             if baseline is None or prior_last_observation is None:
@@ -147,8 +151,12 @@ def run_continuous_chronological_evaluation(
 
         # Apply the held-out session only after every one of its scores is final.
         for observation in observations:
+            state = states_by_basis.get(
+                observation.measurement_basis,
+                ContinuousCapabilityState.prior(config),
+            )
             update = update_from_performance_observation(state, observation, config)
-            state = update.state
+            states_by_basis[observation.measurement_basis] = update.state
             last_observed_work[_observation_key(observation)] = observation.observed_work_score
 
     candidate_mae = _mean_absolute_error(candidate_errors)
