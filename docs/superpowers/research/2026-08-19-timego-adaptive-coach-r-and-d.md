@@ -157,6 +157,23 @@ Only after sufficient local recommendation events exist, compare a fixed learned
 - No external dataset is a substitute for the user's own historical validation. OpenPowerlifting is a narrow offline comparison/optional prior, not a universal fitness model.
 - Never infer injury status, diagnosis, recovery or medical clearance from gym logs. The app should be able to withhold an uncertain recommendation.
 - Do not make a recommendation-policy or RL performance claim before prospective exposure/outcome data exists.
+
+## 2026-08-20 contract amendment — ordinary performance is evidence, not a fictional max
+
+The first prototype originally reserved posterior updates for pre-set binary target outcomes. That
+is still required for binary calibration, but it is too narrow as a description of what ordinary
+TimeGo logs establish. A non-warm-up weighted-rep set directly demonstrates its recorded
+load/repetition pair, and a hold directly demonstrates its recorded duration. The contract now
+retains a per-exercise non-dominated load/repetition envelope and longest-hold summary with
+timestamps. It makes no E1RM, maximum-effort, or readiness claim when RPE/RIR is absent.
+
+This is consistent with continuous-response latent-trait modelling as a general measurement
+approach ([Kern et al., 2024](https://doi.org/10.3102/10769986231184147)), while the direct-1RM
+reliability literature does not justify silently treating ordinary submaximal logs as direct 1RM
+tests ([Grgic et al., 2020](https://pmc.ncbi.nlm.nih.gov/articles/PMC7367986/)). The envelope is
+therefore a conservative history feature; a candidate for a new exercise still needs declared
+metadata, a broad task-residual uncertainty model, and an abstention path rather than a fixed
+progression route.
 - Personal logs, database exports, model snapshots containing identifiable workout history, and backup files remain local and untracked.
 
 ## Decision requested after R0/R1

@@ -13,9 +13,9 @@ The released app is self-contained on the phone: no account, cloud, telemetry, r
 | Source | Used only when | Never inferred from it |
 |---|---|---|
 | Closed session | It has deterministic end/start/session identifiers. | Future-session information or within-session held-out evidence. |
-| Weighted reps | Non-warm-up with valid reps/load. `weightKg` is read once; calisthenics already stores total bodyweight plus added load. | A second load contribution from `addedWeightKg`. |
+| Weighted reps | Non-warm-up with valid reps/load. `weightKg` is read once; calisthenics already stores total bodyweight plus added load. A time-stamped non-dominated load/repetition envelope records directly demonstrated performance. | A second load contribution from `addedWeightKg`, or a maximum-strength estimate when effort/RPE is absent. |
 | Target result | Target provenance proves it existed before the set. | A hit/miss from an auto-filled or unknown-provenance target. |
-| Hold | Non-warm-up with positive duration. | An E1RM-equivalent score. |
+| Hold | Non-warm-up with positive duration. A summary retains the longest demonstrated hold and the freshness of the latest evidence. | An E1RM-equivalent score or an assumed all-out effort. |
 | Cardio | Positive duration plus distance produces pace. | Stamina capability from duration-only volume. |
 | RPE/body metrics | They are present at the relevant observation. | A default effort value or exact same-day order. |
 | Exercise metadata | A versioned immutable catalogue key and reviewed attributes exist. | A key derived from Room IDs, display names, ranks, or prerequisite paths. |
@@ -24,7 +24,7 @@ The contract records explicit exclusions for warm-ups, missing/invalid measureme
 
 ## Model and metadata
 
-The prototype uses a diagonal Bayesian-style logistic posterior. It widens variance over time gaps without assuming a physiological detraining rate. A binary update requires a genuine pre-set target outcome and identified task demand. Unknown demand or a wide interval produces abstention.
+The prototype has two evidence layers. A conservative performance envelope learns only what ordinary weighted-rep and hold logs directly demonstrate; it is rebuilt from history and reports its freshness. A diagonal Bayesian-style logistic posterior is reserved for genuine pre-set target outcomes with identified task demand. It widens variance over time gaps without assuming a physiological detraining rate. Unknown demand or a wide interval produces abstention.
 
 The model output is restricted to local state, confidence interval, factual evidence, or an abstention/exclusion reason. It has no `nextExercise`, rank, prerequisite, or progression field.
 
@@ -32,6 +32,6 @@ The review-only v1 draft is [`metadata/adaptive-coach-catalogue.2026-08-19.v1.js
 
 ## Evaluation, privacy, and versioning
 
-Each backtest holds out a completed session and uses only earlier sessions, ordered by session end, session ID, then set ID. The model is compared with same-task last-observation and EWMA baselines. Promotion requires enough real temporal boundaries, genuine target outcomes, reviewed candidate metadata, calibration/interval coverage, and counterexample review. The current history fails that gate, so abstention is correct.
+Each backtest holds out a completed session and uses only earlier sessions, ordered by session end, session ID, then set ID. Ordinary performance is evaluated against same-task historical envelopes; binary target calibration is evaluated only where a genuine target outcome exists. Promotion requires enough real temporal boundaries, reviewed candidate metadata, calibrated uncertainty where binary labels exist, and counterexample review. The current history still fails that gate, so abstention is correct.
 
 Raw logs and derived coach state stay on-device. Backup/device transfer are disabled. Private exports, database copies, reports, snapshots, and audit outputs are ignored by Git. A future derived cache must carry model contract, catalogue version/hash, ordering policy, and canonical source fingerprint; a mismatch invalidates and rebuilds it.
