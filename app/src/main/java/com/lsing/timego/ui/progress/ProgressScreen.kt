@@ -72,6 +72,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val weightCurve by viewModel.weightCurve.collectAsState()
     val currentBmi by viewModel.currentBmi.collectAsState()
     val muscleDistribution by viewModel.muscleDistribution.collectAsState()
+    val muscleBalance by viewModel.muscleBalance.collectAsState()
     val trainingStats by viewModel.trainingStats.collectAsState()
     val timeframe by viewModel.timeframe.collectAsState()
 
@@ -117,7 +118,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             )
         }
         item {
-            SectionHeader("Muscle Distribution (${timeframeLabel(timeframe)})")
+            SectionHeader("Muscle Balance (${timeframeLabel(timeframe)})")
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 ProgressTimeframe.entries.forEach { option ->
                     FilterChip(
@@ -129,7 +130,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 }
             }
             Text(
-                "Colors show volume relative to your most-trained muscle group this period",
+                "Radar shows progress toward an even training balance across muscle groups this period; body diagram below shows volume relative to your most-trained muscle group.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 4.dp),
@@ -143,7 +144,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 )
             } else {
                 RadarChart(
-                    values = orderedMuscleDistributionForChart(muscleDistribution)
+                    values = orderedMuscleDistributionForChart(muscleBalance)
                         .mapKeys { (group, _) -> formatEnumLabel(group) },
                     modifier = Modifier.fillMaxWidth().height(220.dp).padding(vertical = 8.dp),
                 )
