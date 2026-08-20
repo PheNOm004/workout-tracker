@@ -32,11 +32,14 @@ import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
 import com.lsing.timego.domain.lastWorkingSetByExercise
 import com.lsing.timego.domain.latestWeightKg
+import com.lsing.timego.domain.muscleBalanceForTimeframe
 import com.lsing.timego.domain.muscleGroupsAffectedInSession
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.muscleGroupIntensityForSession
+import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.repRangeAtWeight
+import com.lsing.timego.domain.routineLastCompletedDates
 import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.sessionWorkingSetHistory
 import com.lsing.timego.domain.suggestedExerciseFor
@@ -73,6 +76,15 @@ data class LandingSummary(
     val lastSession: LastSessionSummary?,
     val recommendedMuscleGroups: List<String>,
     val suggestedExercise: Exercise?,
+)
+
+/** Named holder for the four-way [combine] feeding suggestions/landing balance -- destructured at
+ *  the collector, so the positional tuple never escapes this file. */
+private data class LandingInputs(
+    val exercises: List<Exercise>,
+    val setLogs: List<SetLog>,
+    val sessions: List<com.lsing.timego.data.WorkoutSession>,
+    val timeframe: ProgressTimeframe,
 )
 
 /** [selectedRoutineId] null means freeform (all exercises shown, sessions logged with no routine
@@ -124,6 +136,15 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     )
     val landingSummary: StateFlow<LandingSummary> = _landingSummary.asStateFlow()
 
+    private val _landingBalanceTimeframe = MutableStateFlow(ProgressTimeframe.MONTH)
+    val landingBalanceTimeframe: StateFlow<ProgressTimeframe> = _landingBalanceTimeframe.asStateFlow()
+
+    private val _landingMuscleBalance = MutableStateFlow<Map<String, Float>>(emptyMap())
+    val landingMuscleBalance: StateFlow<Map<String, Float>> = _landingMuscleBalance.asStateFlow()
+
+    private val _routineLastCompleted = MutableStateFlow<Map<Long, LocalDate>>(emptyMap())
+    val routineLastCompleted: StateFlow<Map<Long, LocalDate>> = _routineLastCompleted.asStateFlow()
+
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
     val holdDelaySeconds: StateFlow<Int> = _holdDelaySeconds.asStateFlow()
 
@@ -139,9 +160,14 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
-            combine(repository.exercises, repository.setLogs, repository.sessions) { exercises, setLogs, sessions ->
-                Triple(exercises, setLogs, sessions)
-            }.collect { (list, setLogs, sessions) ->
+            combine(
+                repository.exercises,
+                repository.setLogs,
+                repository.sessions,
+                _landingBalanceTimeframe,
+            ) { exercises, setLogs, sessions, timeframe ->
+                LandingInputs(exercises, setLogs, sessions, timeframe)
+            }.collect { (list, setLogs, sessions, timeframe) ->
                 allExercises = list
                 exerciseUsageCounts = exerciseUsageFrequency(setLogs, list.associateBy { it.id })
                 _lastWorkingSets.value = lastWorkingSetByExercise(setLogs, sessions, list.associateBy { it.id })
@@ -152,6 +178,13 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 refreshSessionState()
                 refreshSuggestions(list)
                 refreshDisplayedExercises()
+                _landingMuscleBalance.value = muscleBalanceForTimeframe(
+                    timeframe = timeframe,
+                    sessions = sessions,
+                    sets = setLogs,
+                    exercisesById = list.associateBy { it.id },
+                    today = LocalDate.now(),
+                )
             }
         }
         viewModelScope.launch {
@@ -164,6 +197,10 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
+        }
+        viewModelScope.launch {
+            combine(repository.routines, repository.sessions) { _, sessions -> sessions }
+                .collect { sessions -> _routineLastCompleted.value = routineLastCompletedDates(sessions) }
         }
         // Collected, not read once: calisthenics sets compute their stored weightKg as
         // bodyweight + added k at log time, so a bodyweight logged on the Progress tab has to
@@ -179,6 +216,10 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     fun selectRoutine(routineId: Long?) {
         _selectedRoutineId.value = routineId
         viewModelScope.launch { refreshDisplayedExercises() }
+    }
+
+    fun selectLandingBalanceTimeframe(timeframe: ProgressTimeframe) {
+        _landingBalanceTimeframe.value = timeframe
     }
 
     private suspend fun refreshDisplayedExercises() {
