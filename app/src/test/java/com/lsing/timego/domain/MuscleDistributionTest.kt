@@ -211,4 +211,68 @@ class MuscleDistributionTest {
         assertEquals(0.15, effortWeight(1), 0.001)
         assertEquals(0.15, effortWeight(4), 0.001)
     }
+
+    @Test
+    fun `muscleGroupEffectiveSetDistribution weights a set by its RPE effort credit`() {
+        val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
+        val sets = listOf(
+            // RPE 8 -> full credit (1.0)
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 20.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0, rpe = 8),
+            // RPE 3 -> low credit (0.15)
+            SetLog(id = 2, sessionId = 1, exerciseId = 1, weightKg = 10.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0, rpe = 3),
+        )
+        val exercisesById = mapOf(1L to curl)
+        val sessionDateById = mapOf(1L to LocalDate.of(2026, 8, 10))
+
+        val distribution = muscleGroupEffectiveSetDistribution(sets, exercisesById, sessionDateById, since = LocalDate.of(2026, 8, 1))
+
+        assertEquals(1.15, distribution["BICEPS"]!!, 0.001)
+    }
+
+    @Test
+    fun `muscleGroupEffectiveSetDistribution treats missing RPE as full credit`() {
+        val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 20.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0, rpe = null),
+        )
+        val distribution = muscleGroupEffectiveSetDistribution(
+            sets, mapOf(1L to curl), mapOf(1L to LocalDate.of(2026, 8, 10)), since = LocalDate.of(2026, 8, 1),
+        )
+
+        assertEquals(1.0, distribution["BICEPS"]!!, 0.001)
+    }
+
+    @Test
+    fun `muscleGroupEffectiveSetDistribution excludes cardio and warmup sets, applies muscleWeights partial credit`() {
+        val pullover = Exercise(
+            id = 1, name = "Pullover", muscleGroups = listOf("LATS", "CHEST"), isCustom = false,
+            category = "STRENGTH", muscleWeights = mapOf("CHEST" to 30),
+        )
+        val run = Exercise(id = 2, name = "Running", muscleGroups = listOf("QUADS"), isCustom = false, category = "CARDIO", loggingType = "DURATION_DISTANCE")
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 10.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0, rpe = 9),
+            SetLog(id = 2, sessionId = 1, exerciseId = 2, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 1, durationMinutes = 30.0),
+        )
+        val exercisesById = mapOf(1L to pullover, 2L to run)
+        val sessionDateById = mapOf(1L to LocalDate.of(2026, 8, 10))
+
+        val distribution = muscleGroupEffectiveSetDistribution(sets, exercisesById, sessionDateById, since = LocalDate.of(2026, 8, 1))
+
+        assertEquals(1.0, distribution["LATS"]!!, 0.001)
+        assertEquals(0.3, distribution["CHEST"]!!, 0.001)
+        assertEquals(null, distribution["QUADS"])
+    }
+
+    @Test
+    fun `muscleGroupEffectiveSetDistribution excludes sets before the cutoff date`() {
+        val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 20.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0, rpe = 8),
+        )
+        val distribution = muscleGroupEffectiveSetDistribution(
+            sets, mapOf(1L to curl), mapOf(1L to LocalDate.of(2026, 7, 1)), since = LocalDate.of(2026, 8, 1),
+        )
+
+        assertEquals(emptyMap<String, Double>(), distribution)
+    }
 }

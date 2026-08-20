@@ -69,6 +69,34 @@ fun muscleGroupVolumeDistribution(
     return volumeByGroup
 }
 
+/** Weighted effective-set count per muscle group, mirroring [muscleGroupVolumeDistribution]'s
+ *  filtering and [Exercise.muscleWeights] partial-credit conventions but counting RPE-weighted
+ *  sets instead of load -- sets are the unit fitness research treats as comparable across muscle
+ *  groups, unlike kg-moved. Deliberately a separate function: [muscleGroupVolumeDistribution] and
+ *  [muscleDistributionForTimeframe] remain unchanged and continue to drive the body-diagram
+ *  heatmap, which must not change. */
+fun muscleGroupEffectiveSetDistribution(
+    history: List<SetLog>,
+    exercisesById: Map<Long, Exercise>,
+    sessionDateById: Map<Long, LocalDate>,
+    since: LocalDate,
+): Map<String, Double> {
+    val effectiveSetsByGroup = mutableMapOf<String, Double>()
+    for (log in history) {
+        val exercise = exercisesById[log.exerciseId] ?: continue
+        if (log.isWarmup || exercise.category == ExerciseCategory.WARMUP.name || exercise.category == ExerciseCategory.CARDIO.name) continue
+        if (exercise.loggingType != LoggingType.WEIGHT_REPS.name && exercise.loggingType != LoggingType.HOLD.name) continue
+        val date = sessionDateById[log.sessionId] ?: continue
+        if (date.isBefore(since)) continue
+        val weight = effortWeight(log.rpe)
+        for (group in exercise.muscleGroups) {
+            val credit = weight * (exercise.muscleWeights[group] ?: 100) / 100.0
+            effectiveSetsByGroup[group] = (effectiveSetsByGroup[group] ?: 0.0) + credit
+        }
+    }
+    return effectiveSetsByGroup
+}
+
 /** Keeps the detailed radar axes stable as the user logs different exercise sequences. The raw
  * distribution map follows set/exercise insertion order, which would otherwise make the same
  * muscle jump to a different spoke between recompositions. */
