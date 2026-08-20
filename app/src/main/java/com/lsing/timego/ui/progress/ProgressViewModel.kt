@@ -14,6 +14,7 @@ import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.latestHeightCm
 import com.lsing.timego.domain.latestWeightKg
 import com.lsing.timego.domain.muscleGroupStrengthCurve
+import com.lsing.timego.domain.muscleBalanceForTimeframe
 import com.lsing.timego.domain.muscleDistributionForTimeframe
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.personalRecords
@@ -88,6 +89,9 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _muscleDistribution = MutableStateFlow<Map<String, Float>>(emptyMap())
     val muscleDistribution: StateFlow<Map<String, Float>> = _muscleDistribution.asStateFlow()
 
+    private val _muscleBalance = MutableStateFlow<Map<String, Float>>(emptyMap())
+    val muscleBalance: StateFlow<Map<String, Float>> = _muscleBalance.asStateFlow()
+
     private val _trainingStats = MutableStateFlow(TrainingStats(0, 0.0, 0.0, 0))
     val trainingStats: StateFlow<TrainingStats> = _trainingStats.asStateFlow()
 
@@ -130,6 +134,13 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                     timeframe.sinceDate(sessions.minOfOrNull { it.date }, today),
                 )
                 _muscleDistribution.value = muscleDistributionForTimeframe(
+                    timeframe = timeframe,
+                    sessions = sessions,
+                    sets = allSets,
+                    exercisesById = exercisesById,
+                    today = today,
+                )
+                _muscleBalance.value = muscleBalanceForTimeframe(
                     timeframe = timeframe,
                     sessions = sessions,
                     sets = allSets,
