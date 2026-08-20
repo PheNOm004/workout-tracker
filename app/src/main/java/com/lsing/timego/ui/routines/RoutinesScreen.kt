@@ -1,5 +1,7 @@
 package com.lsing.timego.ui.routines
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -40,6 +42,7 @@ import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.Spacing
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 private val SESSION_HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy")
@@ -52,9 +55,28 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsState()
     val trainingLean by viewModel.trainingLean.collectAsState()
     val sessionHistory by viewModel.sessionHistory.collectAsState()
+    val backupResult by viewModel.backupResult.collectAsState()
     var showRoutineForm by remember { mutableStateOf(false) }
     var showSessionHistory by remember { mutableStateOf(false) }
     var pendingDeleteSessionId by remember { mutableStateOf<Long?>(null) }
+
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        uri?.let(viewModel::exportBackup)
+    }
+    val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::restoreBackup)
+    }
+
+    backupResult?.let { result ->
+        AlertDialog(
+            onDismissRequest = viewModel::clearBackupResult,
+            title = { Text(if (result.isError) "Backup problem" else "Backup") },
+            text = { Text(result.message) },
+            confirmButton = {
+                TextButton(onClick = viewModel::clearBackupResult) { Text("OK") }
+            },
+        )
+    }
 
     if (showRoutineForm) {
         RoutineFormDialog(
@@ -182,6 +204,23 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                         modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
                     )
                 }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
+        item {
+            SectionHeader(title = "Local backup", topPadding = Spacing.Large)
+            Text(
+                "Fully offline. Saves to a location you choose, outside app storage, so a reinstall can't erase it. Restore only adds sessions/routines/metrics you don't already have -- it never overwrites or removes anything live.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = Spacing.Small),
+            )
+            Row(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
+                Button(
+                    onClick = { exportLauncher.launch("timego-backup-${LocalDate.now()}.db") },
+                    modifier = Modifier.padding(end = Spacing.Small),
+                ) { Text("Export backup") }
+                TextButton(onClick = { restoreLauncher.launch(arrayOf("*/*")) }) { Text("Restore from backup") }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }

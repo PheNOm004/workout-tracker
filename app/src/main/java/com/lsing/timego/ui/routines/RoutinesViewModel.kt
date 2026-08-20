@@ -1,10 +1,13 @@
 package com.lsing.timego.ui.routines
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.lsing.timego.data.BackupManager
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.MuscleGroup
+import com.lsing.timego.data.RestoreSummary
 import com.lsing.timego.data.Routine
 import com.lsing.timego.data.SettingsRepository
 import com.lsing.timego.data.TimeGoDatabase
@@ -26,9 +29,16 @@ import java.time.LocalDate
  *  doc comment for why deleting an in-progress session isn't a supported case. */
 data class SessionHistoryEntry(val id: Long, val date: LocalDate, val setCount: Int)
 
+/** Outcome of the last export/restore action, shown once as a dialog then cleared. [message] is
+ *  a plain, user-readable summary; [isError] only styles the dialog, it doesn't change what's
+ *  already been safely written -- export/restore either fully succeed or make no live change. */
+data class BackupResult(val message: String, val isError: Boolean)
+
 class RoutinesViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
+    private val database = TimeGoDatabase.getInstance(application)
+    private val repository = WorkoutRepository(database)
     private val settingsRepository = SettingsRepository(application)
+    private val backupManager = BackupManager(application, database)
 
     private val _routines = MutableStateFlow<List<Routine>>(emptyList())
     val routines: StateFlow<List<Routine>> = _routines.asStateFlow()
@@ -47,6 +57,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
 
     private val _sessionHistory = MutableStateFlow<List<SessionHistoryEntry>>(emptyList())
     val sessionHistory: StateFlow<List<SessionHistoryEntry>> = _sessionHistory.asStateFlow()
+
+    private val _backupResult = MutableStateFlow<BackupResult?>(null)
+    val backupResult: StateFlow<BackupResult?> = _backupResult.asStateFlow()
 
     init {
         viewModelScope.launch { repository.routines.collect { _routines.value = it } }
@@ -105,5 +118,40 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
 
     fun deleteSession(sessionId: Long) {
         viewModelScope.launch { repository.deleteSession(sessionId) }
+    }
+
+    fun exportBackup(destination: Uri) {
+        viewModelScope.launch {
+            backupManager.export(destination).fold(
+                onSuccess = { _backupResult.value = BackupResult("Backup saved.", isError = false) },
+                onFailure = { e -> _backupResult.value = BackupResult("Export failed: ${e.message}", isError = true) },
+            )
+        }
+    }
+
+    fun restoreBackup(source: Uri) {
+        viewModelScope.launch {
+            backupManager.restore(source).fold(
+                onSuccess = { summary -> _backupResult.value = BackupResult(summary.toMessage(), isError = false) },
+                onFailure = { e -> _backupResult.value = BackupResult("Restore failed: ${e.message}", isError = true) },
+            )
+        }
+    }
+
+    fun clearBackupResult() {
+        _backupResult.value = null
+    }
+
+    private fun RestoreSummary.toMessage(): String {
+        val parts = mutableListOf(
+            "Imported $importedSessions session${if (importedSessions == 1) "" else "s"} ($importedSets sets)",
+        )
+        if (skippedSessions > 0) parts += "$skippedSessions session${if (skippedSessions == 1) "" else "s"} already present, skipped"
+        if (importedRoutines > 0) parts += "$importedRoutines routine${if (importedRoutines == 1) "" else "s"} imported"
+        if (skippedRoutines > 0) parts += "$skippedRoutines routine${if (skippedRoutines == 1) "" else "s"} already present, skipped"
+        if (importedBodyMetrics > 0) parts += "$importedBodyMetrics body metric${if (importedBodyMetrics == 1) "" else "s"} imported"
+        if (skippedBodyMetrics > 0) parts += "$skippedBodyMetrics body metric${if (skippedBodyMetrics == 1) "" else "s"} already present, skipped"
+        if (skippedSetsUnknownExercise > 0) parts += "$skippedSetsUnknownExercise set${if (skippedSetsUnknownExercise == 1) "" else "s"} skipped (exercise not found)"
+        return parts.joinToString(". ") + "."
     }
 }

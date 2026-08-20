@@ -150,6 +150,17 @@ val MIGRATION_13_14 = object : Migration(13, 14) {
     }
 }
 
+/** Shared with [com.lsing.timego.data.BackupManager], which opens a *separate* temporary Room
+ *  instance against a restored backup file -- that copy needs the exact same migration path as the
+ *  live database in case it was exported by an older app version. */
+val ALL_MIGRATIONS = arrayOf(
+    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
+    MIGRATION_13_14,
+)
+
+const val TIMEGO_DATABASE_FILE_NAME = "timego.db"
+
 @Database(
     entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class, ShadowSnapshotEntity::class, ShadowAuditEntity::class],
     version = 14,
@@ -169,8 +180,8 @@ abstract class TimeGoDatabase : RoomDatabase() {
 
         fun getInstance(context: Context): TimeGoDatabase =
             instance ?: synchronized(this) {
-                instance ?: Room.databaseBuilder(context.applicationContext, TimeGoDatabase::class.java, "timego.db")
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
+                instance ?: Room.databaseBuilder(context.applicationContext, TimeGoDatabase::class.java, TIMEGO_DATABASE_FILE_NAME)
+                    .addMigrations(*ALL_MIGRATIONS)
                     .build()
                     .also { instance = it }
             }
