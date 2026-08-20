@@ -23,12 +23,23 @@ import androidx.compose.ui.unit.dp
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.MuscleGroup
+import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.ui.theme.Spacing
 
 /** Title-Case display label for an ExerciseCategory or MuscleGroup enum name, e.g. "FULL_BODY" ->
  *  "Full Body". Shared here since both category and muscle-group headers need it. */
 fun formatEnumLabel(rawName: String): String =
     rawName.lowercase().split("_").joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
+
+/** "last 7 days" / "last 30 days" / "last 12 months" / "lifetime" -- shared between the Progress
+ *  screen's own Muscle Balance card and the Log landing page's, which has its own independent
+ *  timeframe selection but needs identical labels. */
+fun timeframeLabel(timeframe: ProgressTimeframe): String = when (timeframe) {
+    ProgressTimeframe.WEEK -> "last 7 days"
+    ProgressTimeframe.MONTH -> "last 30 days"
+    ProgressTimeframe.YEAR -> "last 12 months"
+    ProgressTimeframe.LIFETIME -> "lifetime"
+}
 
 private enum class SessionBodyRegion {
     UPPER_BODY,

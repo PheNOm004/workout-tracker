@@ -51,6 +51,7 @@ import com.lsing.timego.ui.common.SparklineChart
 import com.lsing.timego.ui.common.StatTile
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.formatEnumLabel
+import com.lsing.timego.ui.common.timeframeLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.NightCoral
 import com.lsing.timego.ui.theme.NightCoralShade
@@ -376,10 +377,3 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
 }
 
 private val PR_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d")
-
-private fun timeframeLabel(timeframe: ProgressTimeframe): String = when (timeframe) {
-    ProgressTimeframe.WEEK -> "last 7 days"
-    ProgressTimeframe.MONTH -> "last 30 days"
-    ProgressTimeframe.YEAR -> "last 12 months"
-    ProgressTimeframe.LIFETIME -> "lifetime"
-}
