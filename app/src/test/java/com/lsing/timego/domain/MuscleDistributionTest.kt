@@ -275,4 +275,117 @@ class MuscleDistributionTest {
 
         assertEquals(emptyMap<String, Double>(), distribution)
     }
+
+    @Test
+    fun `muscleBalanceForTimeframe scores exactly-target effective sets as 1_0 over a one-week window`() {
+        val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
+        val sessions = listOf(WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 10), routineId = null, startEpochMillis = 0, endEpochMillis = 0))
+        // 10 sets at RPE 8 (full credit each) = 10.0 effective sets, target for WEEK is 10.0 -> 1.0
+        val sets = (1..10).map { i ->
+            SetLog(id = i.toLong(), sessionId = 1, exerciseId = 1, weightKg = 20.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0, rpe = 8)
+        }
+
+        val balance = muscleBalanceForTimeframe(
+            timeframe = ProgressTimeframe.WEEK,
+            sessions = sessions,
+            sets = sets,
+            exercisesById = mapOf(1L to curl),
+            today = LocalDate.of(2026, 8, 10),
+        )
+
+        assertEquals(1.0f, balance["BICEPS"]!!, 0.001f)
+    }
+
+    @Test
+    fun `muscleBalanceForTimeframe scores half-target effective sets as 0_5`() {
+        val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
+        val sessions = listOf(WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 10), routineId = null, startEpochMillis = 0, endEpochMillis = 0))
+        val sets = (1..5).map { i ->
+            SetLog(id = i.toLong(), sessionId = 1, exerciseId = 1, weightKg = 20.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0, rpe = 8)
+        }
+
+        val balance = muscleBalanceForTimeframe(
+            timeframe = ProgressTimeframe.WEEK,
+            sessions = sessions,
+            sets = sets,
+            exercisesById = mapOf(1L to curl),
+            today = LocalDate.of(2026, 8, 10),
+        )
+
+        assertEquals(0.5f, balance["BICEPS"]!!, 0.001f)
+    }
+
+    @Test
+    fun `muscleBalanceForTimeframe caps at 1_0 and never exceeds it`() {
+        val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
+        val sessions = listOf(WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 10), routineId = null, startEpochMillis = 0, endEpochMillis = 0))
+        val sets = (1..20).map { i ->
+            SetLog(id = i.toLong(), sessionId = 1, exerciseId = 1, weightKg = 20.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0, rpe = 8)
+        }
+
+        val balance = muscleBalanceForTimeframe(
+            timeframe = ProgressTimeframe.WEEK,
+            sessions = sessions,
+            sets = sets,
+            exercisesById = mapOf(1L to curl),
+            today = LocalDate.of(2026, 8, 10),
+        )
+
+        assertEquals(1.0f, balance["BICEPS"]!!, 0.001f)
+    }
+
+    @Test
+    fun `muscleBalanceForTimeframe scales the target across a month window`() {
+        val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
+        val sessions = listOf(WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 1), routineId = null, startEpochMillis = 0, endEpochMillis = 0))
+        // Month window is 30 days = 30/7 weeks; target = 10 * 30/7 = ~42.857. 21.43 effective sets -> ~0.5.
+        val sets = (1..21).map { i ->
+            SetLog(id = i.toLong(), sessionId = 1, exerciseId = 1, weightKg = 20.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0, rpe = 8)
+        }
+
+        val balance = muscleBalanceForTimeframe(
+            timeframe = ProgressTimeframe.MONTH,
+            sessions = sessions,
+            sets = sets,
+            exercisesById = mapOf(1L to curl),
+            today = LocalDate.of(2026, 8, 10),
+        )
+
+        assertEquals(0.49f, balance["BICEPS"]!!, 0.01f)
+    }
+
+    @Test
+    fun `muscleBalanceForTimeframe is empty when no qualifying sets exist`() {
+        val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
+        val balance = muscleBalanceForTimeframe(
+            timeframe = ProgressTimeframe.WEEK,
+            sessions = emptyList(),
+            sets = emptyList(),
+            exercisesById = mapOf(1L to curl),
+            today = LocalDate.of(2026, 8, 10),
+        )
+
+        assertEquals(emptyMap<String, Float>(), balance)
+    }
+
+    @Test
+    fun `muscleBalanceForTimeframe does not divide by zero on a same-day lifetime window`() {
+        val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
+        val sessions = listOf(WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 10), routineId = null, startEpochMillis = 0, endEpochMillis = 0))
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 20.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0, rpe = 8),
+        )
+
+        val balance = muscleBalanceForTimeframe(
+            timeframe = ProgressTimeframe.LIFETIME,
+            sessions = sessions,
+            sets = sets,
+            exercisesById = mapOf(1L to curl),
+            today = LocalDate.of(2026, 8, 10),
+        )
+
+        // since == today (LIFETIME's earliest-session fallback), inclusive-day counting makes the
+        // window 1 day (1/7 week), target = 10/7 ~= 1.4286; 1 effective set / 1.4286 ~= 0.7.
+        assertEquals(0.7f, balance["BICEPS"]!!, 0.01f)
+    }
 }

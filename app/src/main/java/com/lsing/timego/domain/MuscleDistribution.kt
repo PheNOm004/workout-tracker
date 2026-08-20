@@ -7,6 +7,7 @@ import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.WorkoutSession
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /** RPE >=7 (0-3 reps in reserve, "effective rep" territory per hypertrophy research) gets full
  *  credit toward the Muscle Balance chart's weekly target. RPE 5-6 ramps linearly (light-but-not-
@@ -95,6 +96,34 @@ fun muscleGroupEffectiveSetDistribution(
         }
     }
     return effectiveSetsByGroup
+}
+
+private const val TARGET_EFFECTIVE_SETS_PER_WEEK = 10.0
+
+/** [muscleGroupEffectiveSetDistribution] normalized against a fixed weekly target (evidence-
+ *  grounded per the design spec: ~10 effective sets/muscle/week) rather than the period's own max
+ *  group -- unlike the reverted frequency-vs-own-baseline attempt, this target is external and
+ *  fixed, so genuine under-training still reads as genuinely low instead of flattening toward 1.0.
+ *  Reuses the same [ProgressTimeframe]/[timeframe.sinceDate] the rest of the Progress screen
+ *  already uses -- Year/Lifetime naturally read as "average weekly rate over that period," the
+ *  same semantics every other Progress stat already has for those tabs. Inclusive day-counting
+ *  (`+ 1`) guarantees at least a one-day window whenever [since] is on or before [today], so this
+ *  never divides by zero even on someone's very first day of use. */
+fun muscleBalanceForTimeframe(
+    timeframe: ProgressTimeframe,
+    sessions: List<WorkoutSession>,
+    sets: List<SetLog>,
+    exercisesById: Map<Long, Exercise>,
+    today: LocalDate,
+): Map<String, Float> {
+    val since = timeframe.sinceDate(sessions.minOfOrNull { it.date }, today)
+    val sessionDateById = sessions.associate { it.id to it.date }
+    val effectiveSets = muscleGroupEffectiveSetDistribution(sets, exercisesById, sessionDateById, since)
+    if (effectiveSets.isEmpty()) return emptyMap()
+    val daysInWindow = ChronoUnit.DAYS.between(since, today) + 1
+    val weeksInWindow = daysInWindow / 7.0
+    val target = TARGET_EFFECTIVE_SETS_PER_WEEK * weeksInWindow
+    return effectiveSets.mapValues { (_, value) -> (value / target).toFloat().coerceIn(0f, 1f) }
 }
 
 /** Keeps the detailed radar axes stable as the user logs different exercise sequences. The raw
