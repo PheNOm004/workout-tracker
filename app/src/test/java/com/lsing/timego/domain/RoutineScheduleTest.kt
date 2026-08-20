@@ -60,4 +60,20 @@ class RoutineScheduleTest {
 
         assertEquals(emptyMap<Long, LocalDate>(), result)
     }
+
+    @Test
+    fun `formatDaysSince reports Today for the same date`() {
+        assertEquals("Today", formatDaysSince(LocalDate.of(2026, 8, 20), today = LocalDate.of(2026, 8, 20)))
+    }
+
+    @Test
+    fun `formatDaysSince reports elapsed days for a past date`() {
+        assertEquals("4d ago", formatDaysSince(LocalDate.of(2026, 8, 16), today = LocalDate.of(2026, 8, 20)))
+        assertEquals("1d ago", formatDaysSince(LocalDate.of(2026, 8, 19), today = LocalDate.of(2026, 8, 20)))
+    }
+
+    @Test
+    fun `formatDaysSince reports Never logged for null`() {
+        assertEquals("Never logged", formatDaysSince(null, today = LocalDate.of(2026, 8, 20)))
+    }
 }
