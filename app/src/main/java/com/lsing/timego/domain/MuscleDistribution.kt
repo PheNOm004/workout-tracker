@@ -8,6 +8,19 @@ import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.WorkoutSession
 import java.time.LocalDate
 
+/** RPE >=7 (0-3 reps in reserve, "effective rep" territory per hypertrophy research) gets full
+ *  credit toward the Muscle Balance chart's weekly target. RPE 5-6 ramps linearly (light-but-not-
+ *  trivial effort). RPE <=4 gets low but nonzero credit -- very light work still counts a little,
+ *  just not as a real stimulus set. Missing RPE gets full credit, same convention as every other
+ *  RPE-gated behavior in this app (see escalationTierForRpe): never penalize a value the user
+ *  simply didn't log. */
+fun effortWeight(rpe: Int?): Double = when {
+    rpe == null -> 1.0
+    rpe >= 7 -> 1.0
+    rpe >= 5 -> 0.3 + (rpe - 5) / 2.0 * 0.7
+    else -> 0.15
+}
+
 fun muscleDistributionForTimeframe(
     timeframe: ProgressTimeframe,
     sessions: List<WorkoutSession>,

@@ -190,4 +190,25 @@ class MuscleDistributionTest {
         assertEquals(1000.0, stats.totalVolumeKg, 0.001)
         assertEquals(10.0, stats.totalDurationMinutes, 0.001)
     }
+
+    @Test
+    fun `effortWeight gives full credit to effective-rep-range RPE and to missing RPE`() {
+        assertEquals(1.0, effortWeight(7), 0.001)
+        assertEquals(1.0, effortWeight(8), 0.001)
+        assertEquals(1.0, effortWeight(9), 0.001)
+        assertEquals(1.0, effortWeight(10), 0.001)
+        assertEquals(1.0, effortWeight(null), 0.001)
+    }
+
+    @Test
+    fun `effortWeight ramps between RPE 5 and 6`() {
+        assertEquals(0.3, effortWeight(5), 0.001)
+        assertEquals(0.65, effortWeight(6), 0.001)
+    }
+
+    @Test
+    fun `effortWeight gives low credit below RPE 5`() {
+        assertEquals(0.15, effortWeight(1), 0.001)
+        assertEquals(0.15, effortWeight(4), 0.001)
+    }
 }
