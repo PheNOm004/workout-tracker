@@ -57,29 +57,39 @@ import com.lsing.timego.data.targetProvenanceFor
 import com.lsing.timego.domain.HoldSuggestion
 import com.lsing.timego.domain.MET_CARDIO
 import com.lsing.timego.domain.MET_WARMUP
+import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.domain.averagePaceMinPerKm
 import com.lsing.timego.domain.diagramGroupsForRecommendationCrop
 import com.lsing.timego.domain.estimatedCalorieBurn
 import com.lsing.timego.domain.formatCalisthenicsWeight
+import com.lsing.timego.domain.formatDaysSince
+import com.lsing.timego.domain.orderedMuscleDistributionForChart
 import com.lsing.timego.domain.toggleExpandedExerciseIds
 import com.lsing.timego.ui.common.AnimatedExpand
 import com.lsing.timego.ui.common.CroppedMuscleDiagram
 import com.lsing.timego.ui.common.ExerciseSections
 import com.lsing.timego.ui.common.MuscleHeatLegend
+import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.TimerControls
 import com.lsing.timego.ui.common.TrainingPulse
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.categoryVisual
+import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.common.formatMuscleGroupList
+import com.lsing.timego.ui.common.timeframeLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.Spacing
+import java.time.LocalDate
 
 @Composable
 fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val sessionState by viewModel.sessionState.collectAsState()
     val landingSummary by viewModel.landingSummary.collectAsState()
     val routines by viewModel.routines.collectAsState()
+    val landingBalanceTimeframe by viewModel.landingBalanceTimeframe.collectAsState()
+    val landingMuscleBalance by viewModel.landingMuscleBalance.collectAsState()
+    val routineLastCompleted by viewModel.routineLastCompleted.collectAsState()
 
     when (val state = sessionState) {
         is SessionUiState.Loading -> { /* nothing to render yet -- first frame only, resolves on the next recomposition */ }
@@ -88,6 +98,10 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
             routines = routines,
             isSessionActive = false,
             onStartOrContinue = viewModel::startSession,
+            balanceTimeframe = landingBalanceTimeframe,
+            muscleBalance = landingMuscleBalance,
+            routineLastCompleted = routineLastCompleted,
+            onSelectBalanceTimeframe = viewModel::selectLandingBalanceTimeframe,
         )
         is SessionUiState.Active -> {
             // Keyed on sessionId, not just a bare remember{}: this resets to false whenever a
@@ -100,6 +114,10 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                     routines = routines,
                     isSessionActive = true,
                     onStartOrContinue = { peekingLanding = false },
+                    balanceTimeframe = landingBalanceTimeframe,
+                    muscleBalance = landingMuscleBalance,
+                    routineLastCompleted = routineLastCompleted,
+                    onSelectBalanceTimeframe = viewModel::selectLandingBalanceTimeframe,
                 )
             } else {
                 LoggingContent(
@@ -124,6 +142,10 @@ private fun LogLandingContent(
     routines: List<com.lsing.timego.data.Routine>,
     isSessionActive: Boolean,
     onStartOrContinue: (routineId: Long?) -> Unit,
+    balanceTimeframe: ProgressTimeframe,
+    muscleBalance: Map<String, Float>,
+    routineLastCompleted: Map<Long, LocalDate>,
+    onSelectBalanceTimeframe: (ProgressTimeframe) -> Unit,
 ) {
     var showLastSessionDetail by remember { mutableStateOf(false) }
 
@@ -237,6 +259,39 @@ private fun LogLandingContent(
                         modifier = Modifier.fillMaxWidth().height(148.dp).padding(top = Spacing.Small),
                     )
                 }
+            }
+        }
+
+        SectionHeader("Muscle Balance (${timeframeLabel(balanceTimeframe)})")
+        Row(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall)) {
+            ProgressTimeframe.entries.forEach { option ->
+                FilterChip(
+                    selected = balanceTimeframe == option,
+                    onClick = { onSelectBalanceTimeframe(option) },
+                    label = { Text(formatEnumLabel(option.name)) },
+                    modifier = Modifier.padding(end = Spacing.ExtraSmall),
+                )
+            }
+        }
+        if (muscleBalance.isNotEmpty()) {
+            RadarChart(
+                values = orderedMuscleDistributionForChart(muscleBalance)
+                    .mapKeys { (group, _) -> formatEnumLabel(group) },
+                modifier = Modifier.fillMaxWidth().height(220.dp).padding(vertical = Spacing.Small),
+            )
+        }
+        if (routines.isNotEmpty()) {
+            Column(modifier = Modifier.padding(top = Spacing.Small)) {
+                routines
+                    .sortedWith(compareBy(nullsFirst()) { routine -> routineLastCompleted[routine.id] })
+                    .forEach { routine ->
+                        Text(
+                            "${routine.name} — ${formatDaysSince(routineLastCompleted[routine.id], LocalDate.now())}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 2.dp),
+                        )
+                    }
             }
         }
 
