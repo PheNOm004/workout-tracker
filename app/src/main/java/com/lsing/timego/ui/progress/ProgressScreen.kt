@@ -16,6 +16,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,6 +45,7 @@ import com.lsing.timego.domain.orderedMuscleDistributionForChart
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.HeatmapGrid
 import com.lsing.timego.ui.common.HorizontalWheelPicker
+import com.lsing.timego.ui.common.MuscleBalanceBars
 import com.lsing.timego.ui.common.MuscleBodyDiagram
 import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SectionHeader
@@ -50,6 +54,7 @@ import com.lsing.timego.ui.common.StatTile
 import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.formatEnumLabel
+import com.lsing.timego.ui.common.rankedMuscleBalanceBars
 import com.lsing.timego.ui.common.timeframeLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.NightAmber
@@ -60,6 +65,8 @@ import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+
+private enum class BalanceChartMode { BARS, RADAR }
 
 @Composable
 fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
@@ -83,6 +90,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     var waistText by remember { mutableStateOf("") }
     var heightText by remember { mutableStateOf("") }
     var selectedPrExerciseId by remember { mutableStateOf<Long?>(null) }
+    var balanceChartMode by remember { mutableStateOf(BalanceChartMode.BARS) }
 
     val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsState()
     val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsState()
@@ -133,7 +141,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 }
             }
             Text(
-                "Radar shows progress toward an even training balance across muscle groups this period; body diagram below shows volume relative to your most-trained muscle group.",
+                "Bars rank progress toward the weekly target. Δ compares the prior equal period; the radar remains available for the overall shape.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 4.dp),
@@ -146,13 +154,31 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     modifier = Modifier.padding(vertical = 4.dp),
                 )
             } else {
-                RadarChart(
-                    values = orderedMuscleDistributionForChart(muscleBalance)
-                        .mapKeys { (group, _) -> formatEnumLabel(group) },
-                    comparisonValues = orderedMuscleDistributionForChart(previousMuscleBalance)
-                        .mapKeys { (group, _) -> formatEnumLabel(group) },
-                    modifier = Modifier.fillMaxWidth().height(220.dp).padding(vertical = 8.dp),
-                )
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.Small),
+                ) {
+                    BalanceChartMode.entries.forEachIndexed { index, mode ->
+                        SegmentedButton(
+                            selected = balanceChartMode == mode,
+                            onClick = { balanceChartMode = mode },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = BalanceChartMode.entries.size),
+                            label = { Text(if (mode == BalanceChartMode.BARS) "Bars" else "Radar") },
+                        )
+                    }
+                }
+                when (balanceChartMode) {
+                    BalanceChartMode.BARS -> MuscleBalanceBars(
+                        entries = rankedMuscleBalanceBars(muscleBalance, previousMuscleBalance),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.Small),
+                    )
+                    BalanceChartMode.RADAR -> RadarChart(
+                        values = orderedMuscleDistributionForChart(muscleBalance)
+                            .mapKeys { (group, _) -> formatEnumLabel(group) },
+                        comparisonValues = orderedMuscleDistributionForChart(previousMuscleBalance)
+                            .mapKeys { (group, _) -> formatEnumLabel(group) },
+                        modifier = Modifier.fillMaxWidth().height(220.dp).padding(vertical = 8.dp),
+                    )
+                }
                 MuscleBodyDiagram(
                     intensities = muscleDistribution,
                     periodLabel = timeframeLabel(timeframe),

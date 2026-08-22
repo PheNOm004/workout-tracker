@@ -3,6 +3,7 @@ package com.lsing.timego.domain
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.WorkoutSession
+import com.lsing.timego.ui.common.rankedMuscleBalanceBars
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
@@ -471,5 +472,17 @@ class MuscleDistributionTest {
                 today = LocalDate.of(2026, 8, 22),
             ),
         )
+    }
+
+    @Test
+    fun `rankedMuscleBalanceBars keeps absent groups neutral and puts them after measured groups`() {
+        val bars = rankedMuscleBalanceBars(
+            current = mapOf("BICEPS" to 0.8f, "CHEST" to 0.4f),
+            previous = mapOf("BICEPS" to 0.5f),
+        )
+
+        assertEquals(listOf("Biceps", "Chest"), bars.take(2).map { it.label })
+        assertEquals(0.5f, bars.first().previous!!, 0.001f)
+        assertEquals(null, bars.first { it.label == "Abs" }.current)
     }
 }
