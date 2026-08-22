@@ -133,6 +133,20 @@ fun sessionDayLabel(muscleGroups: Set<String>, isCardioOnly: Boolean): String {
 private fun normalizeForSearch(text: String): String =
     text.lowercase().filterNot { it == '-' || it == ' ' }
 
+internal const val EXERCISE_SEARCH_RESULT_LIMIT = 40
+
+/** Keeps the caller's exercise order (frequency order on the Log screen) while bounding a broad
+ * query so the exercise browser never eagerly composes the whole catalog at once. */
+internal fun boundedExerciseSearch(exercises: List<Exercise>, query: String): List<Exercise> {
+    val normalizedQuery = normalizeForSearch(query)
+    if (normalizedQuery.isBlank()) return emptyList()
+    return exercises
+        .asSequence()
+        .filter { normalizeForSearch(it.name).contains(normalizedQuery) }
+        .take(EXERCISE_SEARCH_RESULT_LIMIT)
+        .toList()
+}
+
 /** Renders [exercises] with a search box, then grouped by category (collapsible, defaults to
  *  expanded) and sub-headed by muscle group within each category. [itemContent] renders one
  *  exercise's row -- this component owns only the search/grouping/collapse chrome so Log and
@@ -154,10 +168,20 @@ fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exerci
     )
 
     if (query.isNotBlank()) {
-        val matches = remember(exercises, query) {
-            exercises.filter { normalizeForSearch(it.name).contains(normalizeForSearch(query)) }
+        val totalMatches = remember(exercises, query) {
+            val normalizedQuery = normalizeForSearch(query)
+            exercises.count { normalizeForSearch(it.name).contains(normalizedQuery) }
         }
+        val matches = remember(exercises, query) { boundedExerciseSearch(exercises, query) }
         matches.forEach { exercise -> itemContent(exercise) }
+        if (totalMatches > matches.size) {
+            Text(
+                "Showing the first ${matches.size} matches. Refine your search to narrow the list.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.Small),
+            )
+        }
         return
     }
 
