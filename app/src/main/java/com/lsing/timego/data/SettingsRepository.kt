@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -25,6 +26,10 @@ class SettingsRepository(private val context: Context) {
             ?: TrainingLean.BALANCED
     }
 
+    val favoriteExerciseIds: Flow<Set<Long>> = context.settingsDataStore.data.map { prefs ->
+        prefs[FAVORITE_EXERCISE_IDS_KEY].orEmpty().mapNotNull(String::toLongOrNull).toSet()
+    }
+
     suspend fun setHoldDelaySeconds(seconds: Int) {
         context.settingsDataStore.edit { prefs -> prefs[HOLD_DELAY_SECONDS_KEY] = seconds }
     }
@@ -33,9 +38,18 @@ class SettingsRepository(private val context: Context) {
         context.settingsDataStore.edit { prefs -> prefs[TRAINING_LEAN_KEY] = lean.name }
     }
 
+    suspend fun toggleFavoriteExercise(exerciseId: Long) {
+        context.settingsDataStore.edit { prefs ->
+            val savedIds = prefs[FAVORITE_EXERCISE_IDS_KEY].orEmpty()
+            val id = exerciseId.toString()
+            prefs[FAVORITE_EXERCISE_IDS_KEY] = if (id in savedIds) savedIds - id else savedIds + id
+        }
+    }
+
     companion object {
         const val DEFAULT_HOLD_DELAY_SECONDS = 5
         private val HOLD_DELAY_SECONDS_KEY = intPreferencesKey("hold_delay_seconds")
         private val TRAINING_LEAN_KEY = stringPreferencesKey("training_lean")
+        private val FAVORITE_EXERCISE_IDS_KEY = stringSetPreferencesKey("favorite_exercise_ids")
     }
 }

@@ -111,6 +111,9 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val _quickAddExercises = MutableStateFlow<List<Exercise>>(emptyList())
     val quickAddExercises: StateFlow<List<Exercise>> = _quickAddExercises.asStateFlow()
 
+    private val _favoriteExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
+    val favoriteExerciseIds: StateFlow<Set<Long>> = _favoriteExerciseIds.asStateFlow()
+
     private val _lastWorkingSets = MutableStateFlow<Map<Long, SetLog>>(emptyMap())
     val lastWorkingSets: StateFlow<Map<Long, SetLog>> = _lastWorkingSets.asStateFlow()
 
@@ -162,6 +165,9 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
+        }
+        viewModelScope.launch {
+            settingsRepository.favoriteExerciseIds.collect { _favoriteExerciseIds.value = it }
         }
         viewModelScope.launch {
             settingsRepository.trainingLean.collect { lean ->
@@ -408,6 +414,10 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             refreshSuggestionForExercise(exerciseId)
             emitSetLoggedPulse(exerciseId)
         }
+    }
+
+    fun toggleFavoriteExercise(exerciseId: Long) {
+        viewModelScope.launch { settingsRepository.toggleFavoriteExercise(exerciseId) }
     }
 
     private fun emitSetLoggedPulse(exerciseId: Long) {

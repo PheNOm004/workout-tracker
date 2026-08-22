@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Checkbox
@@ -352,6 +354,7 @@ private fun LoggingContent(
 ) {
     val exercises by viewModel.displayedExercises.collectAsState()
     val quickAddExercises by viewModel.quickAddExercises.collectAsState()
+    val favoriteExerciseIds by viewModel.favoriteExerciseIds.collectAsState()
     val suggestions by viewModel.suggestions.collectAsState()
     val holdSuggestions by viewModel.holdSuggestions.collectAsState()
     val lastWorkingSets by viewModel.lastWorkingSets.collectAsState()
@@ -438,6 +441,22 @@ private fun LoggingContent(
                 }
             }
             item {
+                val favoriteExercises = exercises.filter { it.id in favoriteExerciseIds }
+                if (favoriteExercises.isNotEmpty()) {
+                    SectionHeader("Favorites", topPadding = Spacing.Small)
+                    FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
+                        favoriteExercises.forEach { exercise ->
+                            AssistChip(
+                                onClick = {
+                                    librarySearchQuery = exercise.name
+                                    expandedExerciseIds = listOf(exercise.id)
+                                },
+                                label = { Text(exercise.name) },
+                                modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
+                            )
+                        }
+                    }
+                }
                 if (quickAddExercises.isNotEmpty()) {
                     SectionHeader("Quick add", topPadding = Spacing.Small)
                     FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
@@ -464,6 +483,8 @@ private fun LoggingContent(
                             category = exercise.category,
                             suggestion = holdSuggestions[exercise.id],
                             delaySeconds = holdDelaySeconds,
+                            isFavorite = exercise.id in favoriteExerciseIds,
+                            onToggleFavorite = { viewModel.toggleFavoriteExercise(exercise.id) },
                             pulseId = setLoggedPulse?.takeIf { it.exerciseId == exercise.id }?.eventId ?: 0L,
                             expanded = exercise.id in expandedExerciseIds,
                             onToggle = {
@@ -477,6 +498,8 @@ private fun LoggingContent(
                             met = if (exercise.category == ExerciseCategory.CARDIO.name) MET_CARDIO else MET_WARMUP,
                             bodyWeightKg = latestBodyWeightKg,
                             delaySeconds = holdDelaySeconds,
+                            isFavorite = exercise.id in favoriteExerciseIds,
+                            onToggleFavorite = { viewModel.toggleFavoriteExercise(exercise.id) },
                             pulseId = setLoggedPulse?.takeIf { it.exerciseId == exercise.id }?.eventId ?: 0L,
                             expanded = exercise.id in expandedExerciseIds,
                             onToggle = {
@@ -491,6 +514,8 @@ private fun LoggingContent(
                             lastWorkingSet = lastWorkingSets[exercise.id],
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
+                            isFavorite = exercise.id in favoriteExerciseIds,
+                            onToggleFavorite = { viewModel.toggleFavoriteExercise(exercise.id) },
                             expanded = exercise.id in expandedExerciseIds,
                             pulseId = setLoggedPulse?.takeIf { it.exerciseId == exercise.id }?.eventId ?: 0L,
                             onToggle = {
@@ -526,6 +551,8 @@ private fun ExerciseRowHeader(
     iconTint: Color,
     suggestionSummary: String?,
     expanded: Boolean,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     onToggle: () -> Unit,
 ) {
     Row(
@@ -543,6 +570,13 @@ private fun ExerciseRowHeader(
                 style = LedgerFigureValue.copy(fontSize = 14.sp),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(end = Spacing.Small),
+            )
+        }
+        IconButton(onClick = onToggleFavorite) {
+            Icon(
+                if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Icon(
@@ -586,6 +620,8 @@ private fun StrengthLogRow(
     lastWorkingSet: SetLog?,
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     expanded: Boolean,
     pulseId: Long,
     onToggle: () -> Unit,
@@ -623,6 +659,8 @@ private fun StrengthLogRow(
             visual.accent,
             suggestionHint,
             expanded,
+            isFavorite,
+            onToggleFavorite,
         ) { onToggle() }
         AnimatedExpand(expanded) {
             if (suggestion != null) {
@@ -721,6 +759,8 @@ private fun CardioLogRow(
     met: Double,
     bodyWeightKg: Double?,
     delaySeconds: Int,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     expanded: Boolean,
     pulseId: Long,
     onToggle: () -> Unit,
@@ -734,7 +774,7 @@ private fun CardioLogRow(
     val visual = categoryVisual(category)
 
     ExerciseCard(expanded, pulseId) {
-        ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded, onToggle)
+        ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded, isFavorite, onToggleFavorite, onToggle)
         AnimatedExpand(expanded) {
             if (duration != null && duration > 0) {
                 val pace = distance?.let { averagePaceMinPerKm(duration, it) }
@@ -815,6 +855,8 @@ private fun HoldLogRow(
     category: String,
     suggestion: HoldSuggestion?,
     delaySeconds: Int,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     expanded: Boolean,
     pulseId: Long,
     onToggle: () -> Unit,
@@ -832,6 +874,8 @@ private fun HoldLogRow(
             visual.accent,
             suggestion?.let { "${it.targetDurationSeconds}s" },
             expanded,
+            isFavorite,
+            onToggleFavorite,
         ) { onToggle() }
         AnimatedExpand(expanded) {
             if (suggestion != null) {
