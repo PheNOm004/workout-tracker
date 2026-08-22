@@ -81,6 +81,7 @@ fun muscleGroupEffectiveSetDistribution(
     exercisesById: Map<Long, Exercise>,
     sessionDateById: Map<Long, LocalDate>,
     since: LocalDate,
+    until: LocalDate = LocalDate.MAX,
 ): Map<String, Double> {
     val effectiveSetsByGroup = mutableMapOf<String, Double>()
     for (log in history) {
@@ -88,7 +89,7 @@ fun muscleGroupEffectiveSetDistribution(
         if (log.isWarmup || exercise.category == ExerciseCategory.WARMUP.name || exercise.category == ExerciseCategory.CARDIO.name) continue
         if (exercise.loggingType != LoggingType.WEIGHT_REPS.name && exercise.loggingType != LoggingType.HOLD.name) continue
         val date = sessionDateById[log.sessionId] ?: continue
-        if (date.isBefore(since)) continue
+        if (date.isBefore(since) || date.isAfter(until)) continue
         val weight = effortWeight(log.rpe)
         for (group in exercise.muscleGroups) {
             val credit = weight * (exercise.muscleWeights[group] ?: 100) / 100.0
@@ -118,12 +119,48 @@ fun muscleBalanceForTimeframe(
 ): Map<String, Float> {
     val since = timeframe.sinceDate(sessions.minOfOrNull { it.date }, today)
     val sessionDateById = sessions.associate { it.id to it.date }
-    val effectiveSets = muscleGroupEffectiveSetDistribution(sets, exercisesById, sessionDateById, since)
+    return muscleBalanceForDateRange(sets, exercisesById, sessionDateById, since, today)
+}
+
+/** Scores a closed date range against the same fixed weekly effective-set target as the primary
+ * Muscle Balance chart. The range is explicit so a prior equal-length period can be compared
+ * without accidentally including today's sets. */
+fun muscleBalanceForDateRange(
+    sets: List<SetLog>,
+    exercisesById: Map<Long, Exercise>,
+    sessionDateById: Map<Long, LocalDate>,
+    since: LocalDate,
+    until: LocalDate,
+): Map<String, Float> {
+    val effectiveSets = muscleGroupEffectiveSetDistribution(sets, exercisesById, sessionDateById, since, until)
     if (effectiveSets.isEmpty()) return emptyMap()
-    val daysInWindow = ChronoUnit.DAYS.between(since, today) + 1
+    val daysInWindow = ChronoUnit.DAYS.between(since, until) + 1
     val weeksInWindow = daysInWindow / 7.0
     val target = TARGET_EFFECTIVE_SETS_PER_WEEK * weeksInWindow
     return effectiveSets.mapValues { (_, value) -> (value / target).toFloat().coerceIn(0f, 1f) }
+}
+
+/** The exact, immediately preceding calendar window for a bounded timeframe. Lifetime has no
+ * preceding equal window because its start is the user's first recorded session. */
+fun previousMuscleBalanceForTimeframe(
+    timeframe: ProgressTimeframe,
+    sessions: List<WorkoutSession>,
+    sets: List<SetLog>,
+    exercisesById: Map<Long, Exercise>,
+    today: LocalDate,
+): Map<String, Float> {
+    if (timeframe == ProgressTimeframe.LIFETIME) return emptyMap()
+    val currentStart = timeframe.sinceDate(sessions.minOfOrNull { it.date }, today)
+    val windowDays = ChronoUnit.DAYS.between(currentStart, today) + 1
+    val previousEnd = currentStart.minusDays(1)
+    val previousStart = previousEnd.minusDays(windowDays - 1)
+    return muscleBalanceForDateRange(
+        sets = sets,
+        exercisesById = exercisesById,
+        sessionDateById = sessions.associate { it.id to it.date },
+        since = previousStart,
+        until = previousEnd,
+    )
 }
 
 /** Keeps the detailed radar axes stable as the user logs different exercise sequences. The raw

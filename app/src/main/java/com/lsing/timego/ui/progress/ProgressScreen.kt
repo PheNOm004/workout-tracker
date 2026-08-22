@@ -75,6 +75,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val currentBmi by viewModel.currentBmi.collectAsState()
     val muscleDistribution by viewModel.muscleDistribution.collectAsState()
     val muscleBalance by viewModel.muscleBalance.collectAsState()
+    val previousMuscleBalance by viewModel.previousMuscleBalance.collectAsState()
     val trainingStats by viewModel.trainingStats.collectAsState()
     val timeframe by viewModel.timeframe.collectAsState()
 
@@ -147,6 +148,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             } else {
                 RadarChart(
                     values = orderedMuscleDistributionForChart(muscleBalance)
+                        .mapKeys { (group, _) -> formatEnumLabel(group) },
+                    comparisonValues = orderedMuscleDistributionForChart(previousMuscleBalance)
                         .mapKeys { (group, _) -> formatEnumLabel(group) },
                     modifier = Modifier.fillMaxWidth().height(220.dp).padding(vertical = 8.dp),
                 )

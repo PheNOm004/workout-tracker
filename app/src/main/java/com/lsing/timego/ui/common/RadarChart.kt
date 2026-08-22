@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.sp
+import com.lsing.timego.ui.theme.NightViolet
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -24,7 +25,11 @@ import kotlin.math.sqrt
  *  supplied values and their relative ordering are unchanged. Axis order follows the map's
  *  iteration order -- pass a LinkedHashMap or similar if order matters to the caller. */
 @Composable
-fun RadarChart(values: Map<String, Float>, modifier: Modifier = Modifier) {
+fun RadarChart(
+    values: Map<String, Float>,
+    modifier: Modifier = Modifier,
+    comparisonValues: Map<String, Float> = emptyMap(),
+) {
     val fillColor = MaterialTheme.colorScheme.primary
     val gridColor = MaterialTheme.colorScheme.onSurfaceVariant
     val labelColor = MaterialTheme.colorScheme.onSurface
@@ -62,7 +67,19 @@ fun RadarChart(values: Map<String, Float>, modifier: Modifier = Modifier) {
             drawLine(color = gridColor.copy(alpha = 0.25f), start = center, end = pointFor(i, 1f), strokeWidth = 1.5f)
         }
 
-        // The actual value polygon.
+        // Missing prior spokes are absence, not zero. Draw a comparison only when every current
+        // spoke has a real prior value, so the ghost polygon never fabricates a data point.
+        if (comparisonValues.isNotEmpty() && values.keys.all(comparisonValues::containsKey)) {
+            val comparisonPath = Path()
+            values.keys.forEachIndexed { index, label ->
+                val point = pointForValue(index, comparisonValues.getValue(label))
+                if (index == 0) comparisonPath.moveTo(point.x, point.y) else comparisonPath.lineTo(point.x, point.y)
+            }
+            comparisonPath.close()
+            drawPath(comparisonPath, color = NightViolet.copy(alpha = 0.5f), style = Stroke(width = 2f))
+        }
+
+        // The current-period value polygon.
         val valuePath = Path()
         values.values.forEachIndexed { index, value ->
             val point = pointForValue(index, value)

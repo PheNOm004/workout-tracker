@@ -425,4 +425,51 @@ class MuscleDistributionTest {
         assertEquals(0.019f, score(ProgressTimeframe.YEAR), 0.001f)
         assertEquals(0.019f, score(ProgressTimeframe.LIFETIME), 0.001f)
     }
+
+    @Test
+    fun `previousMuscleBalanceForTimeframe uses only the immediately preceding equal window`() {
+        val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
+        val today = LocalDate.of(2026, 8, 22)
+        val sessions = listOf(
+            WorkoutSession(id = 1, date = today.minusDays(8), routineId = null, startEpochMillis = 0, endEpochMillis = 0),
+            WorkoutSession(id = 2, date = today, routineId = null, startEpochMillis = 0, endEpochMillis = 0),
+        )
+        val sets = (1..15).map { index ->
+            SetLog(
+                id = index.toLong(),
+                sessionId = if (index <= 5) 1 else 2,
+                exerciseId = 1,
+                weightKg = 20.0,
+                reps = 10,
+                targetReps = 10,
+                loggedAtEpochMillis = 0,
+                rpe = 8,
+            )
+        }
+
+        val previous = previousMuscleBalanceForTimeframe(
+            timeframe = ProgressTimeframe.WEEK,
+            sessions = sessions,
+            sets = sets,
+            exercisesById = mapOf(1L to curl),
+            today = today,
+        )
+
+        // Five prior-week sets = half of the 10-set weekly target; ten current sets must not leak in.
+        assertEquals(0.5f, previous["BICEPS"]!!, 0.001f)
+    }
+
+    @Test
+    fun `previousMuscleBalanceForTimeframe has no fabricated lifetime comparison`() {
+        assertEquals(
+            emptyMap<String, Float>(),
+            previousMuscleBalanceForTimeframe(
+                timeframe = ProgressTimeframe.LIFETIME,
+                sessions = emptyList(),
+                sets = emptyList(),
+                exercisesById = emptyMap(),
+                today = LocalDate.of(2026, 8, 22),
+            ),
+        )
+    }
 }
