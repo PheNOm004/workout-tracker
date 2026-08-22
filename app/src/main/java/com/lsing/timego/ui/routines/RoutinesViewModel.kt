@@ -85,7 +85,13 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
                     exerciseList,
                     exerciseUsageFrequency(setLogs, exerciseList.associateBy { it.id }),
                 )
-                refreshUntrainedGroups(exerciseList)
+            }
+        }
+        viewModelScope.launch {
+            combine(repository.exercises, repository.setLogs, repository.sessions) { exerciseList, setLogs, sessions ->
+                Triple(exerciseList, setLogs, sessions)
+            }.collect { (exerciseList, setLogs, sessions) ->
+                refreshUntrainedGroups(exerciseList, setLogs, sessions)
             }
         }
         viewModelScope.launch {
@@ -113,11 +119,14 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch { settingsRepository.setTrainingLean(lean) }
     }
 
-    private suspend fun refreshUntrainedGroups(exerciseList: List<Exercise>) {
-        val allSets = repository.allSetLogs()
-        val sessionDateById = repository.allSessions().associate { it.id to it.date }
+    private fun refreshUntrainedGroups(
+        exerciseList: List<Exercise>,
+        setLogs: List<com.lsing.timego.data.SetLog>,
+        sessions: List<com.lsing.timego.data.WorkoutSession>,
+    ) {
+        val sessionDateById = sessions.associate { it.id to it.date }
         val exercisesById = exerciseList.associateBy { it.id }
-        val lastTrained = lastTrainedDatesByMuscleGroup(allSets, exercisesById, sessionDateById)
+        val lastTrained = lastTrainedDatesByMuscleGroup(setLogs, exercisesById, sessionDateById)
         val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
         val staleGroups = untrainedMuscleGroups(allGroups, lastTrained, LocalDate.now())
         _untrainedGroups.value = rankUntrainedMuscleGroups(staleGroups, lastTrained, LocalDate.now())
