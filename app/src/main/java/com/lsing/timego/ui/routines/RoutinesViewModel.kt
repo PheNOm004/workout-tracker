@@ -44,6 +44,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     private val _routines = MutableStateFlow<List<Routine>>(emptyList())
     val routines: StateFlow<List<Routine>> = _routines.asStateFlow()
 
+    private val _routineExercisesById = MutableStateFlow<Map<Long, List<Exercise>>>(emptyMap())
+    val routineExercisesById: StateFlow<Map<Long, List<Exercise>>> = _routineExercisesById.asStateFlow()
+
     private val _exercises = MutableStateFlow<List<Exercise>>(emptyList())
     val exercises: StateFlow<List<Exercise>> = _exercises.asStateFlow()
 
@@ -63,7 +66,17 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     val backupResult: StateFlow<BackupResult?> = _backupResult.asStateFlow()
 
     init {
-        viewModelScope.launch { repository.routines.collect { _routines.value = it } }
+        viewModelScope.launch {
+            combine(repository.routines, repository.exercises) { routines, exercises ->
+                routines to exercises.associateBy { it.id }
+            }.collect { (routineList, exercisesById) ->
+                _routines.value = routineList
+                _routineExercisesById.value = routineList.associate { routine ->
+                    routine.id to repository.exercisesForRoutine(routine.id)
+                        .mapNotNull { exercisesById[it.exerciseId] }
+                }
+            }
+        }
         viewModelScope.launch {
             combine(repository.exercises, repository.setLogs) { exerciseList, setLogs ->
                 exerciseList to setLogs

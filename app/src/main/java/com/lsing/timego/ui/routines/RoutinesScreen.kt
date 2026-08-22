@@ -4,13 +4,17 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -35,9 +39,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.TrainingLean
+import com.lsing.timego.data.Exercise
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.formatEnumLabel
@@ -51,6 +57,7 @@ private val SESSION_HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d,
 @Composable
 fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     val routines by viewModel.routines.collectAsState()
+    val routineExercisesById by viewModel.routineExercisesById.collectAsState()
     val exercises by viewModel.exercises.collectAsState()
     val untrainedGroups by viewModel.untrainedGroups.collectAsState()
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsState()
@@ -276,6 +283,10 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                         }
                     }
                 }
+                val steps = routineExercisesById[routine.id].orEmpty()
+                if (steps.isNotEmpty()) {
+                    RoutineSteps(steps)
+                }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = Spacing.ExtraSmall))
                 }
             }
@@ -294,6 +305,43 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                     }
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoutineSteps(exercises: List<Exercise>) {
+    Column(modifier = Modifier.padding(Spacing.Medium, 0.dp, Spacing.Medium, Spacing.Medium)) {
+        Text(
+            "Workout order",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
+        )
+        exercises.forEachIndexed { index, exercise ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(vertical = Spacing.ExtraSmall),
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                ) {
+                    Text(
+                        text = (index + 1).toString(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+                Text(
+                    exercise.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(start = Spacing.Small),
+                )
             }
         }
     }

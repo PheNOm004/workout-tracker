@@ -47,7 +47,7 @@ fun RoutineFormDialog(
     onCreate: (name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) -> Unit,
 ) {
     var routineName by remember { mutableStateOf("") }
-    val selectedExerciseIds = remember { mutableStateOf(setOf<Long>()) }
+    val selectedExerciseIds = remember { mutableStateOf<List<Long>>(emptyList()) }
     val selectedDays = remember { mutableStateOf(setOf<String>()) }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -85,6 +85,12 @@ fun RoutineFormDialog(
                             }
                         }
                         Text("Exercises", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall))
+                        Text(
+                            "Tap in workout order",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
+                        )
                     }
                     item {
                         ExerciseSections(exercises = exercises) { exercise ->
