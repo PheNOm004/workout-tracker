@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -326,11 +327,13 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 transitionSpec = {
                     fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit)
                 },
-            ) {
-                if (strengthCurve.isEmpty()) {
-                    Text("No logged sets yet for this selection.", style = MaterialTheme.typography.bodySmall)
-                } else {
-                    SparklineChart(strengthCurve, modifier = Modifier.fillMaxWidth().height(160.dp).padding(vertical = 8.dp))
+            ) { targetCurveKey ->
+                key(targetCurveKey) {
+                    if (strengthCurve.isEmpty()) {
+                        Text("No logged sets yet for this selection.", style = MaterialTheme.typography.bodySmall)
+                    } else {
+                        SparklineChart(strengthCurve, modifier = Modifier.fillMaxWidth().height(160.dp).padding(vertical = 8.dp))
+                    }
                 }
             }
         }

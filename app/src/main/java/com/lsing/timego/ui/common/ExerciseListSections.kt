@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -148,7 +148,7 @@ internal fun boundedExerciseSearch(exercises: List<Exercise>, query: String): Li
 }
 
 /** Renders [exercises] with a search box, then grouped by category (collapsible, defaults to
- *  expanded) and sub-headed by muscle group within each category. [itemContent] renders one
+ *  collapsed) and sub-headed by muscle group within each category. [itemContent] renders one
  *  exercise's row -- this component owns only the search/grouping/collapse chrome so Log and
  *  Routines can each supply their own row UI (weight/reps inputs vs a selection checkbox)
  *  without duplicating that structure. A search query flattens the results out of the
@@ -206,7 +206,7 @@ fun ExerciseSections(
             ) {
                 val visual = categoryVisual(category)
                 Icon(
-                    if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
+                    if (expanded) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = if (expanded) "Collapse" else "Expand",
                     tint = visual.accent,
                     modifier = Modifier.padding(start = 8.dp, end = 4.dp),
@@ -238,7 +238,7 @@ fun ExerciseSections(
                                 },
                         ) {
                             Icon(
-                                if (groupExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
+                                if (groupExpanded) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = if (groupExpanded) "Collapse" else "Expand",
                                 modifier = Modifier.padding(start = 32.dp, end = 4.dp),
                             )

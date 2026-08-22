@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -48,6 +49,9 @@ import java.util.Locale
 fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Color, onDateClick: ((LocalDate) -> Unit)? = null) {
     var showFullYear by remember { mutableStateOf(false) }
     val today = LocalDate.now()
+    val displayLocale = Locale.forLanguageTag(
+        LocalConfiguration.current.locales.toLanguageTags().substringBefore(','),
+    )
     val currentWeekMonday = today.minusDays((today.dayOfWeek.value - 1).toLong())
     val yearStartMonday = LocalDate.of(today.year, 1, 1).let { it.minusDays((it.dayOfWeek.value - 1).toLong()) }
     val weeksInYear = ((LocalDate.of(today.year, 12, 31).toEpochDay() - yearStartMonday.toEpochDay()) / 7 + 1).toInt()
@@ -94,7 +98,7 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
                             Box(modifier = Modifier.width(dotSize)) {
                                 if (isMonthStart) {
                                     Text(
-                                        weekStart.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                                        weekStart.month.getDisplayName(TextStyle.SHORT, displayLocale),
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,
