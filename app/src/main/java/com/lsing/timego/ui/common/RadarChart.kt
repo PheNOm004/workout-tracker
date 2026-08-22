@@ -14,12 +14,15 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /** Spider/radar chart -- pure geometry (N axes spaced evenly by angle, a value polygon, a couple
  *  of reference rings), no vector art needed, unlike an anatomical muscle-diagram illustration.
  *  [values] maps an axis label to a 0f..1f normalized magnitude (the caller decides what "1f"
- *  means, e.g. divide every muscle group's volume by the single highest one). Axis order follows
- *  the map's iteration order -- pass a LinkedHashMap or similar if order matters to the caller. */
+ *  means, e.g. divide every muscle group's volume by the single highest one). Values are
+ *  square-root scaled only when drawn so low, non-zero training volume remains legible; the
+ *  supplied values and their relative ordering are unchanged. Axis order follows the map's
+ *  iteration order -- pass a LinkedHashMap or similar if order matters to the caller. */
 @Composable
 fun RadarChart(values: Map<String, Float>, modifier: Modifier = Modifier) {
     val fillColor = MaterialTheme.colorScheme.primary
@@ -42,11 +45,14 @@ fun RadarChart(values: Map<String, Float>, modifier: Modifier = Modifier) {
             )
         }
 
-        // Reference rings at 1/3 and 2/3 radius, plus the outer axis lines.
-        listOf(0.33f, 0.66f, 1f).forEach { ringFraction ->
+        fun pointForValue(index: Int, value: Float): Offset =
+            pointFor(index, sqrt(value.coerceIn(0f, 1f)))
+
+        // Reference rings represent 1/3, 2/3, and full value under the same display scale.
+        listOf(0.33f, 0.66f, 1f).forEach { ringValue ->
             val ringPath = Path()
             for (i in 0 until axisCount) {
-                val point = pointFor(i, ringFraction)
+                val point = pointForValue(i, ringValue)
                 if (i == 0) ringPath.moveTo(point.x, point.y) else ringPath.lineTo(point.x, point.y)
             }
             ringPath.close()
@@ -59,7 +65,7 @@ fun RadarChart(values: Map<String, Float>, modifier: Modifier = Modifier) {
         // The actual value polygon.
         val valuePath = Path()
         values.values.forEachIndexed { index, value ->
-            val point = pointFor(index, value.coerceIn(0f, 1f))
+            val point = pointForValue(index, value)
             if (index == 0) valuePath.moveTo(point.x, point.y) else valuePath.lineTo(point.x, point.y)
         }
         valuePath.close()
