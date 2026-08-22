@@ -301,15 +301,15 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         db.bodyMetricDao().insert(BodyMetric(date = date, weightKg = weightKg, waistCm = waistCm, heightCm = heightCm))
     }
 
-    suspend fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>): Long {
+    suspend fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>): Long = db.withTransaction {
         val routineId = db.routineDao().insertRoutine(Routine(name = name, daysOfWeek = daysOfWeek))
         exerciseIds.forEachIndexed { index, exerciseId ->
             db.routineDao().insertRoutineExercise(RoutineExercise(routineId = routineId, exerciseId = exerciseId, orderIndex = index))
         }
-        return routineId
+        routineId
     }
 
-    suspend fun deleteRoutine(routineId: Long) {
+    suspend fun deleteRoutine(routineId: Long) = db.withTransaction {
         db.routineDao().deleteRoutineExercises(routineId)
         db.routineDao().deleteRoutine(routineId)
     }
