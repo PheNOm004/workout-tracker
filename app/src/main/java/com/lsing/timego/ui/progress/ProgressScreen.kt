@@ -52,8 +52,10 @@ import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.common.timeframeLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
+import com.lsing.timego.ui.theme.NightAmber
 import com.lsing.timego.ui.theme.NightCoral
 import com.lsing.timego.ui.theme.NightCoralShade
+import com.lsing.timego.ui.theme.NightMint
 import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.ui.theme.Spacing
 import java.time.LocalDate
@@ -307,10 +309,15 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             SectionHeader("Body Metrics")
             if (currentBmi != null) {
                 val category = bmiCategory(currentBmi!!)
+                val bmiColor = when (category) {
+                    BmiCategory.NORMAL -> NightMint
+                    BmiCategory.OVERWEIGHT -> NightAmber
+                    BmiCategory.UNDERWEIGHT, BmiCategory.OBESE -> MaterialTheme.colorScheme.error
+                }
                 Text(
                     "BMI: %.1f (${formatEnumLabel(category.name)})".format(currentBmi),
                     style = LedgerFigureValue.copy(fontSize = 14.sp),
-                    color = if (category == BmiCategory.NORMAL) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    color = bmiColor,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             } else {

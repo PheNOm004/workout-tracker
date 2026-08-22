@@ -144,7 +144,9 @@ private fun HeatmapWeekDots(
             Box(
                 modifier = dotModifier
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    // Neutral still means no recorded training, never a failure; it is simply
+                    // lifted above the Backlit ground enough to make the calendar structure legible.
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f))
                     .then(clickModifier),
             )
         } else {

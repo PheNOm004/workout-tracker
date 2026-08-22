@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -69,6 +70,28 @@ fun SparklineChart(points: List<Pair<LocalDate, Double>>, modifier: Modifier = M
         fun xFor(index: Int) = horizontalPaddingPx + stepX * index
         fun yFor(value: Double) = topPaddingPx + plotHeight - ((value - minValue) / range * plotHeight).toFloat()
 
+        val path = Path()
+        points.forEachIndexed { index, (_, value) ->
+            val x = xFor(index)
+            val y = yFor(value)
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        val plotBottom = topPaddingPx + plotHeight
+        val filledPath = Path().apply {
+            addPath(path)
+            lineTo(xFor(points.lastIndex), plotBottom)
+            lineTo(xFor(0), plotBottom)
+            close()
+        }
+        drawPath(
+            path = filledPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(lineColor.copy(alpha = 0.24f), lineColor.copy(alpha = 0.02f)),
+                startY = topPaddingPx,
+                endY = plotBottom,
+            ),
+        )
+
         val averageY = yFor(average)
         drawLine(
             color = labelColor.copy(alpha = 0.4f),
@@ -77,13 +100,6 @@ fun SparklineChart(points: List<Pair<LocalDate, Double>>, modifier: Modifier = M
             strokeWidth = 2f,
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f)),
         )
-
-        val path = Path()
-        points.forEachIndexed { index, (_, value) ->
-            val x = xFor(index)
-            val y = yFor(value)
-            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-        }
         drawPath(path, color = lineColor, style = Stroke(width = 4f, cap = StrokeCap.Round, join = StrokeJoin.Round))
         points.forEachIndexed { index, (_, value) ->
             drawCircle(color = lineColor, radius = 5f, center = Offset(xFor(index), yFor(value)))
@@ -101,6 +117,18 @@ fun SparklineChart(points: List<Pair<LocalDate, Double>>, modifier: Modifier = M
             drawText(points.last().first.toString(), size.width - horizontalPaddingPx, size.height - 8f, nativePaint)
             nativePaint.textAlign = android.graphics.Paint.Align.LEFT
             drawText("avg %.1f".format(average), horizontalPaddingPx, averageY - 8f, nativePaint)
+
+            fun drawTag(text: String, index: Int, y: Float, align: android.graphics.Paint.Align) {
+                nativePaint.textAlign = align
+                val labelY = (y - 8f).coerceAtLeast(topPaddingPx + labelTextSizePx)
+                drawText(text, xFor(index), labelY, nativePaint)
+            }
+
+            val minIndex = points.indices.minBy { points[it].second }
+            val maxIndex = points.indices.maxBy { points[it].second }
+            drawTag("min %.1f".format(minValue), minIndex, yFor(minValue), android.graphics.Paint.Align.LEFT)
+            drawTag("max %.1f".format(maxValue), maxIndex, yFor(maxValue), android.graphics.Paint.Align.RIGHT)
+            drawTag("now %.1f".format(points.last().second), points.lastIndex, yFor(points.last().second), android.graphics.Paint.Align.RIGHT)
         }
     }
 }
