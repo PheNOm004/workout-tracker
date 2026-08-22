@@ -29,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -342,11 +343,31 @@ private fun LoggingContent(
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsState()
     var expandedExerciseIds by remember(sessionId) { mutableStateOf<List<Long>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var showEndSessionConfirmation by remember { mutableStateOf(false) }
 
     if (showAddDialog) {
         AddExerciseDialog(
             onDismiss = { showAddDialog = false },
             onAdd = viewModel::addCustomExercise,
+        )
+    }
+
+    if (showEndSessionConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showEndSessionConfirmation = false },
+            title = { Text("End workout?") },
+            text = { Text("Your logged sets are saved. End this session when you are finished adding sets.") },
+            dismissButton = {
+                TextButton(onClick = { showEndSessionConfirmation = false }) { Text("Keep logging") }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showEndSessionConfirmation = false
+                        onEndSession()
+                    },
+                ) { Text("End session") }
+            },
         )
     }
 
@@ -373,7 +394,9 @@ private fun LoggingContent(
                             IconButton(onClick = onBackToLanding) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to landing")
                             }
-                            Button(onClick = onEndSession) { Text("End Session") }
+                            TextButton(onClick = { showEndSessionConfirmation = true }) {
+                                Text("End session", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     },
                 )
