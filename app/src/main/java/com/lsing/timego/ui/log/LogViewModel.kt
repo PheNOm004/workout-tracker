@@ -78,6 +78,9 @@ data class LandingSummary(
     val suggestedExercise: Exercise?,
 )
 
+/** One-shot visual acknowledgement emitted only after the repository has saved a set. */
+data class SetLoggedPulse(val exerciseId: Long, val eventId: Long)
+
 /** Named holder for the four-way [combine] feeding suggestions/landing balance -- destructured at
  *  the collector, so the positional tuple never escapes this file. */
 private data class LandingInputs(
@@ -147,6 +150,10 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
     val holdDelaySeconds: StateFlow<Int> = _holdDelaySeconds.asStateFlow()
+
+    private var nextPulseEventId = 0L
+    private val _setLoggedPulse = MutableStateFlow<SetLoggedPulse?>(null)
+    val setLoggedPulse: StateFlow<SetLoggedPulse?> = _setLoggedPulse.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -370,6 +377,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name)
             refreshSuggestionForExercise(exerciseId)
+            emitSetLoggedPulse(exerciseId)
         }
     }
 
@@ -377,6 +385,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
         viewModelScope.launch {
             repository.logCardioSet(sessionId, exerciseId, durationMinutes, distanceKm)
+            emitSetLoggedPulse(exerciseId)
         }
     }
 
@@ -391,7 +400,13 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.logHoldSet(sessionId, exerciseId, durationSeconds, targetDurationSeconds, isWarmup, targetProvenance.name)
             refreshSuggestionForExercise(exerciseId)
+            emitSetLoggedPulse(exerciseId)
         }
+    }
+
+    private fun emitSetLoggedPulse(exerciseId: Long) {
+        nextPulseEventId += 1
+        _setLoggedPulse.value = SetLoggedPulse(exerciseId, nextPulseEventId)
     }
 
     /** Recomputes the suggestion for just the exercise that was logged, instead of every exercise

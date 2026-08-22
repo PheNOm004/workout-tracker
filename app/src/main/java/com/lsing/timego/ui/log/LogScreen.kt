@@ -356,6 +356,7 @@ private fun LoggingContent(
     val selectedRoutineId by viewModel.selectedRoutineId.collectAsState()
     val latestBodyWeightKg by viewModel.latestBodyWeightKg.collectAsState()
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsState()
+    val setLoggedPulse by viewModel.setLoggedPulse.collectAsState()
     var expandedExerciseIds by remember(sessionId) { mutableStateOf<List<Long>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showEndSessionConfirmation by remember { mutableStateOf(false) }
@@ -440,6 +441,7 @@ private fun LoggingContent(
                             category = exercise.category,
                             suggestion = holdSuggestions[exercise.id],
                             delaySeconds = holdDelaySeconds,
+                            pulseId = setLoggedPulse?.takeIf { it.exerciseId == exercise.id }?.eventId ?: 0L,
                             expanded = exercise.id in expandedExerciseIds,
                             onToggle = {
                                 expandedExerciseIds = toggleExpandedExerciseIds(expandedExerciseIds, exercise.id)
@@ -452,6 +454,7 @@ private fun LoggingContent(
                             met = if (exercise.category == ExerciseCategory.CARDIO.name) MET_CARDIO else MET_WARMUP,
                             bodyWeightKg = latestBodyWeightKg,
                             delaySeconds = holdDelaySeconds,
+                            pulseId = setLoggedPulse?.takeIf { it.exerciseId == exercise.id }?.eventId ?: 0L,
                             expanded = exercise.id in expandedExerciseIds,
                             onToggle = {
                                 expandedExerciseIds = toggleExpandedExerciseIds(expandedExerciseIds, exercise.id)
@@ -466,6 +469,7 @@ private fun LoggingContent(
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
                             expanded = exercise.id in expandedExerciseIds,
+                            pulseId = setLoggedPulse?.takeIf { it.exerciseId == exercise.id }?.eventId ?: 0L,
                             onToggle = {
                                 expandedExerciseIds = toggleExpandedExerciseIds(expandedExerciseIds, exercise.id)
                             },
@@ -531,10 +535,11 @@ private fun ExerciseRowHeader(
  *  direction. Category no longer carries its own color (see categoryVisual); the rule's accent
  *  is always the theme's one committed brand color. */
 @Composable
-private fun ExerciseCard(expanded: Boolean, content: @Composable () -> Unit) {
+private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Composable () -> Unit) {
     val accent = MaterialTheme.colorScheme.primary
     TrainingPulse(
         active = expanded,
+        pulseId = pulseId,
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = Spacing.Large, end = Spacing.Small)
@@ -559,6 +564,7 @@ private fun StrengthLogRow(
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
     expanded: Boolean,
+    pulseId: Long,
     onToggle: () -> Unit,
     onLog: (weightKg: Double, reps: Int, targetReps: Int, isWarmup: Boolean, addedWeightKg: Double?, rpe: Int?, targetProvenance: TargetProvenance) -> Unit,
 ) {
@@ -587,7 +593,7 @@ private fun StrengthLogRow(
         "Last time: $weight x ${set.reps}"
     }
 
-    ExerciseCard(expanded) {
+    ExerciseCard(expanded, pulseId) {
         ExerciseRowHeader(
             exerciseName,
             visual.icon,
@@ -693,6 +699,7 @@ private fun CardioLogRow(
     bodyWeightKg: Double?,
     delaySeconds: Int,
     expanded: Boolean,
+    pulseId: Long,
     onToggle: () -> Unit,
     onLog: (durationMinutes: Double, distanceKm: Double?) -> Unit,
 ) {
@@ -703,7 +710,7 @@ private fun CardioLogRow(
     val distance = distanceText.toDoubleOrNull()
     val visual = categoryVisual(category)
 
-    ExerciseCard(expanded) {
+    ExerciseCard(expanded, pulseId) {
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded, onToggle)
         AnimatedExpand(expanded) {
             if (duration != null && duration > 0) {
@@ -786,6 +793,7 @@ private fun HoldLogRow(
     suggestion: HoldSuggestion?,
     delaySeconds: Int,
     expanded: Boolean,
+    pulseId: Long,
     onToggle: () -> Unit,
     onLog: (durationSeconds: Int, targetDurationSeconds: Int, isWarmup: Boolean, targetProvenance: TargetProvenance) -> Unit,
 ) {
@@ -794,7 +802,7 @@ private fun HoldLogRow(
     var manualDurationText by remember(exerciseName) { mutableStateOf("") }
     val visual = categoryVisual(category)
 
-    ExerciseCard(expanded) {
+    ExerciseCard(expanded, pulseId) {
         ExerciseRowHeader(
             exerciseName,
             visual.icon,
