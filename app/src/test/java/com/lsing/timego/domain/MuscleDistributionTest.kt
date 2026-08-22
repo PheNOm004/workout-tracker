@@ -388,4 +388,41 @@ class MuscleDistributionTest {
         // window 1 day (1/7 week), target = 10/7 ~= 1.4286; 1 effective set / 1.4286 ~= 0.7.
         assertEquals(0.7f, balance["BICEPS"]!!, 0.01f)
     }
+
+    @Test
+    fun `muscleBalanceForTimeframe long windows dilute sparse recent work as a weekly-rate consequence`() {
+        val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
+        val today = LocalDate.of(2026, 8, 22)
+        // The early empty session defines a full Year/Lifetime observation window. Ten current
+        // sets are exactly the weekly target, but cannot also be a year's weekly target.
+        val sessions = listOf(
+            WorkoutSession(id = 1, date = today.minusDays(364), routineId = null, startEpochMillis = 0, endEpochMillis = 0),
+            WorkoutSession(id = 2, date = today, routineId = null, startEpochMillis = 0, endEpochMillis = 0),
+        )
+        val sets = (1..10).map { index ->
+            SetLog(
+                id = index.toLong(),
+                sessionId = 2,
+                exerciseId = 1,
+                weightKg = 20.0,
+                reps = 10,
+                targetReps = 10,
+                loggedAtEpochMillis = 0,
+                rpe = 8,
+            )
+        }
+
+        fun score(timeframe: ProgressTimeframe) = muscleBalanceForTimeframe(
+            timeframe = timeframe,
+            sessions = sessions,
+            sets = sets,
+            exercisesById = mapOf(1L to curl),
+            today = today,
+        ).getValue("BICEPS")
+
+        assertEquals(1.0f, score(ProgressTimeframe.WEEK), 0.001f)
+        assertEquals(0.23f, score(ProgressTimeframe.MONTH), 0.01f)
+        assertEquals(0.019f, score(ProgressTimeframe.YEAR), 0.001f)
+        assertEquals(0.019f, score(ProgressTimeframe.LIFETIME), 0.001f)
+    }
 }

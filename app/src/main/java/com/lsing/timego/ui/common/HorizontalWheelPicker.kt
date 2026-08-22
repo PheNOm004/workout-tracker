@@ -23,7 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -104,13 +104,18 @@ fun HorizontalWheelPicker(
                 }
             }
         }
-        val tickColor = MaterialTheme.colorScheme.primary
-        Canvas(modifier = Modifier.width(2.dp).height(6.dp)) {
-            drawLine(
-                color = tickColor,
-                start = Offset(size.width / 2, 0f),
-                end = Offset(size.width / 2, size.height),
-                strokeWidth = size.width,
+        // The wheel always snaps the selected label to centre, so a fixed centred pill gives
+        // every picker a clear selection affordance without tracking individual item bounds.
+        val indicatorColor = MaterialTheme.colorScheme.primary
+        Canvas(
+            modifier = Modifier
+                .padding(top = 2.dp)
+                .width(28.dp)
+                .height(3.dp),
+        ) {
+            drawRoundRect(
+                color = indicatorColor,
+                cornerRadius = CornerRadius(size.height / 2f),
             )
         }
     }
