@@ -80,6 +80,11 @@ fun RadarChart(values: Map<String, Float>, modifier: Modifier = Modifier) {
         }
         values.keys.forEachIndexed { index, label ->
             val labelPoint = pointFor(index, 1.18f)
+            nativePaint.textAlign = when {
+                labelPoint.x < center.x - labelTextSizePx -> android.graphics.Paint.Align.RIGHT
+                labelPoint.x > center.x + labelTextSizePx -> android.graphics.Paint.Align.LEFT
+                else -> android.graphics.Paint.Align.CENTER
+            }
             drawContext.canvas.nativeCanvas.drawText(label, labelPoint.x, labelPoint.y, nativePaint)
         }
     }
