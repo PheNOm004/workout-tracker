@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -49,6 +47,7 @@ import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SparklineChart
 import com.lsing.timego.ui.common.StatTile
+import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.common.timeframeLabel
@@ -186,10 +185,9 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     modifier = Modifier.padding(vertical = 4.dp),
                 )
                 val selectedExercise = exercisesWithRecords[selectedIndex]
-                Card(
+                SurfaceCard(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    hero = true,
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Medium)) {
                         // Exercise name dropped -- it's already the centered item on the wheel

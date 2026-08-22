@@ -84,3 +84,11 @@ val NightSurface = LedgerSurfaceDark
 val NightSurfaceRaised = LedgerSurfaceVariantDark
 val NightCoral = LedgerAccent
 val NightCoralShade = LedgerAccentDim
+
+// NTC "Backlit" depth tokens. Dark-mode separation comes from tonal decks and light edges,
+// not drop shadows; glow is reserved for active navigation, FABs, data, and pulse moments.
+val NightDeckLow = Color(0xFF1A2125)
+val NightDeckHigh = Color(0xFF232C30)
+val NightEdgeHairline = Color(0x12FFFFFF)
+val NightSheenTop = Color(0x08FFFFFF)
+val NightGlow = Color(0x2AFF6B5E)

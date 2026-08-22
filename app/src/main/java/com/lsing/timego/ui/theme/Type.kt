@@ -99,3 +99,20 @@ val LedgerFigureEmphasis = TextStyle(
     fontSize = 18.sp,
     lineHeight = 24.sp,
 )
+
+/** Uppercase tracked section label; callers supply the uppercase copy. */
+val NightEyebrow = TextStyle(
+    fontFamily = ManropeFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 11.sp,
+    lineHeight = 14.sp,
+    letterSpacing = 1.2.sp,
+)
+
+/** Reserved for one flagship logged value per screen. */
+val LedgerFigureHero = TextStyle(
+    fontFamily = LedgerMonoFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 22.sp,
+    lineHeight = 26.sp,
+)

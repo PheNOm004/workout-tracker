@@ -1,31 +1,22 @@
 package com.lsing.timego.ui.theme
 
 /*
- * IMPECCABLE DIRECTION CONTRACT (2026-08-11, redesign, seed ed48a011, MY PICK card)
+ * NIGHT TRAINING CONSOLE — BACKLIT (2026-08-22)
  *
- * THESIS: TimeGo is the lifter's own logbook, not a fitness-brand dashboard — it refuses
- * the category default of vibrant orange/green motivational-app chrome (explicitly declined
- * once already) and the safe Material-defaults-with-icons pass that still read as generic.
+ * A focused console opened in a dark gym: surfaces are machined decks lit from above; data
+ * emits light while chrome absorbs it. This deepens the existing Night Training Console rather
+ * than replacing it with another identity.
  *
- * OWN-WORLD: A serious lifter's paper training ledger, rendered dark-first rather than the
- * cream/parchment default: graphite graph-paper grid on a near-black page (dark) or bone
- * paper (light, not the primary mode), tabular monospace numerals for every logged value,
- * one committed red margin-rule accent (brick/ink red, not neon) carrying state and primary
- * action, ruled horizontal lines standing in for card dividers.
- *
- * STORY: The lifter opens the app mid-set, sees today's page with suggested targets already
- * penciled in, logs the set, and later flips back through past pages (Progress) to see the
- * curve/PRs/heatmap as a ledger of what they've done — trustworthy, inspectable, personal.
- *
- * FIRST VIEWPORT: Log screen renders as a ruled ledger page — a graph-paper grid ground,
- * today's date as a ledger header rule, exercise rows as ruled lines with tabular-numeral
- * suggestion values pre-filled, the red rule marking the active/expanded row.
- *
- * FORM: Training Ledger — MY PICK card, chosen over the assigned direction (Street Rig
- * Signage, seed ed48a011, candidate 4 of 7 grounded worlds ordered by resonance).
- *
- * FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review,
- * the verdict, and DESIGN.md.
+ * 1. Three tonal steps: ground → deck → raised. Rows remain flat within a card.
+ * 2. Raised surfaces use a 1dp hairline; hero decks may use a short top sheen. No drop shadows
+ *    except the navigation pill and FAB.
+ * 3. Glow is limited to active navigation, primary FAB, chart series, and training-pulse moments.
+ * 4. Logged numbers use JetBrains Mono; 20sp is standard and 22sp is the hero ceiling. Uppercase
+ *    tracked Manrope eyebrows establish hierarchy instead of oversized figures.
+ * 5. Charts carry body through fills, reference tags, readable empty states, and history-aware
+ *    comparison—not fabricated data.
+ * 6. Anatomical muscle art remains TimeGo's richest visual mark.
+ * 7. The set-logged/PR pulse is the single motion signature; other motion stays restrained.
  */
 
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -65,9 +56,9 @@ private val DarkColorScheme = darkColorScheme(
     surfaceBright = LedgerSurfaceBrightDark,
     surfaceContainerLowest = LedgerSurfaceContainerLowestDark,
     surfaceContainerLow = LedgerSurfaceContainerLowDark,
-    surfaceContainer = LedgerSurfaceContainerDark,
-    surfaceContainerHigh = LedgerSurfaceContainerHighDark,
-    surfaceContainerHighest = LedgerSurfaceContainerHighestDark,
+    surfaceContainer = NightDeckLow,
+    surfaceContainerHigh = NightDeckHigh,
+    surfaceContainerHighest = Color(0xFF2E373B),
     outline = LedgerOutlineDark,
     outlineVariant = LedgerOutlineVariantDark,
     error = LedgerError,

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.ui.common.SectionHeader
+import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.Spacing
@@ -225,12 +226,13 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
         items(routines, key = { it.id }) { routine ->
-            Column(
+            SurfaceCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = Spacing.ExtraSmall)
                     .then(if (routine == routines.firstOrNull()) Modifier.padding(Spacing.Small) else Modifier),
             ) {
+                Column {
                 if (routine == routines.firstOrNull()) {
                     Text("Next routine", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
@@ -263,6 +265,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                     }
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = Spacing.ExtraSmall))
+                }
             }
         }
         if (sessionHistory.isNotEmpty()) {

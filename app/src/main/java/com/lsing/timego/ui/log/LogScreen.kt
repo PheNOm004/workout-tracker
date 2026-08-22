@@ -30,7 +30,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -71,6 +70,7 @@ import com.lsing.timego.ui.common.ExerciseSections
 import com.lsing.timego.ui.common.MuscleHeatLegend
 import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SectionHeader
+import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.TimerControls
 import com.lsing.timego.ui.common.TrainingPulse
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
@@ -168,10 +168,9 @@ private fun LogLandingContent(
         if (summary.lastSession == null) {
             Text("No sessions logged yet.", style = MaterialTheme.typography.bodyMedium)
         } else {
-            Surface(
+            SurfaceCard(
                 modifier = Modifier.fillMaxWidth().clickable { showLastSessionDetail = true },
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                hero = true,
             ) {
                 Column(modifier = Modifier.padding(Spacing.Medium)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -222,10 +221,8 @@ private fun LogLandingContent(
         if (summary.recommendedMuscleGroups.isEmpty()) {
             Text("Everything's been trained recently -- nice balance.", style = MaterialTheme.typography.bodyMedium)
         } else {
-            Surface(
+            SurfaceCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
             ) {
                 Column(modifier = Modifier.padding(Spacing.Medium)) {
                     Text(
