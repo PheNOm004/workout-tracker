@@ -132,7 +132,11 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             SectionHeader(
                 title = "Your routines",
                 topPadding = Spacing.ExtraSmall,
-                trailing = { Button(onClick = { showRoutineForm = true }) { Text("+ New routine") } },
+                trailing = if (routines.isNotEmpty()) {
+                    { Button(onClick = { showRoutineForm = true }) { Text("+ New routine") } }
+                } else {
+                    null
+                },
             )
         }
         if (routines.isEmpty()) {
