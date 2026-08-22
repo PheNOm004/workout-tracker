@@ -159,7 +159,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                     modifier = Modifier.fillMaxWidth().padding(top = Spacing.Large, bottom = Spacing.ExtraSmall),
                 )
                 FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
-                    untrainedGroups.forEach { group ->
+                    untrainedGroups.take(6).forEach { group ->
                         AssistChip(
                             onClick = {},
                             label = { Text(formatEnumLabel(group)) },
@@ -168,6 +168,14 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                             modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
                         )
                     }
+                }
+                if (untrainedGroups.size > 6) {
+                    Text(
+                        "Showing the six longest-neglected groups.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = Spacing.Medium),
+                    )
                 }
             }
         }

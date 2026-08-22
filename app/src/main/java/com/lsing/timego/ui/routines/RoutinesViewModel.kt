@@ -16,6 +16,7 @@ import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.exerciseUsageFrequency
 import com.lsing.timego.domain.exercisesRankedByFrequency
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
+import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.untrainedMuscleGroups
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -104,8 +105,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
         val sessionDateById = repository.allSessions().associate { it.id to it.date }
         val exercisesById = exerciseList.associateBy { it.id }
         val lastTrained = lastTrainedDatesByMuscleGroup(allSets, exercisesById, sessionDateById)
-        val allGroups = MuscleGroup.entries.map { it.name }
-        _untrainedGroups.value = untrainedMuscleGroups(allGroups, lastTrained, LocalDate.now())
+        val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
+        val staleGroups = untrainedMuscleGroups(allGroups, lastTrained, LocalDate.now())
+        _untrainedGroups.value = rankUntrainedMuscleGroups(staleGroups, lastTrained, LocalDate.now())
     }
 
     fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) {
