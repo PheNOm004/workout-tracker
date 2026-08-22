@@ -28,3 +28,13 @@ fun exercisesRankedByFrequency(
         compareByDescending<Exercise> { usageCounts[it.id] ?: 0 }
             .thenBy { it.name },
     )
+
+/** The small, familiar subset that sits above the full library during an active workout. A zero
+ * count means no personal evidence yet, so it belongs in the browser rather than Quick Add. */
+fun quickAddExercises(
+    exercises: List<Exercise>,
+    usageCounts: Map<Long, Int>,
+    limit: Int = 6,
+): List<Exercise> = exercisesRankedByFrequency(exercises, usageCounts)
+    .filter { (usageCounts[it.id] ?: 0) > 0 }
+    .take(limit)

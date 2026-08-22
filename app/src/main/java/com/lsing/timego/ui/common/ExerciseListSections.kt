@@ -155,13 +155,19 @@ internal fun boundedExerciseSearch(exercises: List<Exercise>, query: String): Li
  *  category/muscle-group grouping (a plain filtered list), since narrowing to a handful of
  *  matches makes the grouping chrome noise rather than useful navigation. */
 @Composable
-fun ExerciseSections(exercises: List<Exercise>, itemContent: @Composable (Exercise) -> Unit) {
-    var query by remember { mutableStateOf("") }
+fun ExerciseSections(
+    exercises: List<Exercise>,
+    searchQuery: String? = null,
+    onSearchQueryChange: ((String) -> Unit)? = null,
+    itemContent: @Composable (Exercise) -> Unit,
+) {
+    var localQuery by remember { mutableStateOf("") }
+    val query = searchQuery ?: localQuery
     var expandedGroupKeys by remember { mutableStateOf<List<String>>(emptyList()) }
 
     OutlinedTextField(
         value = query,
-        onValueChange = { query = it },
+        onValueChange = { value -> onSearchQueryChange?.invoke(value) ?: run { localQuery = value } },
         label = { Text("Search exercises") },
         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
         singleLine = true,

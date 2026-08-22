@@ -28,6 +28,7 @@ import com.lsing.timego.domain.checkSessionAutoClose
 import com.lsing.timego.domain.expandMuscleGroupRegions
 import com.lsing.timego.domain.exerciseUsageFrequency
 import com.lsing.timego.domain.exercisesRankedByFrequency
+import com.lsing.timego.domain.quickAddExercises
 import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
 import com.lsing.timego.domain.lastWorkingSetByExercise
@@ -106,6 +107,9 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _displayedExercises = MutableStateFlow<List<Exercise>>(emptyList())
     val displayedExercises: StateFlow<List<Exercise>> = _displayedExercises.asStateFlow()
+
+    private val _quickAddExercises = MutableStateFlow<List<Exercise>>(emptyList())
+    val quickAddExercises: StateFlow<List<Exercise>> = _quickAddExercises.asStateFlow()
 
     private val _lastWorkingSets = MutableStateFlow<Map<Long, SetLog>>(emptyMap())
     val lastWorkingSets: StateFlow<Map<Long, SetLog>> = _lastWorkingSets.asStateFlow()
@@ -237,7 +241,9 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             val exerciseIds = repository.exercisesForRoutine(routineId).map { it.exerciseId }.toSet()
             allExercises.filter { it.id in exerciseIds }
         }
-        _displayedExercises.value = exercisesRankedByFrequency(filteredExercises, exerciseUsageCounts)
+        val rankedExercises = exercisesRankedByFrequency(filteredExercises, exerciseUsageCounts)
+        _displayedExercises.value = rankedExercises
+        _quickAddExercises.value = quickAddExercises(rankedExercises, exerciseUsageCounts)
     }
 
     /** Splits suggestion computation by loggingType: WEIGHT_REPS exercises get a weight/reps

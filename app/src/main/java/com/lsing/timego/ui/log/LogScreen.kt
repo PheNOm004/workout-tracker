@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -349,6 +351,7 @@ private fun LoggingContent(
     onBackToLanding: () -> Unit,
 ) {
     val exercises by viewModel.displayedExercises.collectAsState()
+    val quickAddExercises by viewModel.quickAddExercises.collectAsState()
     val suggestions by viewModel.suggestions.collectAsState()
     val holdSuggestions by viewModel.holdSuggestions.collectAsState()
     val lastWorkingSets by viewModel.lastWorkingSets.collectAsState()
@@ -360,6 +363,7 @@ private fun LoggingContent(
     var expandedExerciseIds by remember(sessionId) { mutableStateOf<List<Long>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showEndSessionConfirmation by remember { mutableStateOf(false) }
+    var librarySearchQuery by remember { mutableStateOf("") }
 
     if (showAddDialog) {
         AddExerciseDialog(
@@ -434,7 +438,26 @@ private fun LoggingContent(
                 }
             }
             item {
-                ExerciseSections(exercises = exercises) { exercise ->
+                if (quickAddExercises.isNotEmpty()) {
+                    SectionHeader("Quick add", topPadding = Spacing.Small)
+                    FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
+                        quickAddExercises.forEach { exercise ->
+                            AssistChip(
+                                onClick = {
+                                    librarySearchQuery = exercise.name
+                                    expandedExerciseIds = listOf(exercise.id)
+                                },
+                                label = { Text(exercise.name) },
+                                modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
+                            )
+                        }
+                    }
+                }
+                ExerciseSections(
+                    exercises = exercises,
+                    searchQuery = librarySearchQuery,
+                    onSearchQueryChange = { librarySearchQuery = it },
+                ) { exercise ->
                     when (exercise.loggingType) {
                         LoggingType.HOLD.name -> HoldLogRow(
                             exerciseName = exercise.name,

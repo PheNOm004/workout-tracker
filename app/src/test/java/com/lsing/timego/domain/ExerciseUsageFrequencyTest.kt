@@ -78,4 +78,13 @@ class ExerciseUsageFrequencyTest {
 
         assertEquals(listOf(squat, benchPress), ranked)
     }
+
+    @Test
+    fun `quickAddExercises keeps only used exercises in frequency order and applies its limit`() {
+        val exercises = listOf(benchPress, squat, warmupJog)
+
+        val quickAdd = quickAddExercises(exercises, usageCounts = mapOf(1L to 4, 2L to 2), limit = 1)
+
+        assertEquals(listOf(benchPress), quickAdd)
+    }
 }
