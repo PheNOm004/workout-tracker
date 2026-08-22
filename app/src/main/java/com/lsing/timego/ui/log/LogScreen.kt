@@ -300,13 +300,28 @@ private fun LogLandingContent(
             }
         } else {
             SectionHeader("Start a session")
-            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                Button(onClick = { onStartOrContinue(null) }, modifier = Modifier.padding(end = Spacing.Small)) {
-                    Text("Freeform")
+            if (routines.isEmpty()) {
+                SurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(Spacing.Medium)) {
+                        Text("No routines yet", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Start freeform today. Build a reusable plan in Routines when your session repeats.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
+                        )
+                        Button(onClick = { onStartOrContinue(null) }) { Text("Start freeform") }
+                    }
                 }
-                routines.forEach { routine ->
-                    Button(onClick = { onStartOrContinue(routine.id) }, modifier = Modifier.padding(end = Spacing.Small)) {
-                        Text(routine.name)
+            } else {
+                Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                    Button(onClick = { onStartOrContinue(null) }, modifier = Modifier.padding(end = Spacing.Small)) {
+                        Text("Freeform")
+                    }
+                    routines.forEach { routine ->
+                        Button(onClick = { onStartOrContinue(routine.id) }, modifier = Modifier.padding(end = Spacing.Small)) {
+                            Text(routine.name)
+                        }
                     }
                 }
             }
