@@ -1,14 +1,12 @@
 package com.lsing.timego.ui.log
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -43,7 +41,7 @@ fun AddExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String, muscleGroups:
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text("Category", style = androidx.compose.material3.MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall))
-                Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                FlowRow(modifier = Modifier.fillMaxWidth()) {
                     ExerciseCategory.entries.forEach { entry ->
                         FilterChip(
                             selected = category == entry,
@@ -54,20 +52,20 @@ fun AddExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String, muscleGroups:
                     }
                 }
                 Text("Muscle groups", style = androidx.compose.material3.MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall))
-                MuscleGroup.entries.forEach { group ->
-                    val checked = group.name in selectedGroups.value
-                    Row {
-                        Checkbox(
-                            checked = checked,
-                            onCheckedChange = { isChecked ->
-                                selectedGroups.value = if (isChecked) {
-                                    selectedGroups.value + group.name
-                                } else {
+                FlowRow(modifier = Modifier.fillMaxWidth()) {
+                    MuscleGroup.entries.forEach { group ->
+                        FilterChip(
+                            selected = group.name in selectedGroups.value,
+                            onClick = {
+                                selectedGroups.value = if (group.name in selectedGroups.value) {
                                     selectedGroups.value - group.name
+                                } else {
+                                    selectedGroups.value + group.name
                                 }
                             },
+                            label = { Text(formatEnumLabel(group.name)) },
+                            modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
                         )
-                        Text(formatEnumLabel(group.name))
                     }
                 }
             }
