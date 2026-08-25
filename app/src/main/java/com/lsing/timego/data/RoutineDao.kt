@@ -16,6 +16,9 @@ interface RoutineDao {
     @Query("SELECT * FROM routines ORDER BY name")
     fun observeRoutines(): Flow<List<Routine>>
 
+    @Query("SELECT * FROM routine_exercises ORDER BY routineId, orderIndex")
+    fun observeRoutineExercises(): Flow<List<RoutineExercise>>
+
     @Query("SELECT * FROM routine_exercises WHERE routineId = :routineId ORDER BY orderIndex")
     suspend fun exercisesForRoutine(routineId: Long): List<RoutineExercise>
 

@@ -67,47 +67,39 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
 
     init {
         viewModelScope.launch {
-            combine(repository.routines, repository.exercises) { routines, exercises ->
-                routines to exercises.associateBy { it.id }
-            }.collect { (routineList, exercisesById) ->
-                _routines.value = routineList
-                _routineExercisesById.value = routineList.associate { routine ->
-                    routine.id to repository.exercisesForRoutine(routine.id)
+            combine(
+                repository.routines,
+                repository.routineExercises,
+                repository.exercises,
+                repository.setLogs,
+                repository.sessions,
+            ) { routines, routineExercises, exercises, setLogs, sessions ->
+                val exercisesById = exercises.associateBy { it.id }
+                val routineLinksById = routineExercises.groupBy { it.routineId }
+
+                _routines.value = routines
+                _routineExercisesById.value = routines.associate { routine ->
+                    routine.id to routineLinksById[routine.id].orEmpty()
                         .mapNotNull { exercisesById[it.exerciseId] }
                 }
-            }
-        }
-        viewModelScope.launch {
-            combine(repository.exercises, repository.setLogs) { exerciseList, setLogs ->
-                exerciseList to setLogs
-            }.collect { (exerciseList, setLogs) ->
                 _exercises.value = exercisesRankedByFrequency(
-                    exerciseList,
-                    exerciseUsageFrequency(setLogs, exerciseList.associateBy { it.id }),
+                    exercises,
+                    exerciseUsageFrequency(setLogs, exercisesById),
                 )
-            }
-        }
-        viewModelScope.launch {
-            combine(repository.exercises, repository.setLogs, repository.sessions) { exerciseList, setLogs, sessions ->
-                Triple(exerciseList, setLogs, sessions)
-            }.collect { (exerciseList, setLogs, sessions) ->
-                refreshUntrainedGroups(exerciseList, setLogs, sessions)
-            }
+                refreshUntrainedGroups(exercisesById, setLogs, sessions)
+
+                val countsBySession = setLogs.groupingBy { it.sessionId }.eachCount()
+                _sessionHistory.value = sessions
+                    .filter { it.endEpochMillis != null }
+                    .sortedByDescending { it.endEpochMillis }
+                    .map { SessionHistoryEntry(it.id, it.date, countsBySession[it.id] ?: 0) }
+            }.collect {}
         }
         viewModelScope.launch {
             settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
         }
         viewModelScope.launch {
             settingsRepository.trainingLean.collect { _trainingLean.value = it }
-        }
-        viewModelScope.launch {
-            combine(repository.sessions, repository.setLogs) { sessions, setLogs ->
-                val countsBySession = setLogs.groupingBy { it.sessionId }.eachCount()
-                sessions
-                    .filter { it.endEpochMillis != null }
-                    .sortedByDescending { it.endEpochMillis }
-                    .map { SessionHistoryEntry(it.id, it.date, countsBySession[it.id] ?: 0) }
-            }.collect { _sessionHistory.value = it }
         }
     }
 
@@ -120,16 +112,16 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun refreshUntrainedGroups(
-        exerciseList: List<Exercise>,
+        exercisesById: Map<Long, Exercise>,
         setLogs: List<com.lsing.timego.data.SetLog>,
         sessions: List<com.lsing.timego.data.WorkoutSession>,
     ) {
         val sessionDateById = sessions.associate { it.id to it.date }
-        val exercisesById = exerciseList.associateBy { it.id }
         val lastTrained = lastTrainedDatesByMuscleGroup(setLogs, exercisesById, sessionDateById)
         val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
-        val staleGroups = untrainedMuscleGroups(allGroups, lastTrained, LocalDate.now())
-        _untrainedGroups.value = rankUntrainedMuscleGroups(staleGroups, lastTrained, LocalDate.now())
+        val today = LocalDate.now()
+        val staleGroups = untrainedMuscleGroups(allGroups, lastTrained, today)
+        _untrainedGroups.value = rankUntrainedMuscleGroups(staleGroups, lastTrained, today)
     }
 
     fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) {

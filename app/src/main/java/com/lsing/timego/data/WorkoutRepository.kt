@@ -23,6 +23,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
     val sessions: Flow<List<WorkoutSession>> = db.sessionDao().observeAll()
     val bodyMetrics: Flow<List<BodyMetric>> = db.bodyMetricDao().observeAll()
     val routines: Flow<List<Routine>> = db.routineDao().observeRoutines()
+    val routineExercises: Flow<List<RoutineExercise>> = db.routineDao().observeRoutineExercises()
     val setLogs: Flow<List<SetLog>> = db.setLogDao().observeAll()
 
     /** One-shot snapshot for callers that need a plain List, not a subscription (e.g. the
