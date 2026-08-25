@@ -112,8 +112,12 @@ fun WorkoutHistoryDialog(
 
 @Composable
 fun StatTile(label: String, value: String, caption: String? = null, modifier: Modifier = Modifier) {
+    // A smaller radius than SurfaceCard's 16dp default -- at this tile's compact size (often
+    // nested inside another rounded card, e.g. Personal Records), the full hero-card radius ate
+    // too much of the short edges and read as a melted/uneven corner rather than a clean round.
     SurfaceCard(
         modifier = modifier.padding(Spacing.ExtraSmall),
+        cornerRadius = 10.dp,
     ) {
         Column(modifier = Modifier.padding(Spacing.Medium)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

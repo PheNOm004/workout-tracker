@@ -254,7 +254,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                             if (isBodyweight && it.addedWeightKg != null) {
                                                 formatCalisthenicsWeight(it.addedWeightKg)
                                             } else {
-                                                "%.1f kg".format(it.value)
+                                                "%.1fkg".format(it.value)
                                             }
                                         } ?: "--",
                                         caption = caption,
@@ -268,7 +268,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                     )
                                     StatTile(
                                         label = "Total Weight",
-                                        value = record?.let { "%.1f kg".format(it.value * (it.secondaryValue ?: 0.0)) } ?: "--",
+                                        value = record?.let { "%.1fkg".format(it.value * (it.secondaryValue ?: 0.0)) } ?: "--",
                                         caption = caption,
                                         modifier = Modifier.weight(1f),
                                     )

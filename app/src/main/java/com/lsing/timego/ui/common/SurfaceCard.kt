@@ -12,6 +12,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.lsing.timego.ui.theme.NightDeckHigh
 import com.lsing.timego.ui.theme.NightDeckLow
@@ -28,16 +29,25 @@ fun SurfaceCard(
     modifier: Modifier = Modifier,
     hero: Boolean = false,
     glow: Boolean = false,
+    cornerRadius: Dp = 16.dp,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(cornerRadius)
     val deck = if (hero) NightDeckHigh else NightDeckLow
 
+    // clip(shape) stays outermost so a caller-supplied .clickable's ripple (e.g. the Log
+    // landing card) is still bounded to the rounded shape. background() previously had no
+    // shape argument, so it drew a plain sharp-cornered rectangle -- fine when nothing sat
+    // between clip and background, but a caller modifier that adds its own padding (e.g.
+    // StatTile's spacing between tiles) shrinks the box before background runs, and that
+    // inset sharp rectangle's corners poked past the outer clip's rounded boundary. Passing
+    // shape here makes background round itself at whatever size it actually draws at,
+    // matching border below, regardless of what the caller's modifier does in between.
     Box(
         modifier = Modifier
             .clip(shape)
             .then(modifier)
-            .background(deck)
+            .background(deck, shape)
             .drawBehind {
                 if (hero) {
                     drawRect(
