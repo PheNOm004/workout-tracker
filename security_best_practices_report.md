@@ -12,21 +12,22 @@ OSV query of all 142 resolved Maven components returned zero known vulnerability
 
 This pass fixed unsafe backup ingestion, UI-thread backup work, misleading backup privacy wording,
 invalid numeric persistence, missing-bodyweight calisthenics corruption, and navigation accessibility.
-One high-priority repository-history issue remains: a deleted Jupyter log and four token-shaped URL
+One repository-history hygiene issue remains: a deleted Jupyter log and four dead, token-shaped URL
 occurrences are still present in commit `0d3e7ff`. No token value is reproduced in this report.
 
 ## Critical findings
 
 None found.
 
-## High priority
+## Repository-history hygiene
 
-### S-01 — Sensitive Jupyter URLs remain in public Git history (open)
+### S-01 — Dead Jupyter URLs remain in public Git history (optional cleanup)
 
 - Evidence: `ml-prototype/jupyter.log` exists in commit `0d3e7ff`; the current-tree removal is commit
   `0cf902e`. A content-safe scan counted four token-shaped URL occurrences in the historic blob.
-- Impact: anyone who can read the public repository history can recover those URLs; if the referenced
-  Jupyter process or credential were still valid, it could permit unauthorized notebook access.
+- Impact: anyone who can read the public repository history can recover those URLs. Runtime
+  verification shows the process-scoped URLs are dead, so they do not currently grant notebook
+  access; retaining them can still trigger secret scanners and is poor repository hygiene.
 - Current mitigation: the file is no longer tracked, `.gitignore` blocks the path, and no current-tree
   secret-like match was found. A local runtime check on 2026-08-25 found zero active Jupyter processes
   and confirmed that both historical loopback endpoints on port 8888 were not listening. Because a
