@@ -24,7 +24,7 @@ Used primarily standing in a gym between sets — logging must be fast, thumb-re
 
 ## Capabilities and Constraints
 
-- Stack: Kotlin, Jetpack Compose, Room (schema v6), Gradle/AGP toolchain shared with the sibling HeatP project. Min SDK 26.
+- Stack: Kotlin, Jetpack Compose, Room (schema v14). Min SDK 26.
 - Screens: Log (session logging, routine-or-freeform), Progress (strength curves, PRs, body metrics, muscle heatmap/radar), Routines (routine builder/scheduling).
 - Exercise library: 585 seeded exercises (strength/calisthenics/cardio/warmup) plus user-added custom exercises, each with muscle-group tags and per-muscle weighting (0-100).
 - Logging types per exercise: WEIGHT_REPS, HOLD (duration), DURATION_DISTANCE (cardio) — drives which input fields render.
