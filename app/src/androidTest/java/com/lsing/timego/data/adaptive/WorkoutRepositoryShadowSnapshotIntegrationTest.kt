@@ -9,6 +9,7 @@ import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.data.WorkoutSession
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -57,13 +58,13 @@ class WorkoutRepositoryShadowSnapshotIntegrationTest {
         repository.endSession(closingSessionId, endEpochMillis = 1_100)
         assertEquals(
             listOf(closingSet.copy(id = 1), deletingSet.copy(id = 2), unaffectedSet.copy(id = 3)),
-            repository.allSetLogsOrderedByTime(),
+            repository.setLogs.first(),
         )
 
         repository.deleteSession(deletingSessionId)
         assertEquals(
             listOf(closingSet.copy(id = 1), unaffectedSet.copy(id = 3)),
-            repository.allSetLogsOrderedByTime(),
+            repository.setLogs.first(),
         )
     }
 

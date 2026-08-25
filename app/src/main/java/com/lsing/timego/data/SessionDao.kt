@@ -13,12 +13,6 @@ interface SessionDao {
     @Query("SELECT * FROM workout_sessions ORDER BY date DESC")
     fun observeAll(): Flow<List<WorkoutSession>>
 
-    @Query("SELECT * FROM workout_sessions WHERE endEpochMillis IS NULL LIMIT 1")
-    suspend fun findActiveSession(): WorkoutSession?
-
-    @Query("SELECT * FROM workout_sessions WHERE endEpochMillis IS NOT NULL ORDER BY endEpochMillis DESC LIMIT 1")
-    suspend fun findLastClosedSession(): WorkoutSession?
-
     /** Includes active rows so the pure mapper can record an explicit open-session exclusion. */
     @Query("SELECT * FROM workout_sessions ORDER BY CASE WHEN endEpochMillis IS NULL THEN 1 ELSE 0 END, endEpochMillis, id")
     suspend fun allForShadowSnapshot(): List<WorkoutSession>

@@ -15,8 +15,9 @@ import androidx.room.PrimaryKey
  *  suggester; CARDIO/WARMUP-category sets never set it. */
 @Entity(
     tableName = "set_logs",
-    // Every read of this table other than the full scans filters by one of these two columns
-    // (forSession, historyForExercise), and set_logs is the only table that grows without bound.
+    // Schema-10 indices remain part of the migration contract. Session deletion uses sessionId;
+    // exerciseId keeps targeted history reads efficient if the unbounded log table outgrows the
+    // current in-memory screen snapshot strategy.
     indices = [Index("sessionId"), Index("exerciseId")],
 )
 data class SetLog(

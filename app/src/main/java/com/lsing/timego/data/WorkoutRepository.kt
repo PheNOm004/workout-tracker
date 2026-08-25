@@ -26,11 +26,6 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
     val routineExercises: Flow<List<RoutineExercise>> = db.routineDao().observeRoutineExercises()
     val setLogs: Flow<List<SetLog>> = db.setLogDao().observeAll()
 
-    /** One-shot snapshot for callers that need a plain List, not a subscription (e.g. the
-     *  muscle-balance check and the strength-curve lookup, which both need session dates once per
-     *  computation, not a live collector). */
-    suspend fun allSessions(): List<WorkoutSession> = sessions.first()
-
     /** Inserts any [seed] exercise whose name isn't already present -- NOT gated on the table
      *  being totally empty, since expanding the seed list (Update 1.1: 12 -> 119) must still
      *  reach devices that already have some exercises logged. Matches by name rather than id,
@@ -71,10 +66,6 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         return db.exerciseDao().insert(Exercise(name = name, muscleGroups = muscleGroups, isCustom = true, category = category, loggingType = loggingType))
     }
 
-    suspend fun activeSession(): WorkoutSession? = db.sessionDao().findActiveSession()
-
-    suspend fun lastClosedSession(): WorkoutSession? = db.sessionDao().findLastClosedSession()
-
     suspend fun startSession(routineId: Long?): WorkoutSession {
         val now = System.currentTimeMillis()
         val session = WorkoutSession(date = LocalDate.now(), routineId = routineId, startEpochMillis = now, endEpochMillis = null)
@@ -84,8 +75,6 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
     suspend fun endSession(sessionId: Long, endEpochMillis: Long) {
         db.sessionDao().closeSession(sessionId, endEpochMillis)
     }
-
-    suspend fun setLogsForSession(sessionId: Long): List<SetLog> = db.setLogDao().forSession(sessionId)
 
     /** Deletes a closed session and every set logged into it. No FK cascade exists on
      *  [SetLog.sessionId], so both deletes are explicit, wrapped in one transaction so a crash
@@ -164,12 +153,6 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
             ),
         )
     }
-
-    suspend fun historyForExercise(exerciseId: Long): List<SetLog> = db.setLogDao().historyForExercise(exerciseId)
-
-    suspend fun allSetLogs(): List<SetLog> = db.setLogDao().getAll()
-
-    suspend fun allSetLogsOrderedByTime(): List<SetLog> = db.setLogDao().allOrderedByTime()
 
     /**
      * One atomic, read-only source snapshot for the hidden provisional shadow.  It does not

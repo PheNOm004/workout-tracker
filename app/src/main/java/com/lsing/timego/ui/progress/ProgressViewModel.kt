@@ -29,7 +29,6 @@ import com.lsing.timego.ui.common.sessionDayLabel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -47,6 +46,9 @@ private data class Inputs(
 
 class ProgressViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
+    private var latestSessions: List<com.lsing.timego.data.WorkoutSession> = emptyList()
+    private var latestSetLogs: List<com.lsing.timego.data.SetLog> = emptyList()
+    private var latestExercises: List<Exercise> = emptyList()
 
     private val _volumeRatios = MutableStateFlow<Map<LocalDate, Float>>(emptyMap())
     val volumeRatios: StateFlow<Map<LocalDate, Float>> = _volumeRatios.asStateFlow()
@@ -102,17 +104,6 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _timeframe = MutableStateFlow(ProgressTimeframe.MONTH)
     val timeframe: StateFlow<ProgressTimeframe> = _timeframe.asStateFlow()
 
-    /** Both curve selectors write the same [_strengthCurve]. Without cancelling the previous
-     *  query, two quick taps race and whichever query finishes last wins -- which is not
-     *  necessarily the one the user last tapped. */
-    private var curveJob: Job? = null
-    private var historyJob: Job? = null
-
-    private fun launchCurveJob(block: suspend () -> Unit) {
-        curveJob?.cancel()
-        curveJob = viewModelScope.launch { block() }
-    }
-
     init {
         // Every input this block reads is now an observed Flow. Previously only `sessions` and
         // `_timeframe` drove it while the set list was fetched one-shot inside, so sets logged
@@ -126,6 +117,13 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
             ) { sessions, allSets, exerciseList, timeframe ->
                 Inputs(sessions, allSets, exerciseList, timeframe)
             }.collect { (sessions, allSets, exerciseList, timeframe) ->
+                latestSessions = sessions
+                latestSetLogs = allSets
+                latestExercises = exerciseList
+                _exercises.value = exerciseList
+                if (_selectedExerciseId.value == null) {
+                    _selectedExerciseId.value = exerciseList.firstOrNull()?.id
+                }
                 val sessionDateById = sessions.associate { it.id to it.date }
                 val exercisesById = exerciseList.associateBy { it.id }
                 val today = LocalDate.now()
@@ -158,6 +156,8 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                     exercisesById = exercisesById,
                     today = today,
                 )
+                refreshStrengthCurve()
+                refreshSelectedHistory()
             }
         }
         viewModelScope.launch {
@@ -173,14 +173,6 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                 }
             }
         }
-        viewModelScope.launch {
-            repository.exercises.collect { exerciseList ->
-                _exercises.value = exerciseList
-                if (_selectedExerciseId.value == null) {
-                    exerciseList.firstOrNull()?.let { selectExercise(it.id) }
-                }
-            }
-        }
     }
 
     fun selectTimeframe(timeframe: ProgressTimeframe) {
@@ -190,22 +182,13 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     fun selectExercise(exerciseId: Long) {
         _curveMode.value = CurveMode.EXERCISE
         _selectedExerciseId.value = exerciseId
-        launchCurveJob {
-            val history = repository.historyForExercise(exerciseId)
-            val sessionDateById = repository.allSessions().associate { it.id to it.date }
-            _strengthCurve.value = strengthCurve(history, sessionDateById)
-        }
+        refreshStrengthCurve()
     }
 
     fun selectMuscleGroup(group: String) {
         _curveMode.value = CurveMode.MUSCLE_GROUP
         _selectedMuscleGroup.value = group
-        launchCurveJob {
-            val allSets = repository.allSetLogs()
-            val exercisesById = _exercises.value.associateBy { it.id }
-            val sessionDateById = repository.allSessions().associate { it.id to it.date }
-            _strengthCurve.value = muscleGroupStrengthCurve(allSets, exercisesById, sessionDateById, group)
-        }
+        refreshStrengthCurve()
     }
 
     fun logBodyMetric(weightKg: Double?, waistCm: Double?, heightCm: Double?) {
@@ -225,16 +208,37 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
             _historyLabel.value = null
             return
         }
-        historyJob?.cancel()
-        historyJob = viewModelScope.launch {
-            val sessionIds = repository.allSessions().filter { it.date == date }.map { it.id }.toSet()
-            val exercisesById = _exercises.value.associateBy { it.id }
-            val sets = repository.allSetLogs().filter { it.sessionId in sessionIds }.sortedBy { it.loggedAtEpochMillis }
-            _historyForSelectedDate.value = buildDayHistoryEntries(sets, exercisesById)
-            val primaryMuscleGroups = sessionIds.flatMap { sessionId ->
-                muscleGroupsWorkedInSession(sessionId, sets, _exercises.value)
-            }.toSet()
-            _historyLabel.value = sessionDayLabel(primaryMuscleGroups, isCardioOnlySession(sets, exercisesById))
+        refreshSelectedHistory()
+    }
+
+    private fun refreshStrengthCurve() {
+        val sessionDateById = latestSessions.associate { it.id to it.date }
+        _strengthCurve.value = when (_curveMode.value) {
+            CurveMode.EXERCISE -> {
+                val exerciseId = _selectedExerciseId.value ?: return
+                strengthCurve(latestSetLogs.filter { it.exerciseId == exerciseId }, sessionDateById)
+            }
+            CurveMode.MUSCLE_GROUP -> {
+                val group = _selectedMuscleGroup.value ?: return
+                muscleGroupStrengthCurve(
+                    latestSetLogs,
+                    latestExercises.associateBy { it.id },
+                    sessionDateById,
+                    group,
+                )
+            }
         }
+    }
+
+    private fun refreshSelectedHistory() {
+        val date = _selectedHistoryDate.value ?: return
+        val sessionIds = latestSessions.filter { it.date == date }.map { it.id }.toSet()
+        val exercisesById = latestExercises.associateBy { it.id }
+        val sets = latestSetLogs.filter { it.sessionId in sessionIds }.sortedBy { it.loggedAtEpochMillis }
+        _historyForSelectedDate.value = buildDayHistoryEntries(sets, exercisesById)
+        val primaryMuscleGroups = sessionIds.flatMap { sessionId ->
+            muscleGroupsWorkedInSession(sessionId, sets, latestExercises)
+        }.toSet()
+        _historyLabel.value = sessionDayLabel(primaryMuscleGroups, isCardioOnlySession(sets, exercisesById))
     }
 }
