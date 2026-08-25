@@ -43,10 +43,14 @@
 - Historical Jupyter runtime check: zero active Jupyter processes; both historical loopback endpoints
   on port 8888 not listening, so the old process-scoped URLs are no longer operational.
 - OSV resolved dependency scan: 142 components, zero vulnerability matches.
-- Connected Android suite: 10 tests passed on the Galaxy S23 (`SM-S918B`, Android 16); the
-  instrumentation build uses test storage rather than the live workout database.
-- Final on-device smoke check: the current debug build installed successfully; Log, Progress, and
-  Routines all rendered and navigation worked in both directions; Android crash buffer remained empty.
+- Connected Android suite: 10 tests passed on the Galaxy S23 (`SM-S918B`, Android 16), but this was
+  not a safe primary-device test. Although the tests use isolated storage, Gradle removed the TimeGo
+  package afterward and erased its app-private live data. The user detected the loss and restored the
+  data from their backup. Connected instrumentation is now prohibited on the primary phone and must
+  use an emulator or dedicated disposable device.
+- Final on-device smoke check: after the user's restore, the current debug build showed the restored
+  Log data; Log, Progress, and Routines rendered, navigation worked in both directions, and Android's
+  crash buffer remained empty. The earlier conclusion that the data had survived was incorrect.
 - Final optimized unsigned release APK: 1,954,488 bytes, exactly 0 bytes different from baseline.
 - Final combined unit/lint/release gate: successful in 78.61 seconds (25 tasks executed, 56 up to
   date). This confirms the gate only; it is not treated as a speed comparison with the differently

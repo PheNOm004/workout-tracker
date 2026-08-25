@@ -94,8 +94,11 @@ None found.
 - Dependencies: 142 resolved Maven components checked against OSV; zero vulnerability matches at the
   time of this audit.
 - Release: R8/resource optimization enabled; unsigned release output remains small and non-debuggable.
-- Device verification: all 10 connected tests passed on the Galaxy S23; Log, Progress, and Routines
-  rendered without a crash after the final debug build was installed.
+- Device verification: all 10 connected tests passed on the Galaxy S23, but Gradle then removed the
+  package and erased its app-private live data despite the tests themselves using isolated databases.
+  The user restored the data from backup. The project now prohibits connected instrumentation on the
+  primary phone; it must use an emulator or dedicated disposable device. After the restore, Log,
+  Progress, and Routines rendered without a crash.
 
 ## References
 
