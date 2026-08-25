@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -209,7 +210,7 @@ private fun LogLandingContent(
                         muscleGroups = summary.lastSession.muscleGroups,
                         intensities = summary.lastSession.muscleIntensities,
                         accentColor = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.fillMaxWidth().height(148.dp).padding(top = Spacing.Medium),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 148.dp).padding(top = Spacing.Medium),
                     )
                     if (summary.lastSession.muscleGroups.isNotEmpty()) {
                         MuscleHeatLegend(
@@ -258,7 +259,7 @@ private fun LogLandingContent(
                         accentColor = MaterialTheme.colorScheme.primary,
                         highlightGroups = summary.recommendedMuscleGroups.toSet(),
                         neutralizeUnhighlighted = true,
-                        modifier = Modifier.fillMaxWidth().height(148.dp).padding(top = Spacing.Small),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 148.dp).padding(top = Spacing.Small),
                     )
                 }
             }

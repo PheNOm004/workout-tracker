@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.domain.boundingBox
@@ -161,33 +163,68 @@ fun CroppedMuscleDiagram(
         return
     }
 
-    // Height-fixed by the caller (e.g. .height(120.dp)) -- each half sizes its own width from
-    // that fixed height via aspect ratio (matchHeightConstraintsFirst), rather than splitting the
+    // Height-capped by the caller (e.g. .heightIn(max = 148.dp)) -- each half sizes its own width
+    // from that height via aspect ratio (matchHeightConstraintsFirst) rather than splitting the
     // full row width evenly, since an even split combined with a tall/narrow crop (e.g. calves)
     // was blowing past the row's height entirely: Compose doesn't clip a child that overflows its
     // parent's bounds, so it visually spilled into the sections below instead of shrinking.
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.Medium, Alignment.CenterHorizontally)) {
-        if (frontSpecs.isNotEmpty()) {
-            CroppedMuscleHalf(
-                specs = frontSpecs,
-                highlightGroups = drawableHighlightGroups,
-                neutralizeUnhighlighted = neutralizeUnhighlighted,
-                accentColor = accentColor,
-                intensities = intensities,
-                modifier = Modifier.fillMaxHeight(),
-            )
+    //
+    // A session that only highlights a small region (e.g. one muscle group) has a narrow combined
+    // aspect ratio, so rendering it at the full height cap left it tiny and floating in a mostly
+    // empty row. Instead measure the available width up front and shrink the row's height so the
+    // diagram's natural width actually fills it, down to a legibility floor.
+    val frontAspect = remember(frontSpecs) { cropAspect(frontSpecs) }
+    val backAspect = remember(backSpecs) { cropAspect(backSpecs) }
+    val halfCount = listOfNotNull(frontAspect, backAspect).size
+    val totalAspect = (frontAspect ?: 0f) + (backAspect ?: 0f)
+
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val density = LocalDensity.current
+        val spacingPx = with(density) { Spacing.Medium.toPx() } * (halfCount - 1).coerceAtLeast(0)
+        val availableWidthPx = with(density) { maxWidth.toPx() } - spacingPx
+        val maxHeightPx = with(density) { maxHeight.toPx() }
+        val minHeightPx = with(density) { 64.dp.toPx() }
+        val resolvedHeight = with(density) {
+            if (totalAspect <= 0f || maxHeightPx <= 0f) {
+                maxHeight
+            } else {
+                (availableWidthPx / totalAspect).coerceIn(minHeightPx, maxHeightPx).toDp()
+            }
         }
-        if (backSpecs.isNotEmpty()) {
-            CroppedMuscleHalf(
-                specs = backSpecs,
-                highlightGroups = drawableHighlightGroups,
-                neutralizeUnhighlighted = neutralizeUnhighlighted,
-                accentColor = accentColor,
-                intensities = intensities,
-                modifier = Modifier.fillMaxHeight(),
-            )
+
+        Row(
+            modifier = Modifier.fillMaxWidth().height(resolvedHeight),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.Medium, Alignment.CenterHorizontally),
+        ) {
+            if (frontSpecs.isNotEmpty()) {
+                CroppedMuscleHalf(
+                    specs = frontSpecs,
+                    highlightGroups = drawableHighlightGroups,
+                    neutralizeUnhighlighted = neutralizeUnhighlighted,
+                    accentColor = accentColor,
+                    intensities = intensities,
+                    modifier = Modifier.fillMaxHeight(),
+                )
+            }
+            if (backSpecs.isNotEmpty()) {
+                CroppedMuscleHalf(
+                    specs = backSpecs,
+                    highlightGroups = drawableHighlightGroups,
+                    neutralizeUnhighlighted = neutralizeUnhighlighted,
+                    accentColor = accentColor,
+                    intensities = intensities,
+                    modifier = Modifier.fillMaxHeight(),
+                )
+            }
         }
     }
+}
+
+private fun cropAspect(specs: List<MusclePathSpec>): Float? {
+    if (specs.isEmpty()) return null
+    val vertexLists = specs.map { parsePathVertices(it.pathData) }
+    val box = boundingBox(vertexLists, padding = 20f) ?: return null
+    return ((box[2] - box[0]) / (box[3] - box[1])).coerceAtLeast(0.05f)
 }
 
 private data class CroppedMuscleShape(val path: Path, val lightness: Float, val muscleGroup: MuscleGroup?)

@@ -56,7 +56,7 @@ fun rankedMuscleBalanceBars(
 fun MuscleBalanceBars(entries: List<MuscleBalanceBarEntry>, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.Medium),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
     ) {
         entries.forEach { entry -> MuscleBalanceBarColumn(entry) }
     }
@@ -84,8 +84,11 @@ private fun MuscleBalanceBarColumn(entry: MuscleBalanceBarEntry) {
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
-        modifier = Modifier.width(64.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        // 48dp was too narrow for the longest single-word labels ("Hamstrings", "Adductors") --
+        // with no space to wrap at, Compose broke them mid-word instead. 56dp fits those on one
+        // line while staying well under the original 64dp.
+        modifier = Modifier.width(56.dp),
     ) {
         Text(
             text = currentLabel,
@@ -101,8 +104,8 @@ private fun MuscleBalanceBarColumn(entry: MuscleBalanceBarEntry) {
         )
         Box(
             modifier = Modifier
-                .width(32.dp)
-                .height(120.dp)
+                .width(26.dp)
+                .height(84.dp)
                 .clip(RoundedCornerShape(50))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.BottomCenter,
@@ -123,7 +126,7 @@ private fun MuscleBalanceBarColumn(entry: MuscleBalanceBarEntry) {
             textAlign = TextAlign.Center,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.height(32.dp),
+            modifier = Modifier.height(30.dp),
         )
     }
 }

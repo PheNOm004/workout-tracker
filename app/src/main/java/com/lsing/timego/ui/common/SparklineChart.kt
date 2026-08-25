@@ -124,11 +124,21 @@ fun SparklineChart(points: List<Pair<LocalDate, Double>>, modifier: Modifier = M
                 drawText(text, xFor(index), labelY, nativePaint)
             }
 
+            // min/max/now can share the same point (e.g. the latest set is also the heaviest),
+            // which used to draw two labels stacked on top of each other. Group by index and
+            // combine into one "max / now 82.5" tag instead so nothing overlaps.
             val minIndex = points.indices.minBy { points[it].second }
             val maxIndex = points.indices.maxBy { points[it].second }
-            drawTag("min %.1f".format(minValue), minIndex, yFor(minValue), android.graphics.Paint.Align.LEFT)
-            drawTag("max %.1f".format(maxValue), maxIndex, yFor(maxValue), android.graphics.Paint.Align.RIGHT)
-            drawTag("now %.1f".format(points.last().second), points.lastIndex, yFor(points.last().second), android.graphics.Paint.Align.RIGHT)
+            val nowIndex = points.lastIndex
+            val tagsByIndex = linkedMapOf<Int, MutableList<String>>()
+            tagsByIndex.getOrPut(minIndex) { mutableListOf() }.add("min")
+            tagsByIndex.getOrPut(maxIndex) { mutableListOf() }.add("max")
+            tagsByIndex.getOrPut(nowIndex) { mutableListOf() }.add("now")
+            tagsByIndex.forEach { (index, labels) ->
+                val text = "${labels.joinToString(" / ")} %.1f".format(points[index].second)
+                val align = if (index == 0) android.graphics.Paint.Align.LEFT else android.graphics.Paint.Align.RIGHT
+                drawTag(text, index, yFor(points[index].second), align)
+            }
         }
     }
 }
