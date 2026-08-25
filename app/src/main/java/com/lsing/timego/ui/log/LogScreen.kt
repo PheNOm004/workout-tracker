@@ -40,7 +40,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +53,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.SetLog
@@ -90,12 +90,12 @@ import java.time.LocalDate
 
 @Composable
 fun LogScreen(viewModel: LogViewModel = viewModel()) {
-    val sessionState by viewModel.sessionState.collectAsState()
-    val landingSummary by viewModel.landingSummary.collectAsState()
-    val routines by viewModel.routines.collectAsState()
-    val landingBalanceTimeframe by viewModel.landingBalanceTimeframe.collectAsState()
-    val landingMuscleBalance by viewModel.landingMuscleBalance.collectAsState()
-    val routineLastCompleted by viewModel.routineLastCompleted.collectAsState()
+    val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
+    val landingSummary by viewModel.landingSummary.collectAsStateWithLifecycle()
+    val routines by viewModel.routines.collectAsStateWithLifecycle()
+    val landingBalanceTimeframe by viewModel.landingBalanceTimeframe.collectAsStateWithLifecycle()
+    val landingMuscleBalance by viewModel.landingMuscleBalance.collectAsStateWithLifecycle()
+    val routineLastCompleted by viewModel.routineLastCompleted.collectAsStateWithLifecycle()
 
     when (val state = sessionState) {
         is SessionUiState.Loading -> { /* nothing to render yet -- first frame only, resolves on the next recomposition */ }
@@ -353,17 +353,17 @@ private fun LoggingContent(
     onEndSession: () -> Unit,
     onBackToLanding: () -> Unit,
 ) {
-    val exercises by viewModel.displayedExercises.collectAsState()
-    val quickAddExercises by viewModel.quickAddExercises.collectAsState()
-    val favoriteExerciseIds by viewModel.favoriteExerciseIds.collectAsState()
-    val suggestions by viewModel.suggestions.collectAsState()
-    val holdSuggestions by viewModel.holdSuggestions.collectAsState()
-    val lastWorkingSets by viewModel.lastWorkingSets.collectAsState()
-    val routines by viewModel.routines.collectAsState()
-    val selectedRoutineId by viewModel.selectedRoutineId.collectAsState()
-    val latestBodyWeightKg by viewModel.latestBodyWeightKg.collectAsState()
-    val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsState()
-    val setLoggedPulse by viewModel.setLoggedPulse.collectAsState()
+    val exercises by viewModel.displayedExercises.collectAsStateWithLifecycle()
+    val quickAddExercises by viewModel.quickAddExercises.collectAsStateWithLifecycle()
+    val favoriteExerciseIds by viewModel.favoriteExerciseIds.collectAsStateWithLifecycle()
+    val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
+    val holdSuggestions by viewModel.holdSuggestions.collectAsStateWithLifecycle()
+    val lastWorkingSets by viewModel.lastWorkingSets.collectAsStateWithLifecycle()
+    val routines by viewModel.routines.collectAsStateWithLifecycle()
+    val selectedRoutineId by viewModel.selectedRoutineId.collectAsStateWithLifecycle()
+    val latestBodyWeightKg by viewModel.latestBodyWeightKg.collectAsStateWithLifecycle()
+    val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
+    val setLoggedPulse by viewModel.setLoggedPulse.collectAsStateWithLifecycle()
     var expandedExerciseIds by remember(sessionId) { mutableStateOf<List<Long>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showEndSessionConfirmation by remember { mutableStateOf(false) }

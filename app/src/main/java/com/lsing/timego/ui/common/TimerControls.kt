@@ -14,6 +14,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.lsing.timego.domain.HoldTimerPhase
 import com.lsing.timego.domain.timerPhaseAt
 import com.lsing.timego.ui.theme.LedgerFigureValue
@@ -43,16 +46,19 @@ fun TimerControls(
 ) {
     var startedAtEpochMillis by remember { mutableStateOf<Long?>(null) }
     var phase by remember { mutableStateOf<HoldTimerPhase?>(null) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(startedAtEpochMillis, delaySeconds) {
+    LaunchedEffect(startedAtEpochMillis, delaySeconds, lifecycleOwner) {
         val startedAt = startedAtEpochMillis
         if (startedAt == null) {
             phase = null
             return@LaunchedEffect
         }
-        while (true) {
-            phase = timerPhaseAt(startedAt, delaySeconds, System.currentTimeMillis())
-            delay(POLL_INTERVAL_MILLIS)
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                phase = timerPhaseAt(startedAt, delaySeconds, System.currentTimeMillis())
+                delay(POLL_INTERVAL_MILLIS)
+            }
         }
     }
 

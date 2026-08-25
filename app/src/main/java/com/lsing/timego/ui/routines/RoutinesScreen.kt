@@ -32,7 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.ui.common.SectionHeader
@@ -56,14 +56,14 @@ private val SESSION_HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d,
 
 @Composable
 fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
-    val routines by viewModel.routines.collectAsState()
-    val routineExercisesById by viewModel.routineExercisesById.collectAsState()
-    val exercises by viewModel.exercises.collectAsState()
-    val untrainedGroups by viewModel.untrainedGroups.collectAsState()
-    val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsState()
-    val trainingLean by viewModel.trainingLean.collectAsState()
-    val sessionHistory by viewModel.sessionHistory.collectAsState()
-    val backupResult by viewModel.backupResult.collectAsState()
+    val routines by viewModel.routines.collectAsStateWithLifecycle()
+    val routineExercisesById by viewModel.routineExercisesById.collectAsStateWithLifecycle()
+    val exercises by viewModel.exercises.collectAsStateWithLifecycle()
+    val untrainedGroups by viewModel.untrainedGroups.collectAsStateWithLifecycle()
+    val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
+    val trainingLean by viewModel.trainingLean.collectAsStateWithLifecycle()
+    val sessionHistory by viewModel.sessionHistory.collectAsStateWithLifecycle()
+    val backupResult by viewModel.backupResult.collectAsStateWithLifecycle()
     var showRoutineForm by remember { mutableStateOf(false) }
     var showSessionHistory by remember { mutableStateOf(false) }
     var pendingDeleteSessionId by remember { mutableStateOf<Long?>(null) }

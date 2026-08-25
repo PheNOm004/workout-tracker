@@ -21,7 +21,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +33,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
@@ -71,21 +71,21 @@ private enum class BalanceChartMode { BARS, RADAR }
 
 @Composable
 fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
-    val volumeRatios by viewModel.volumeRatios.collectAsState()
-    val records by viewModel.records.collectAsState()
-    val exercises by viewModel.exercises.collectAsState()
-    val selectedExerciseId by viewModel.selectedExerciseId.collectAsState()
-    val curveMode by viewModel.curveMode.collectAsState()
-    val selectedMuscleGroup by viewModel.selectedMuscleGroup.collectAsState()
-    val strengthCurve by viewModel.strengthCurve.collectAsState()
-    val bodyMetrics by viewModel.bodyMetrics.collectAsState()
-    val weightCurve by viewModel.weightCurve.collectAsState()
-    val currentBmi by viewModel.currentBmi.collectAsState()
-    val muscleDistribution by viewModel.muscleDistribution.collectAsState()
-    val muscleBalance by viewModel.muscleBalance.collectAsState()
-    val previousMuscleBalance by viewModel.previousMuscleBalance.collectAsState()
-    val trainingStats by viewModel.trainingStats.collectAsState()
-    val timeframe by viewModel.timeframe.collectAsState()
+    val volumeRatios by viewModel.volumeRatios.collectAsStateWithLifecycle()
+    val records by viewModel.records.collectAsStateWithLifecycle()
+    val exercises by viewModel.exercises.collectAsStateWithLifecycle()
+    val selectedExerciseId by viewModel.selectedExerciseId.collectAsStateWithLifecycle()
+    val curveMode by viewModel.curveMode.collectAsStateWithLifecycle()
+    val selectedMuscleGroup by viewModel.selectedMuscleGroup.collectAsStateWithLifecycle()
+    val strengthCurve by viewModel.strengthCurve.collectAsStateWithLifecycle()
+    val bodyMetrics by viewModel.bodyMetrics.collectAsStateWithLifecycle()
+    val weightCurve by viewModel.weightCurve.collectAsStateWithLifecycle()
+    val currentBmi by viewModel.currentBmi.collectAsStateWithLifecycle()
+    val muscleDistribution by viewModel.muscleDistribution.collectAsStateWithLifecycle()
+    val muscleBalance by viewModel.muscleBalance.collectAsStateWithLifecycle()
+    val previousMuscleBalance by viewModel.previousMuscleBalance.collectAsStateWithLifecycle()
+    val trainingStats by viewModel.trainingStats.collectAsStateWithLifecycle()
+    val timeframe by viewModel.timeframe.collectAsStateWithLifecycle()
 
     var weightText by remember { mutableStateOf("") }
     var waistText by remember { mutableStateOf("") }
@@ -93,9 +93,9 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     var selectedPrExerciseId by remember { mutableStateOf<Long?>(null) }
     var balanceChartMode by remember { mutableStateOf(BalanceChartMode.BARS) }
 
-    val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsState()
-    val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsState()
-    val historyLabel by viewModel.historyLabel.collectAsState()
+    val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsStateWithLifecycle()
+    val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsStateWithLifecycle()
+    val historyLabel by viewModel.historyLabel.collectAsStateWithLifecycle()
 
     if (selectedHistoryDate != null) {
         WorkoutHistoryDialog(
