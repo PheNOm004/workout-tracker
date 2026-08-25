@@ -28,12 +28,12 @@ None found.
 - Impact: anyone who can read the public repository history can recover those URLs; if the referenced
   Jupyter process or credential were still valid, it could permit unauthorized notebook access.
 - Current mitigation: the file is no longer tracked, `.gitignore` blocks the path, and no current-tree
-  secret-like match was found. Jupyter server tokens normally expire with the server process, but that
-  must be confirmed rather than assumed.
-- Required action: confirm the old Jupyter server/process is stopped and the token is invalid. If the
-  history must be purged, perform a coordinated `git-filter-repo` rewrite and force-push, then address
-  cached GitHub references/clones. This was not applied because history rewriting and force-pushing
-  require explicit user approval.
+  secret-like match was found. A local runtime check on 2026-08-25 found zero active Jupyter processes
+  and confirmed that both historical loopback endpoints on port 8888 were not listening. Because a
+  Jupyter server token is scoped to its server process, the recorded URLs are no longer operational.
+- Remaining action: if repository hygiene requires the dead URLs to be purged, perform a coordinated
+  `git-filter-repo` rewrite and force-push, then address cached GitHub references/clones. This was not
+  applied because history rewriting and force-pushing require explicit user approval.
 - Guidance: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository
 
 ## Medium priority — fixed

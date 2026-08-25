@@ -32,7 +32,7 @@
 | Cache `SurfaceCard` draw brushes | Rejected | Size-aware invalidation adds complexity and the prior audit found no profiler evidence that brush allocation is material. |
 | Rewrite capped exercise search or virtualize the one-open category | Rejected | The 40-result cap bounds composition and no device typing/expansion jank is observed. Retain until a trace shows a bottleneck. |
 | Encrypt every backup by default | Product decision | Stronger confidentiality, but password loss can destroy the only recovery path and requires a versioned encrypted format. The current pass adds accurate plaintext disclosure. |
-| Purge historic Jupyter log immediately | Awaiting approval | Requires history rewrite and force-push with clone/cache coordination; it is security-relevant but destructive. See `security_best_practices_report.md` S-01. |
+| Purge historic Jupyter log immediately | Awaiting approval | Runtime verification found no Jupyter process and no listener at either historical loopback endpoint, so the URLs are dead. Removing them from public history still requires a destructive rewrite and force-push with clone/cache coordination. See `security_best_practices_report.md` S-01. |
 
 ## Verification ledger
 
@@ -40,6 +40,8 @@
 - Lint: zero errors; remaining warnings are dependency/target maintenance, public Compose modifier
   ordering, and resources already removed from release output.
 - Current-tree secret-pattern scan: no matches.
+- Historical Jupyter runtime check: zero active Jupyter processes; both historical loopback endpoints
+  on port 8888 not listening, so the old process-scoped URLs are no longer operational.
 - OSV resolved dependency scan: 142 components, zero vulnerability matches.
 - Connected Android suite: 10 tests passed on the Galaxy S23 (`SM-S918B`, Android 16); the
   instrumentation build uses test storage rather than the live workout database.
