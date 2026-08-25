@@ -6,9 +6,9 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -30,8 +30,8 @@ private data class TimeGoDestination(val route: String, val label: String, val i
 
 private val destinations = listOf(
     TimeGoDestination("log", "Log", Icons.Filled.FitnessCenter),
-    TimeGoDestination("progress", "Progress", Icons.Filled.ShowChart),
-    TimeGoDestination("routines", "Routines", Icons.Filled.List),
+    TimeGoDestination("progress", "Progress", Icons.AutoMirrored.Filled.ShowChart),
+    TimeGoDestination("routines", "Routines", Icons.AutoMirrored.Filled.List),
 )
 
 @Composable
@@ -52,7 +52,7 @@ fun TimeGoNavHost() {
                                 restoreState = true
                             }
                         },
-                        icon = { Icon(destination.icon, contentDescription = destination.label) },
+                        icon = { Icon(destination.icon, contentDescription = null) },
                         label = { Text(destination.label) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = androidx.compose.material3.MaterialTheme.colorScheme.onPrimaryContainer,
