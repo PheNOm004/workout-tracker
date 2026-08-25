@@ -78,6 +78,9 @@ import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.TimerControls
+import com.lsing.timego.ui.common.toFiniteDoubleOrNull
+import com.lsing.timego.ui.common.toPositiveFiniteDoubleOrNull
+import com.lsing.timego.ui.common.toPositiveIntOrNull
 import com.lsing.timego.ui.common.TrainingPulse
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.categoryVisual
@@ -635,6 +638,21 @@ private fun StrengthLogRow(
     var repsText by remember(exerciseName) { mutableStateOf("") }
     var rpeText by remember(exerciseName) { mutableStateOf("") }
     var isWarmup by remember(exerciseName) { mutableStateOf(false) }
+    val reps = repsText.toPositiveIntOrNull()
+    val rpe = rpeText.toIntOrNull()?.takeIf { it in 1..10 }
+    val validRpe = rpeText.isBlank() || rpe != null
+    val enteredWeight = if (isBodyweight) {
+        if (weightText.isBlank()) 0.0 else weightText.toFiniteDoubleOrNull()
+    } else {
+        weightText.toPositiveFiniteDoubleOrNull()
+    }
+    val bodyWeight = latestBodyWeightKg?.takeIf { it.isFinite() && it > 0.0 }
+    val totalBodyweightLoad = if (isBodyweight && bodyWeight != null && enteredWeight != null) {
+        (bodyWeight + enteredWeight).takeIf { it.isFinite() && it > 0.0 }
+    } else {
+        null
+    }
+    val canLog = reps != null && validRpe && if (isBodyweight) totalBodyweightLoad != null else enteredWeight != null
     val visual = categoryVisual(category)
     val suggestionHint = suggestion?.let {
         if (isBodyweight) {
@@ -680,6 +698,14 @@ private fun StrengthLogRow(
                     modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
                 )
             }
+            if (isBodyweight && bodyWeight == null) {
+                Text(
+                    "Log a valid body weight on Progress before logging calisthenics.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
+                )
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = Spacing.Medium),
@@ -694,6 +720,7 @@ private fun StrengthLogRow(
                         onValueChange = { weightText = it },
                         label = { Text(if (isBodyweight) "added kg" else "kg") },
                         placeholder = if (isBodyweight) { { Text("0") } } else null,
+                        isError = weightText.isNotBlank() && (enteredWeight == null || (isBodyweight && totalBodyweightLoad == null)),
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f).padding(end = Spacing.Small),
@@ -702,6 +729,7 @@ private fun StrengthLogRow(
                         value = repsText,
                         onValueChange = { repsText = it },
                         label = { Text("reps") },
+                        isError = repsText.isNotBlank() && reps == null,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
@@ -716,35 +744,32 @@ private fun StrengthLogRow(
                         onValueChange = { rpeText = it },
                         label = { Text("RPE") },
                         placeholder = { Text("1-10") },
+                        isError = !validRpe,
                         singleLine = true,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                     )
-                    Button(onClick = {
-                        val reps = repsText.toIntOrNull()
-                        val rpe = rpeText.toIntOrNull()?.coerceIn(1, 10)
-                        if (isBodyweight) {
-                            val addedWeight = weightText.toDoubleOrNull() ?: 0.0
-                            if (reps != null) {
-                                val totalWeight = (latestBodyWeightKg ?: 0.0) + addedWeight
-                                onLog(totalWeight, reps, suggestion?.reps ?: reps, isWarmup, addedWeight, rpe, targetProvenanceFor(suggestion != null))
-                                weightText = ""
-                                repsText = ""
-                                rpeText = ""
-                                isWarmup = false
-                            }
-                        } else {
-                            val weight = weightText.toDoubleOrNull()
-                            if (weight != null && reps != null) {
-                                onLog(weight, reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
+                    Button(
+                        enabled = canLog,
+                        onClick = {
+                            if (isBodyweight) {
+                                if (reps != null && enteredWeight != null && totalBodyweightLoad != null) {
+                                    onLog(totalBodyweightLoad, reps, suggestion?.reps ?: reps, isWarmup, enteredWeight, rpe, targetProvenanceFor(suggestion != null))
+                                    weightText = ""
+                                    repsText = ""
+                                    rpeText = ""
+                                    isWarmup = false
+                                }
+                            } else if (enteredWeight != null && reps != null) {
+                                onLog(enteredWeight, reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
                                 weightText = ""
                                 repsText = ""
                                 rpeText = ""
                                 isWarmup = false
                             }
                         }
-                    }) {
+                    ) {
                         Text("Log set")
                     }
                 }
@@ -770,14 +795,15 @@ private fun CardioLogRow(
     var useTimer by remember(exerciseName) { mutableStateOf(false) }
     var durationText by remember(exerciseName) { mutableStateOf("") }
     var distanceText by remember(exerciseName) { mutableStateOf("") }
-    val duration = durationText.toDoubleOrNull()
-    val distance = distanceText.toDoubleOrNull()
+    val duration = durationText.toPositiveFiniteDoubleOrNull()
+    val distance = distanceText.toPositiveFiniteDoubleOrNull()
+    val validDistance = distanceText.isBlank() || distance != null
     val visual = categoryVisual(category)
 
     ExerciseCard(expanded, pulseId) {
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded, isFavorite, onToggleFavorite, onToggle)
         AnimatedExpand(expanded) {
-            if (duration != null && duration > 0) {
+            if (duration != null) {
                 val pace = distance?.let { averagePaceMinPerKm(duration, it) }
                 val calories = bodyWeightKg?.let { estimatedCalorieBurn(met, it, duration) }
                 val details = listOfNotNull(
@@ -797,6 +823,7 @@ private fun CardioLogRow(
                 value = distanceText,
                 onValueChange = { distanceText = it },
                 label = { Text("km (optional)") },
+                isError = !validDistance,
                 textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.padding(horizontal = Spacing.Medium),
@@ -810,17 +837,21 @@ private fun CardioLogRow(
                         value = durationText,
                         onValueChange = { durationText = it },
                         label = { Text("minutes") },
+                        isError = durationText.isNotBlank() && duration == null,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                     )
-                    Button(onClick = {
-                        if (duration != null && duration > 0) {
-                            onLog(duration, distance)
-                            durationText = ""
-                            distanceText = ""
+                    Button(
+                        enabled = duration != null && validDistance,
+                        onClick = {
+                            if (duration != null && validDistance) {
+                                onLog(duration, distance)
+                                durationText = ""
+                                distanceText = ""
+                            }
                         }
-                    }) {
+                    ) {
                         Text("Log")
                     }
                 }
@@ -899,22 +930,26 @@ private fun HoldLogRow(
                     modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    val manualDuration = manualDurationText.toIntOrNull()
+                    val manualDuration = manualDurationText.toPositiveIntOrNull()
                     OutlinedTextField(
                         value = manualDurationText,
                         onValueChange = { manualDurationText = it },
                         label = { Text("seconds") },
+                        isError = manualDurationText.isNotBlank() && manualDuration == null,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                     )
-                    Button(onClick = {
-                        if (manualDuration != null && manualDuration > 0) {
-                            onLog(manualDuration, suggestion?.targetDurationSeconds ?: manualDuration, isWarmup, targetProvenanceFor(suggestion != null))
-                            manualDurationText = ""
-                            isWarmup = false
+                    Button(
+                        enabled = manualDuration != null,
+                        onClick = {
+                            if (manualDuration != null) {
+                                onLog(manualDuration, suggestion?.targetDurationSeconds ?: manualDuration, isWarmup, targetProvenanceFor(suggestion != null))
+                                manualDurationText = ""
+                                isWarmup = false
+                            }
                         }
-                    }) { Text("Log") }
+                    ) { Text("Log") }
                 }
                 TextButton(
                     onClick = { useTimer = true },

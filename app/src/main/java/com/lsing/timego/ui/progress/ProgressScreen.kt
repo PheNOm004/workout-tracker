@@ -54,6 +54,7 @@ import com.lsing.timego.ui.common.SparklineChart
 import com.lsing.timego.ui.common.StatTile
 import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
+import com.lsing.timego.ui.common.toPositiveFiniteDoubleOrNull
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.common.rankedMuscleBalanceBars
 import com.lsing.timego.ui.common.timeframeLabel
@@ -90,6 +91,14 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     var weightText by remember { mutableStateOf("") }
     var waistText by remember { mutableStateOf("") }
     var heightText by remember { mutableStateOf("") }
+    val enteredWeight = weightText.toPositiveFiniteDoubleOrNull()
+    val enteredWaist = waistText.toPositiveFiniteDoubleOrNull()
+    val enteredHeight = heightText.toPositiveFiniteDoubleOrNull()
+    val bodyMetricInputValid =
+        (weightText.isBlank() || enteredWeight != null) &&
+            (waistText.isBlank() || enteredWaist != null) &&
+            (heightText.isBlank() || enteredHeight != null) &&
+            (enteredWeight != null || enteredWaist != null || enteredHeight != null)
     var selectedPrExerciseId by remember { mutableStateOf<Long?>(null) }
     var balanceChartMode by remember { mutableStateOf(BalanceChartMode.BARS) }
 
@@ -372,6 +381,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     value = weightText,
                     onValueChange = { weightText = it },
                     label = { Text("Weight (kg)") },
+                    isError = weightText.isNotBlank() && enteredWeight == null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f).padding(end = 8.dp),
                 )
@@ -379,6 +389,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     value = waistText,
                     onValueChange = { waistText = it },
                     label = { Text("Waist (cm)") },
+                    isError = waistText.isNotBlank() && enteredWaist == null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f).padding(end = 8.dp),
                 )
@@ -391,15 +402,19 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     value = heightText,
                     onValueChange = { heightText = it },
                     label = { Text("Height (cm, optional)") },
+                    isError = heightText.isNotBlank() && enteredHeight == null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f).padding(end = 8.dp),
                 )
-                Button(onClick = {
-                    viewModel.logBodyMetric(weightText.toDoubleOrNull(), waistText.toDoubleOrNull(), heightText.toDoubleOrNull())
-                    weightText = ""
-                    waistText = ""
-                    heightText = ""
-                }) {
+                Button(
+                    enabled = bodyMetricInputValid,
+                    onClick = {
+                        viewModel.logBodyMetric(enteredWeight, enteredWaist, enteredHeight)
+                        weightText = ""
+                        waistText = ""
+                        heightText = ""
+                    }
+                ) {
                     Text("Log")
                 }
             }
