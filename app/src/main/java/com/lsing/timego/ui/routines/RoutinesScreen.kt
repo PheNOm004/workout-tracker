@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.TrainingLean
+import com.lsing.timego.data.TIMEGO_BACKUP_MIME_TYPE
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SurfaceCard
@@ -68,7 +69,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     var showSessionHistory by remember { mutableStateOf(false) }
     var pendingDeleteSessionId by remember { mutableStateOf<Long?>(null) }
 
-    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(TIMEGO_BACKUP_MIME_TYPE)) { uri ->
         uri?.let(viewModel::exportBackup)
     }
     val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -230,7 +231,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
         item {
             SectionHeader(title = "Local backup", topPadding = Spacing.Large)
             Text(
-                "Fully offline. Saves to a location you choose, outside app storage, so a reinstall can't erase it. Restore only adds sessions/routines/metrics you don't already have -- it never overwrites or removes anything live.",
+                "TimeGo never uploads backups itself. The exported file is an unencrypted copy of your workout data, so choose a private location you trust; a cloud-backed file provider may upload it. Restore only adds data you don't already have -- it never overwrites or removes anything live.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = Spacing.Small),

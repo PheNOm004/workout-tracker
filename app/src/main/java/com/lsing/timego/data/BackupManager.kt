@@ -7,6 +7,40 @@ import androidx.room.withTransaction
 import com.lsing.timego.domain.planBackupMerge
 import kotlinx.coroutines.flow.first
 import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
+
+const val TIMEGO_BACKUP_MIME_TYPE = "application/vnd.sqlite3"
+internal const val MAX_BACKUP_BYTES = 64L * 1024L * 1024L
+private val SQLITE_HEADER = "SQLite format 3\u0000".toByteArray(Charsets.US_ASCII)
+
+internal fun InputStream.copyBackupTo(output: OutputStream, maxBytes: Long = MAX_BACKUP_BYTES): Long {
+    require(maxBytes >= 0L) { "Backup size limit cannot be negative" }
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    var totalBytes = 0L
+    while (true) {
+        val bytesRead = read(buffer)
+        if (bytesRead < 0) break
+        if (bytesRead == 0) continue
+        if (totalBytes > maxBytes - bytesRead) {
+            error("Backup exceeds the allowed restore size")
+        }
+        output.write(buffer, 0, bytesRead)
+        totalBytes += bytesRead
+    }
+    return totalBytes
+}
+
+internal fun File.hasSqliteHeader(): Boolean = inputStream().use { input ->
+    val actual = ByteArray(SQLITE_HEADER.size)
+    var offset = 0
+    while (offset < actual.size) {
+        val bytesRead = input.read(actual, offset, actual.size - offset)
+        if (bytesRead < 0) return@use false
+        if (bytesRead > 0) offset += bytesRead
+    }
+    actual.contentEquals(SQLITE_HEADER)
+}
 
 /** Outcome of a [BackupManager.restore] call -- always additive, so every count here describes
  *  either something newly added or something deliberately left untouched, never anything removed
@@ -45,7 +79,8 @@ class BackupManager(private val context: Context, private val db: TimeGoDatabase
         try {
             val input = context.contentResolver.openInputStream(source)
                 ?: error("Could not open the chosen file for reading")
-            input.use { stream -> tempFile.outputStream().use { stream.copyTo(it) } }
+            input.use { stream -> tempFile.outputStream().use { stream.copyBackupTo(it) } }
+            check(tempFile.hasSqliteHeader()) { "The selected file is not a TimeGo SQLite backup" }
 
             val backupDb = Room.databaseBuilder(context, TimeGoDatabase::class.java, tempFile.absolutePath)
                 .addMigrations(*ALL_MIGRATIONS)
