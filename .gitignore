@@ -23,3 +23,6 @@
 /exports/
 /backups/
 /personal-records/
+
+# Jupyter server logs can include local session URLs and access tokens.
+/ml-prototype/jupyter.log
