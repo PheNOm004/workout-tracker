@@ -102,6 +102,8 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val holdSuggester = RuleBasedHoldSuggester()
 
     private var allExercises: List<Exercise> = emptyList()
+    private var latestSetLogs: List<SetLog> = emptyList()
+    private var latestSessions: List<com.lsing.timego.data.WorkoutSession> = emptyList()
     private var exerciseUsageCounts: Map<Long, Int> = emptyMap()
     private var hasAutoSelectedTodaysRoutine = false
 
@@ -172,7 +174,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             settingsRepository.trainingLean.collect { lean ->
                 _trainingLean.value = lean
-                refreshLandingSummary()
+                refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
             }
         }
         viewModelScope.launch {
@@ -186,20 +188,23 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 LandingInputs(exercises, setLogs, sessions, timeframe)
             }.collect { (list, setLogs, sessions, timeframe) ->
                 allExercises = list
-                exerciseUsageCounts = exerciseUsageFrequency(setLogs, list.associateBy { it.id })
-                _lastWorkingSets.value = lastWorkingSetByExercise(setLogs, sessions, list.associateBy { it.id })
+                latestSetLogs = setLogs
+                latestSessions = sessions
+                val exercisesById = list.associateBy { it.id }
+                exerciseUsageCounts = exerciseUsageFrequency(setLogs, exercisesById)
+                _lastWorkingSets.value = lastWorkingSetByExercise(setLogs, sessions, exercisesById)
                 // Session state first: refreshSuggestions reads the active session id to decide
                 // whether an exercise's suggestion should lock to this session's first working
                 // set. Computing it while _sessionState is still Loading made every suggestion
                 // fall back to the between-session decision table on a cold start mid-session.
-                refreshSessionState()
-                refreshSuggestions(list)
+                refreshSessionState(sessions, setLogs, list)
+                refreshSuggestions(list, setLogs, sessions)
                 refreshDisplayedExercises()
                 _landingMuscleBalance.value = muscleBalanceForTimeframe(
                     timeframe = timeframe,
                     sessions = sessions,
                     sets = setLogs,
-                    exercisesById = list.associateBy { it.id },
+                    exercisesById = exercisesById,
                     today = LocalDate.now(),
                 )
             }
@@ -260,9 +265,12 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
      *  plus, separately, the active session's own working sets for that exercise so far -- see the
      *  2026-08-12 warmup-session-aware-suggester design for why suggestions no longer look at a flat
      *  raw-set history. */
-    private suspend fun refreshSuggestions(exerciseList: List<Exercise>) {
-        val allSets = repository.allSetLogsOrderedByTime()
-        val sessionStartById = repository.allSessions().associate { it.id to it.startEpochMillis }
+    private fun refreshSuggestions(
+        exerciseList: List<Exercise>,
+        allSets: List<SetLog>,
+        sessions: List<com.lsing.timego.data.WorkoutSession>,
+    ) {
+        val sessionStartById = sessions.associate { it.id to it.startEpochMillis }
         val activeSessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId
         val setsByExercise = allSets.groupBy { it.exerciseId }
         val map = mutableMapOf<Long, OverloadSuggestion>()
@@ -290,11 +298,15 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         _holdSuggestions.value = holdMap
     }
 
-    private suspend fun refreshSessionState() {
-        refreshLandingSummary()
-        val active = repository.activeSession()
+    private suspend fun refreshSessionState(
+        sessions: List<com.lsing.timego.data.WorkoutSession>,
+        allSets: List<SetLog>,
+        exercises: List<Exercise>,
+    ) {
+        refreshLandingSummary(exercises, allSets, sessions)
+        val active = sessions.firstOrNull { it.endEpochMillis == null }
         if (active != null) {
-            val sets = repository.setLogsForSession(active.id)
+            val sets = allSets.filter { it.sessionId == active.id }
             val lastSetTime = sets.maxOfOrNull { it.loggedAtEpochMillis }
             val decision = if (lastSetTime != null) {
                 checkSessionAutoClose(lastSetTime, System.currentTimeMillis())
@@ -303,7 +315,10 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             }
             if (decision == SessionAutoCloseDecision.AUTO_CLOSE) {
                 repository.endSession(active.id, lastSetTime!!)
-                refreshLandingSummary() // re-fetch so the just-closed session shows as "last session"
+                latestSessions = sessions.map { session ->
+                    if (session.id == active.id) session.copy(endEpochMillis = lastSetTime) else session
+                }
+                refreshLandingSummary(exercises, allSets, latestSessions)
                 _sessionState.value = SessionUiState.NoActiveSession
                 return
             }
@@ -313,17 +328,20 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Kept independent of [refreshSessionState] so it can also be called right after
-     *  [endActiveSession] closes a session, before [SessionUiState] itself changes -- the landing
-     *  page's last-session card should reflect the session that was just ended, and this is the
-     *  only place that recomputes it. */
-    private suspend fun refreshLandingSummary() {
-        val lastSession = repository.lastClosedSession()
+    private fun refreshLandingSummary(
+        exercises: List<Exercise>,
+        allSets: List<SetLog>,
+        sessions: List<com.lsing.timego.data.WorkoutSession>,
+    ) {
+        val lastSession = sessions
+            .asSequence()
+            .filter { it.endEpochMillis != null }
+            .maxByOrNull { it.endEpochMillis!! }
         val summary = lastSession?.let { session ->
-            val sets = repository.setLogsForSession(session.id)
-            val exercisesById = allExercises.associateBy { it.id }
-            val muscleGroups = muscleGroupsAffectedInSession(session.id, sets, allExercises)
-            val primaryMuscleGroups = muscleGroupsWorkedInSession(session.id, sets, allExercises)
+            val sets = allSets.filter { it.sessionId == session.id }
+            val exercisesById = exercises.associateBy { it.id }
+            val muscleGroups = muscleGroupsAffectedInSession(session.id, sets, exercises)
+            val primaryMuscleGroups = muscleGroupsWorkedInSession(session.id, sets, exercises)
             val muscleIntensities = muscleGroupIntensityForSession(session.id, sets, exercisesById)
             val detail = buildDayHistoryEntries(sets, exercisesById)
             LastSessionSummary(
@@ -336,16 +354,15 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
 
-        val allSets = repository.allSetLogs()
-        val sessionDateById = repository.allSessions().associate { it.id to it.date }
-        val exercisesById = allExercises.associateBy { it.id }
+        val sessionDateById = sessions.associate { it.id to it.date }
+        val exercisesById = exercises.associateBy { it.id }
         val lastTrained = lastTrainedDatesByMuscleGroup(allSets, exercisesById, sessionDateById)
         val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
         val recommendedSeeds = rankUntrainedMuscleGroups(allGroups, lastTrained, LocalDate.now()).take(2)
         val recommended = expandMuscleGroupRegions(recommendedSeeds).toList()
         val suggestedExercise = suggestedExerciseFor(
             targetGroups = recommended.toSet(),
-            exercises = allExercises,
+            exercises = exercises,
             lean = _trainingLean.value,
             usageCounts = exerciseUsageFrequency(allSets, exercisesById),
         )
@@ -369,8 +386,12 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         val current = _sessionState.value
         if (current !is SessionUiState.Active) return
         viewModelScope.launch {
-            repository.endSession(current.sessionId, System.currentTimeMillis())
-            refreshLandingSummary()
+            val endedAt = System.currentTimeMillis()
+            repository.endSession(current.sessionId, endedAt)
+            latestSessions = latestSessions.map { session ->
+                if (session.id == current.sessionId) session.copy(endEpochMillis = endedAt) else session
+            }
+            refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
             _sessionState.value = SessionUiState.NoActiveSession
         }
     }
@@ -388,7 +409,6 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
         viewModelScope.launch {
             repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name)
-            refreshSuggestionForExercise(exerciseId)
             emitSetLoggedPulse(exerciseId)
         }
     }
@@ -411,7 +431,6 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
         viewModelScope.launch {
             repository.logHoldSet(sessionId, exerciseId, durationSeconds, targetDurationSeconds, isWarmup, targetProvenance.name)
-            refreshSuggestionForExercise(exerciseId)
             emitSetLoggedPulse(exerciseId)
         }
     }
@@ -423,59 +442,6 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private fun emitSetLoggedPulse(exerciseId: Long) {
         nextPulseEventId += 1
         _setLoggedPulse.value = SetLoggedPulse(exerciseId, nextPulseEventId)
-    }
-
-    /** Recomputes the suggestion for just the exercise that was logged, instead of every exercise
-     *  in the library (see [refreshSuggestions]'s doc comment for why -- unchanged perf rationale
-     *  from the 2026-08-10 logging-field-accuracy session). */
-    private suspend fun refreshSuggestionForExercise(exerciseId: Long) {
-        val exercise = allExercises.firstOrNull { it.id == exerciseId } ?: return
-        val inputs = buildSuggestionInputs(exerciseId)
-        val sessionHistory = inputs.sessionHistory
-        val currentSessionWorkingSets = inputs.currentSessionWorkingSets
-        if (exercise.loggingType == LoggingType.HOLD.name) {
-            val historyPerf = sessionHistory.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
-            val currentPerf = currentSessionWorkingSets.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
-            val suggestion = holdSuggester.suggestNext(historyPerf, currentPerf, exercise.name)
-            _holdSuggestions.value = if (suggestion != null) {
-                _holdSuggestions.value + (exerciseId to suggestion)
-            } else {
-                _holdSuggestions.value - exerciseId
-            }
-        } else {
-            val repRange = repRangeFor(inputs.allWorkingSets, sessionHistory)
-            val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
-            val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
-            val suggestion = suggester.suggestNext(historyPerf, currentPerf, weightIncrementFor(exercise), repRange)
-            _suggestions.value = if (suggestion != null) {
-                _suggestions.value + (exerciseId to suggestion)
-            } else {
-                _suggestions.value - exerciseId
-            }
-        }
-    }
-
-    private data class SuggestionInputs(
-        val sessionHistory: List<com.lsing.timego.data.SetLog>,
-        val currentSessionWorkingSets: List<com.lsing.timego.data.SetLog>,
-        val allWorkingSets: List<com.lsing.timego.data.SetLog>,
-    )
-
-    /** Shared by [refreshSuggestionForExercise] -- fetches this exercise's full history once,
-     *  splits it into past-session representative performances, the active session's own working
-     *  sets so far (empty if no session is active, per [SessionUiState]), and the raw non-warmup
-     *  set list (for [repRangeFor], which needs every set at a weight, not one per session). */
-    private suspend fun buildSuggestionInputs(exerciseId: Long): SuggestionInputs {
-        val allSets = repository.historyForExercise(exerciseId)
-        val sessionStartById = repository.allSessions().associate { it.id to it.startEpochMillis }
-        val sessionHistory = sessionWorkingSetHistory(allSets, sessionStartById)
-        val activeSessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId
-        val currentSessionWorkingSets = if (activeSessionId != null) {
-            allSets.filter { it.sessionId == activeSessionId && !it.isWarmup }.sortedBy { it.loggedAtEpochMillis }
-        } else {
-            emptyList()
-        }
-        return SuggestionInputs(sessionHistory, currentSessionWorkingSets, allSets.filterNot { it.isWarmup })
     }
 
     /** [exerciseSets] must be the raw (unreduced) set list for this exercise -- repRangeAtWeight
