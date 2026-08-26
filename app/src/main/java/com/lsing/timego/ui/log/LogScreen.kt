@@ -164,6 +164,7 @@ private fun LogLandingContent(
             entries = summary.lastSession.detail,
             onDismiss = { showLastSessionDetail = false },
             label = summary.lastSession.label,
+            durationMinutes = summary.lastSession.durationMinutes.toDouble(),
         )
     }
 
@@ -180,6 +181,7 @@ private fun LogLandingContent(
             SurfaceCard(
                 modifier = Modifier.fillMaxWidth().clickable { showLastSessionDetail = true },
                 hero = true,
+                riveted = true,
             ) {
                 Column(modifier = Modifier.padding(Spacing.Medium)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {

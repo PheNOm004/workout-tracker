@@ -1,22 +1,26 @@
 package com.lsing.timego.ui.theme
 
 /*
- * NIGHT TRAINING CONSOLE — BACKLIT (2026-08-22)
+ * ENGINE-ROOM GAUGE PANEL (2026-08-26) — replaces Night Training Console / Backlit.
  *
- * A focused console opened in a dark gym: surfaces are machined decks lit from above; data
- * emits light while chrome absorbs it. This deepens the existing Night Training Console rather
- * than replacing it with another identity.
- *
- * 1. Three tonal steps: ground → deck → raised. Rows remain flat within a card.
- * 2. Raised surfaces use a 1dp hairline; hero decks may use a short top sheen. No drop shadows
- *    except the navigation pill and FAB.
- * 3. Glow is limited to active navigation, primary FAB, chart series, and training-pulse moments.
- * 4. Logged numbers use JetBrains Mono; 20sp is standard and 22sp is the hero ceiling. Uppercase
- *    tracked Manrope eyebrows establish hierarchy instead of oversized figures.
- * 5. Charts carry body through fills, reference tags, readable empty states, and history-aware
- *    comparison—not fabricated data.
- * 6. Anatomical muscle art remains TimeGo's richest visual mark.
- * 7. The set-logged/PR pulse is the single motion signature; other motion stays restrained.
+ * THESIS: TimeGo's numbers are read like an instrument, not decorated like a stat card; the
+ * category default this refuses is tonal-card dark mode with a neon accent.
+ * OWN-WORLD: riveted gunmetal steel panels (LedgerSurface* / NightDeckLow/High), brass instrument
+ * trim as the one warm metal (Brass/BrassDim/BrassHighlight, reserved for controls and active
+ * state, never a flat fill), JetBrains Mono for every logged figure, machined near-sharp corners
+ * (TimeGoShapes), real cast shadow plus a brass-lit top bezel instead of hairline-only depth.
+ * STORY: the lifter reads their PR, target, and progress the way they'd read an instrument panel
+ * mid-set — at a glance, trustworthy, never pretending to be smarter than the deterministic rule
+ * underneath it.
+ * FIRST VIEWPORT: Progress → Personal Records card — a riveted hero panel, brass bezel, real
+ * cast shadow. The literal needle-gauge dial widget was tried and cut (rendered wrong, and read
+ * as a nonsensical "weight scale" on duration-based hold PRs) — the panel/brass/motion system
+ * stands without it; DialFace/DialInk/DialNeedle tokens are retired, not carried forward.
+ * FORM: build candidate 6 of 7 grounded gym-world directions was assigned by the concept-seed
+ * roll; the user chose their own top-ranked candidate (this one) instead, a legitimate outcome.
+ * Seed key cec5980f.
+ * FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the
+ * verdict, and DESIGN.md.
  */
 
 import androidx.compose.foundation.isSystemInDarkTheme

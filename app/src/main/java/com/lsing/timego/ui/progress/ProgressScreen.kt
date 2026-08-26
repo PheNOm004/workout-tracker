@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -16,9 +17,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,13 +40,11 @@ import com.lsing.timego.domain.PrType
 import com.lsing.timego.domain.BmiCategory
 import com.lsing.timego.domain.bmiCategory
 import com.lsing.timego.domain.formatCalisthenicsWeight
-import com.lsing.timego.domain.orderedMuscleDistributionForChart
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.HeatmapGrid
 import com.lsing.timego.ui.common.HorizontalWheelPicker
-import com.lsing.timego.ui.common.MuscleBalanceBars
 import com.lsing.timego.ui.common.MuscleBodyDiagram
-import com.lsing.timego.ui.common.RadarChart
+import com.lsing.timego.ui.common.PeriodBreakdownDialog
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SparklineChart
 import com.lsing.timego.ui.common.StatTile
@@ -56,7 +52,6 @@ import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.toPositiveFiniteDoubleOrNull
 import com.lsing.timego.ui.common.formatEnumLabel
-import com.lsing.timego.ui.common.rankedMuscleBalanceBars
 import com.lsing.timego.ui.common.timeframeLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.NightAmber
@@ -67,8 +62,6 @@ import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
-private enum class BalanceChartMode { BARS, RADAR }
 
 @Composable
 fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
@@ -83,8 +76,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val weightCurve by viewModel.weightCurve.collectAsStateWithLifecycle()
     val currentBmi by viewModel.currentBmi.collectAsStateWithLifecycle()
     val muscleDistribution by viewModel.muscleDistribution.collectAsStateWithLifecycle()
-    val muscleBalance by viewModel.muscleBalance.collectAsStateWithLifecycle()
-    val previousMuscleBalance by viewModel.previousMuscleBalance.collectAsStateWithLifecycle()
     val trainingStats by viewModel.trainingStats.collectAsStateWithLifecycle()
     val timeframe by viewModel.timeframe.collectAsStateWithLifecycle()
 
@@ -100,11 +91,13 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             (heightText.isBlank() || enteredHeight != null) &&
             (enteredWeight != null || enteredWaist != null || enteredHeight != null)
     var selectedPrExerciseId by remember { mutableStateOf<Long?>(null) }
-    var balanceChartMode by remember { mutableStateOf(BalanceChartMode.BARS) }
+    var showPeriodBreakdown by remember { mutableStateOf(false) }
 
     val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsStateWithLifecycle()
     val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsStateWithLifecycle()
     val historyLabel by viewModel.historyLabel.collectAsStateWithLifecycle()
+    val historyDurationMinutes by viewModel.historyDurationMinutes.collectAsStateWithLifecycle()
+    val periodBreakdown by viewModel.periodBreakdown.collectAsStateWithLifecycle()
 
     if (selectedHistoryDate != null) {
         WorkoutHistoryDialog(
@@ -112,6 +105,14 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             entries = historyForSelectedDate,
             onDismiss = { viewModel.selectHistoryDate(null) },
             label = historyLabel,
+            durationMinutes = historyDurationMinutes,
+        )
+    }
+    if (showPeriodBreakdown) {
+        PeriodBreakdownDialog(
+            periodLabel = timeframeLabel(timeframe),
+            days = periodBreakdown,
+            onDismiss = { showPeriodBreakdown = false },
         )
     }
 
@@ -150,12 +151,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     )
                 }
             }
-            Text(
-                "Bars rank progress toward the weekly target. Δ compares the prior equal period; the radar remains available for the overall shape.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 4.dp),
-            )
             if (muscleDistribution.isEmpty()) {
                 Text(
                     "No strength sets logged (${timeframeLabel(timeframe)}) yet.",
@@ -164,31 +159,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     modifier = Modifier.padding(vertical = 4.dp),
                 )
             } else {
-                SingleChoiceSegmentedButtonRow(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.Small),
-                ) {
-                    BalanceChartMode.entries.forEachIndexed { index, mode ->
-                        SegmentedButton(
-                            selected = balanceChartMode == mode,
-                            onClick = { balanceChartMode = mode },
-                            shape = SegmentedButtonDefaults.itemShape(index = index, count = BalanceChartMode.entries.size),
-                            label = { Text(if (mode == BalanceChartMode.BARS) "Bars" else "Radar") },
-                        )
-                    }
-                }
-                when (balanceChartMode) {
-                    BalanceChartMode.BARS -> MuscleBalanceBars(
-                        entries = rankedMuscleBalanceBars(muscleBalance, previousMuscleBalance),
-                        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.Small),
-                    )
-                    BalanceChartMode.RADAR -> RadarChart(
-                        values = orderedMuscleDistributionForChart(muscleBalance)
-                            .mapKeys { (group, _) -> formatEnumLabel(group) },
-                        comparisonValues = orderedMuscleDistributionForChart(previousMuscleBalance)
-                            .mapKeys { (group, _) -> formatEnumLabel(group) },
-                        modifier = Modifier.fillMaxWidth().height(220.dp).padding(vertical = 8.dp),
-                    )
-                }
                 MuscleBodyDiagram(
                     intensities = muscleDistribution,
                     periodLabel = timeframeLabel(timeframe),
@@ -196,10 +166,11 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 )
             }
             FlowRow(modifier = Modifier.fillMaxWidth()) {
-                StatTile("Workouts", trainingStats.workouts.toString())
-                StatTile("Duration", "${trainingStats.totalDurationMinutes.toInt()} min")
-                StatTile("Volume", "${trainingStats.totalVolumeKg.toInt()} kg")
-                StatTile("Sets", trainingStats.totalSets.toString())
+                val tapToBreakdown = Modifier.clickable { showPeriodBreakdown = true }
+                StatTile("Workouts", trainingStats.workouts.toString(), modifier = tapToBreakdown)
+                StatTile("Duration", "${trainingStats.totalDurationMinutes.toInt()} min", modifier = tapToBreakdown)
+                StatTile("Volume", "${trainingStats.totalVolumeKg.toInt()} kg", modifier = tapToBreakdown)
+                StatTile("Sets", trainingStats.totalSets.toString(), modifier = tapToBreakdown)
             }
         }
         item {
@@ -229,6 +200,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 SurfaceCard(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                     hero = true,
+                    riveted = true,
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Medium)) {
                         // Exercise name dropped -- it's already the centered item on the wheel
@@ -240,15 +212,21 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                             },
                         ) { exerciseId ->
                             val exerciseRecords = recordsByExercise[exerciseId].orEmpty()
-                            Row(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
                                 if (selectedExercise.loggingType == LoggingType.HOLD.name) {
+                                    // No dial here: a hold is a duration, not a magnitude read
+                                    // against a scale the way a loaded lift is -- forcing it onto
+                                    // the same gauge shape read as "a weight scale for a hold,"
+                                    // which is exactly backwards.
                                     val record = exerciseRecords.firstOrNull { it.type == PrType.LONGEST_HOLD }
-                                    StatTile(
-                                        label = "Longest Hold",
-                                        value = record?.let { "${it.value.toInt()}s" } ?: "--",
-                                        caption = record?.achievedOn?.format(PR_DATE_FORMATTER),
-                                        modifier = Modifier.weight(1f),
-                                    )
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        StatTile(
+                                            label = "Longest Hold",
+                                            value = record?.let { "${it.value.toInt()}s" } ?: "--",
+                                            caption = record?.achievedOn?.format(PR_DATE_FORMATTER),
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
                                 } else {
                                     // All three tiles read off the same best-set record (weight, reps,
                                     // weight*reps) -- they used to be independently maximized across
@@ -257,30 +235,32 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                     val record = exerciseRecords.firstOrNull { it.type == PrType.BEST_SET }
                                     val caption = record?.achievedOn?.format(PR_DATE_FORMATTER)
                                     val isBodyweight = selectedExercise.category == ExerciseCategory.CALISTHENICS.name
-                                    StatTile(
-                                        label = "Weight",
-                                        value = record?.let {
-                                            if (isBodyweight && it.addedWeightKg != null) {
-                                                formatCalisthenicsWeight(it.addedWeightKg)
-                                            } else {
-                                                "%.1fkg".format(it.value)
-                                            }
-                                        } ?: "--",
-                                        caption = caption,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    StatTile(
-                                        label = "Reps",
-                                        value = record?.secondaryValue?.let { "${it.toInt()}" } ?: "--",
-                                        caption = caption,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    StatTile(
-                                        label = "Total Weight",
-                                        value = record?.let { "%.1fkg".format(it.value * (it.secondaryValue ?: 0.0)) } ?: "--",
-                                        caption = caption,
-                                        modifier = Modifier.weight(1f),
-                                    )
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        StatTile(
+                                            label = "Weight",
+                                            value = record?.let {
+                                                if (isBodyweight && it.addedWeightKg != null) {
+                                                    formatCalisthenicsWeight(it.addedWeightKg)
+                                                } else {
+                                                    "%.1fkg".format(it.value)
+                                                }
+                                            } ?: "--",
+                                            caption = caption,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        StatTile(
+                                            label = "Reps",
+                                            value = record?.secondaryValue?.let { "${it.toInt()}" } ?: "--",
+                                            caption = caption,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        StatTile(
+                                            label = "Total Weight",
+                                            value = record?.let { "%.1fkg".format(it.value * (it.secondaryValue ?: 0.0)) } ?: "--",
+                                            caption = caption,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
                                 }
                             }
                         }

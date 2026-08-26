@@ -3,7 +3,6 @@ package com.lsing.timego.domain
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.WorkoutSession
-import com.lsing.timego.ui.common.rankedMuscleBalanceBars
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
@@ -165,15 +164,15 @@ class MuscleDistributionTest {
 
         assertEquals(mapOf("CHEST" to 1f), distribution)
 
-        val lifetimeDistribution = muscleDistributionForTimeframe(
-            timeframe = ProgressTimeframe.LIFETIME,
+        val yearDistribution = muscleDistributionForTimeframe(
+            timeframe = ProgressTimeframe.YEAR,
             sessions = sessions,
             sets = sets,
             exercisesById = mapOf(5L to bench, 6L to squat),
             today = LocalDate.of(2026, 8, 12),
         )
 
-        assertEquals(mapOf("CHEST" to 0.5f, "QUADS" to 1f), lifetimeDistribution)
+        assertEquals(mapOf("CHEST" to 0.5f, "QUADS" to 1f), yearDistribution)
     }
 
     @Test
@@ -370,32 +369,11 @@ class MuscleDistributionTest {
     }
 
     @Test
-    fun `muscleBalanceForTimeframe does not divide by zero on a same-day lifetime window`() {
-        val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
-        val sessions = listOf(WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 10), routineId = null, startEpochMillis = 0, endEpochMillis = 0))
-        val sets = listOf(
-            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 20.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0, rpe = 8),
-        )
-
-        val balance = muscleBalanceForTimeframe(
-            timeframe = ProgressTimeframe.LIFETIME,
-            sessions = sessions,
-            sets = sets,
-            exercisesById = mapOf(1L to curl),
-            today = LocalDate.of(2026, 8, 10),
-        )
-
-        // since == today (LIFETIME's earliest-session fallback), inclusive-day counting makes the
-        // window 1 day (1/7 week), target = 10/7 ~= 1.4286; 1 effective set / 1.4286 ~= 0.7.
-        assertEquals(0.7f, balance["BICEPS"]!!, 0.01f)
-    }
-
-    @Test
     fun `muscleBalanceForTimeframe long windows dilute sparse recent work as a weekly-rate consequence`() {
         val curl = Exercise(id = 1, name = "Curl", muscleGroups = listOf("BICEPS"), isCustom = false, category = "STRENGTH")
         val today = LocalDate.of(2026, 8, 22)
-        // The early empty session defines a full Year/Lifetime observation window. Ten current
-        // sets are exactly the weekly target, but cannot also be a year's weekly target.
+        // The early empty session defines a full Year observation window. Ten current sets are
+        // exactly the weekly target, but cannot also be a year's weekly target.
         val sessions = listOf(
             WorkoutSession(id = 1, date = today.minusDays(364), routineId = null, startEpochMillis = 0, endEpochMillis = 0),
             WorkoutSession(id = 2, date = today, routineId = null, startEpochMillis = 0, endEpochMillis = 0),
@@ -424,7 +402,6 @@ class MuscleDistributionTest {
         assertEquals(1.0f, score(ProgressTimeframe.WEEK), 0.001f)
         assertEquals(0.23f, score(ProgressTimeframe.MONTH), 0.01f)
         assertEquals(0.019f, score(ProgressTimeframe.YEAR), 0.001f)
-        assertEquals(0.019f, score(ProgressTimeframe.LIFETIME), 0.001f)
     }
 
     @Test
@@ -460,29 +437,4 @@ class MuscleDistributionTest {
         assertEquals(0.5f, previous["BICEPS"]!!, 0.001f)
     }
 
-    @Test
-    fun `previousMuscleBalanceForTimeframe has no fabricated lifetime comparison`() {
-        assertEquals(
-            emptyMap<String, Float>(),
-            previousMuscleBalanceForTimeframe(
-                timeframe = ProgressTimeframe.LIFETIME,
-                sessions = emptyList(),
-                sets = emptyList(),
-                exercisesById = emptyMap(),
-                today = LocalDate.of(2026, 8, 22),
-            ),
-        )
-    }
-
-    @Test
-    fun `rankedMuscleBalanceBars keeps absent groups neutral and puts them after measured groups`() {
-        val bars = rankedMuscleBalanceBars(
-            current = mapOf("BICEPS" to 0.8f, "CHEST" to 0.4f),
-            previous = mapOf("BICEPS" to 0.5f),
-        )
-
-        assertEquals(listOf("Biceps", "Chest"), bars.take(2).map { it.label })
-        assertEquals(0.5f, bars.first().previous!!, 0.001f)
-        assertEquals(null, bars.first { it.label == "Abs" }.current)
-    }
 }

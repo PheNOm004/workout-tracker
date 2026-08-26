@@ -10,17 +10,16 @@ import java.time.LocalDate
  *  needing a real max-effort test every session. */
 fun estimatedOneRepMax(weightKg: Double, reps: Int): Double = weightKg * (1 + reps / 30.0)
 
-/** Drives the Progress screen's Muscle Distribution + stat-tile timeframe selector. */
+/** Drives the Progress screen's Muscle Distribution + stat-tile timeframe selector. LIFETIME was
+ *  removed (2026-08-26) along with the bar/radar Muscle Balance charts it was mainly useful for;
+ *  re-add it here (and the `earliestSessionDate ?: today` fallback) if that migrates back. */
 enum class ProgressTimeframe {
-    WEEK, MONTH, YEAR, LIFETIME;
+    WEEK, MONTH, YEAR;
 
-    /** LIFETIME falls back to [today] (not some far-past constant) when there's no session data
-     *  yet, so an empty-history user sees "no sets logged" rather than an arbitrary window. */
-    fun sinceDate(earliestSessionDate: LocalDate?, today: LocalDate): LocalDate = when (this) {
+    fun sinceDate(today: LocalDate): LocalDate = when (this) {
         WEEK -> today.minusDays(6)
         MONTH -> today.minusDays(29)
         YEAR -> today.minusDays(364)
-        LIFETIME -> earliestSessionDate ?: today
     }
 }
 

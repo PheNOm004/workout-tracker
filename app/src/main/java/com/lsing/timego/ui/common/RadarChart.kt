@@ -1,8 +1,14 @@
 package com.lsing.timego.ui.common
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.Canvas
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
@@ -12,10 +18,20 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.sp
 import com.lsing.timego.ui.theme.NightViolet
+import com.lsing.timego.ui.theme.TimeGoMotion
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
+
+/** Interpolates each shared axis from [from] toward [to] at [t] (0f..1f); an axis missing from
+ *  [from] (e.g. the very first draw) starts from [to]'s own value, so a chart never animates in
+ *  from a phantom zero. Key order follows [to], matching the caller's axis order. */
+private fun lerpValues(from: Map<String, Float>, to: Map<String, Float>, t: Float): Map<String, Float> =
+    to.mapValues { (key, target) ->
+        val start = from[key] ?: target
+        start + (target - start) * t
+    }
 
 /** Spider/radar chart -- pure geometry (N axes spaced evenly by angle, a value polygon, a couple
  *  of reference rings), no vector art needed, unlike an anatomical muscle-diagram illustration.
@@ -23,7 +39,11 @@ import kotlin.math.sqrt
  *  means, e.g. divide every muscle group's volume by the single highest one). Values are
  *  square-root scaled only when drawn so low, non-zero training volume remains legible; the
  *  supplied values and their relative ordering are unchanged. Axis order follows the map's
- *  iteration order -- pass a LinkedHashMap or similar if order matters to the caller. */
+ *  iteration order -- pass a LinkedHashMap or similar if order matters to the caller.
+ *
+ *  Selecting a new timeframe swaps the whole [values]/[comparisonValues] map rather than
+ *  mutating it in place, so the polygon reshapes over [TimeGoMotion.contentEnter] instead of
+ *  snapping -- each axis morphs from its last drawn position to the new one. */
 @Composable
 fun RadarChart(
     values: Map<String, Float>,
@@ -36,8 +56,30 @@ fun RadarChart(
     val density = LocalDensity.current
     val labelTextSizePx = with(density) { 12.sp.toPx() }
 
+    val progress = remember { Animatable(1f) }
+    var animationStart by remember { mutableStateOf(values) }
+    var animationTarget by remember { mutableStateOf(values) }
+    var comparisonAnimationStart by remember { mutableStateOf(comparisonValues) }
+    var comparisonAnimationTarget by remember { mutableStateOf(comparisonValues) }
+
+    LaunchedEffect(values, comparisonValues) {
+        if (values != animationTarget || comparisonValues != comparisonAnimationTarget) {
+            // Freeze whatever is currently on screen (not the old target) as the new start, so a
+            // timeframe change mid-animation redirects smoothly instead of jumping back first.
+            animationStart = lerpValues(animationStart, animationTarget, progress.value)
+            comparisonAnimationStart = lerpValues(comparisonAnimationStart, comparisonAnimationTarget, progress.value)
+            animationTarget = values
+            comparisonAnimationTarget = comparisonValues
+            progress.snapTo(0f)
+            progress.animateTo(1f, animationSpec = TimeGoMotion.contentEnter)
+        }
+    }
+
+    val displayedValues = lerpValues(animationStart, animationTarget, progress.value)
+    val displayedComparison = lerpValues(comparisonAnimationStart, comparisonAnimationTarget, progress.value)
+
     Canvas(modifier = modifier) {
-        val axisCount = values.size
+        val axisCount = displayedValues.size
         if (axisCount < 3) return@Canvas
         val center = Offset(size.width / 2f, size.height / 2f)
         val maxRadius = min(size.width, size.height) / 2f - labelTextSizePx * 2
@@ -69,10 +111,10 @@ fun RadarChart(
 
         // Missing prior spokes are absence, not zero. Draw a comparison only when every current
         // spoke has a real prior value, so the ghost polygon never fabricates a data point.
-        if (comparisonValues.isNotEmpty() && values.keys.all(comparisonValues::containsKey)) {
+        if (displayedComparison.isNotEmpty() && displayedValues.keys.all(displayedComparison::containsKey)) {
             val comparisonPath = Path()
-            values.keys.forEachIndexed { index, label ->
-                val point = pointForValue(index, comparisonValues.getValue(label))
+            displayedValues.keys.forEachIndexed { index, label ->
+                val point = pointForValue(index, displayedComparison.getValue(label))
                 if (index == 0) comparisonPath.moveTo(point.x, point.y) else comparisonPath.lineTo(point.x, point.y)
             }
             comparisonPath.close()
@@ -81,7 +123,7 @@ fun RadarChart(
 
         // The current-period value polygon.
         val valuePath = Path()
-        values.values.forEachIndexed { index, value ->
+        displayedValues.values.forEachIndexed { index, value ->
             val point = pointForValue(index, value)
             if (index == 0) valuePath.moveTo(point.x, point.y) else valuePath.lineTo(point.x, point.y)
         }
@@ -95,7 +137,7 @@ fun RadarChart(
             isAntiAlias = true
             textAlign = android.graphics.Paint.Align.CENTER
         }
-        values.keys.forEachIndexed { index, label ->
+        displayedValues.keys.forEachIndexed { index, label ->
             val labelPoint = pointFor(index, 1.18f)
             nativePaint.textAlign = when {
                 labelPoint.x < center.x - labelTextSizePx -> android.graphics.Paint.Align.RIGHT

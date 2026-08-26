@@ -7,6 +7,7 @@ import com.lsing.timego.data.BodyMetric
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
+import com.lsing.timego.domain.DayTrainingStats
 import com.lsing.timego.domain.PersonalRecord
 import com.lsing.timego.domain.TrainingStats
 import com.lsing.timego.domain.bodyMassIndex
@@ -21,6 +22,7 @@ import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.personalRecords
 import com.lsing.timego.domain.strengthCurve
 import com.lsing.timego.domain.trainingStats
+import com.lsing.timego.domain.trainingStatsByDay
 import com.lsing.timego.domain.workoutVolumeRatios
 import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.ui.common.DayHistoryEntry
@@ -83,6 +85,9 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _historyLabel = MutableStateFlow<String?>(null)
     val historyLabel: StateFlow<String?> = _historyLabel.asStateFlow()
 
+    private val _historyDurationMinutes = MutableStateFlow<Double?>(null)
+    val historyDurationMinutes: StateFlow<Double?> = _historyDurationMinutes.asStateFlow()
+
     private val _weightCurve = MutableStateFlow<List<Pair<LocalDate, Double>>>(emptyList())
     val weightCurve: StateFlow<List<Pair<LocalDate, Double>>> = _weightCurve.asStateFlow()
 
@@ -100,6 +105,9 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
 
     private val _trainingStats = MutableStateFlow(TrainingStats(0, 0.0, 0.0, 0))
     val trainingStats: StateFlow<TrainingStats> = _trainingStats.asStateFlow()
+
+    private val _periodBreakdown = MutableStateFlow<List<DayTrainingStats>>(emptyList())
+    val periodBreakdown: StateFlow<List<DayTrainingStats>> = _periodBreakdown.asStateFlow()
 
     private val _timeframe = MutableStateFlow(ProgressTimeframe.MONTH)
     val timeframe: StateFlow<ProgressTimeframe> = _timeframe.asStateFlow()
@@ -133,7 +141,12 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                 _trainingStats.value = trainingStats(
                     sessions,
                     allSets,
-                    timeframe.sinceDate(sessions.minOfOrNull { it.date }, today),
+                    timeframe.sinceDate(today),
+                )
+                _periodBreakdown.value = trainingStatsByDay(
+                    sessions,
+                    allSets,
+                    timeframe.sinceDate(today),
                 )
                 _muscleDistribution.value = muscleDistributionForTimeframe(
                     timeframe = timeframe,
@@ -206,6 +219,7 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
         if (date == null) {
             _historyForSelectedDate.value = emptyList()
             _historyLabel.value = null
+            _historyDurationMinutes.value = null
             return
         }
         refreshSelectedHistory()
@@ -240,5 +254,14 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
             muscleGroupsWorkedInSession(sessionId, sets, latestExercises)
         }.toSet()
         _historyLabel.value = sessionDayLabel(primaryMuscleGroups, isCardioOnlySession(sets, exercisesById))
+        // Same span-of-logged-timestamps estimate trainingStats() uses, scoped to this one day's
+        // sessions -- a session with only one set contributes 0 (no span to measure).
+        _historyDurationMinutes.value = sets.groupBy { it.sessionId }
+            .values
+            .sumOf { sessionSets ->
+                val timestamps = sessionSets.map { it.loggedAtEpochMillis }
+                ((timestamps.max() - timestamps.min()) / 60_000.0)
+            }
+            .takeIf { sets.isNotEmpty() }
     }
 }

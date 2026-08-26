@@ -29,7 +29,7 @@ fun muscleDistributionForTimeframe(
     exercisesById: Map<Long, Exercise>,
     today: LocalDate,
 ): Map<String, Float> {
-    val since = timeframe.sinceDate(sessions.minOfOrNull { it.date }, today)
+    val since = timeframe.sinceDate(today)
     val sessionDateById = sessions.associate { it.id to it.date }
     val rawDistribution = muscleGroupVolumeDistribution(sets, exercisesById, sessionDateById, since)
     val maxVolume = rawDistribution.values.maxOrNull() ?: return emptyMap()
@@ -117,7 +117,7 @@ fun muscleBalanceForTimeframe(
     exercisesById: Map<Long, Exercise>,
     today: LocalDate,
 ): Map<String, Float> {
-    val since = timeframe.sinceDate(sessions.minOfOrNull { it.date }, today)
+    val since = timeframe.sinceDate(today)
     val sessionDateById = sessions.associate { it.id to it.date }
     return muscleBalanceForDateRange(sets, exercisesById, sessionDateById, since, today)
 }
@@ -140,8 +140,7 @@ fun muscleBalanceForDateRange(
     return effectiveSets.mapValues { (_, value) -> (value / target).toFloat().coerceIn(0f, 1f) }
 }
 
-/** The exact, immediately preceding calendar window for a bounded timeframe. Lifetime has no
- * preceding equal window because its start is the user's first recorded session. */
+/** The exact, immediately preceding calendar window for a bounded timeframe. */
 fun previousMuscleBalanceForTimeframe(
     timeframe: ProgressTimeframe,
     sessions: List<WorkoutSession>,
@@ -149,8 +148,7 @@ fun previousMuscleBalanceForTimeframe(
     exercisesById: Map<Long, Exercise>,
     today: LocalDate,
 ): Map<String, Float> {
-    if (timeframe == ProgressTimeframe.LIFETIME) return emptyMap()
-    val currentStart = timeframe.sinceDate(sessions.minOfOrNull { it.date }, today)
+    val currentStart = timeframe.sinceDate(today)
     val windowDays = ChronoUnit.DAYS.between(currentStart, today) + 1
     val previousEnd = currentStart.minusDays(1)
     val previousStart = previousEnd.minusDays(windowDays - 1)
@@ -221,3 +219,37 @@ fun trainingStats(sessions: List<WorkoutSession>, sets: List<SetLog>, since: Loc
         totalSets = setsSince.size,
     )
 }
+
+data class DayTrainingStats(
+    val date: LocalDate,
+    val workouts: Int,
+    val durationMinutes: Double,
+    val volumeKg: Double,
+    val sets: Int,
+)
+
+/** [trainingStats] broken out by calendar day -- backs the tap-a-stat-tile breakdown on Progress,
+ *  same duration-estimate convention (span of that day's logged-set timestamps, per session).
+ *  Only days with at least one session appear; a day with zero training isn't a zero-row, it's
+ *  absent, same convention [HeatmapGrid] uses. Newest day first. */
+fun trainingStatsByDay(sessions: List<WorkoutSession>, sets: List<SetLog>, since: LocalDate): List<DayTrainingStats> =
+    sessions.filter { !it.date.isBefore(since) }
+        .groupBy { it.date }
+        .map { (date, daySessions) ->
+            val sessionIds = daySessions.map { it.id }.toSet()
+            val daySets = sets.filter { it.sessionId in sessionIds }
+            val durationMinutes = daySets.groupBy { it.sessionId }
+                .values
+                .sumOf { sessionSets ->
+                    val timestamps = sessionSets.map { it.loggedAtEpochMillis }
+                    ((timestamps.max() - timestamps.min()) / 60_000.0)
+                }
+            DayTrainingStats(
+                date = date,
+                workouts = daySessions.size,
+                durationMinutes = durationMinutes,
+                volumeKg = daySets.sumOf { it.weightKg * it.reps },
+                sets = daySets.size,
+            )
+        }
+        .sortedByDescending { it.date }

@@ -2,14 +2,14 @@ package com.lsing.timego.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Night Training Console palette: dark gym surfaces with warm text and controlled training color.
-// Ledger-prefixed names remain stable for existing call sites while the values move to the new
-// semantic system.
+// Engine-Room Gauge Panel palette: riveted steel surfaces read as machinery, not a themed dark
+// mode. Ledger-prefixed names remain stable for existing call sites while the values move to the
+// new semantic system -- only Brass/Dial/Rivet tokens below are new symbols.
 
-// Dark-first surfaces.
-val LedgerBackgroundDark = Color(0xFF101315)
-val LedgerSurfaceDark = Color(0xFF181D20)
-val LedgerSurfaceVariantDark = Color(0xFF22292C)
+// Dark-first surfaces (gunmetal steel, not neutral charcoal).
+val LedgerBackgroundDark = Color(0xFF0D1113)
+val LedgerSurfaceDark = Color(0xFF161B1E)
+val LedgerSurfaceVariantDark = Color(0xFF1F262A)
 val LedgerOnSurfaceDark = Color(0xFFF4F1EA)
 val LedgerOnSurfaceVariantDark = Color(0xFFAAB2B3)
 val LedgerOutlineDark = Color(0xFF596366)
@@ -40,10 +40,11 @@ val LedgerSurfaceContainerLight = Color(0xFFEDEBE6)
 val LedgerSurfaceContainerHighLight = Color(0xFFE7E5E0)
 val LedgerSurfaceContainerHighestLight = Color(0xFFE1E0DB)
 
-// Brand/action color and its contrast-adjusted companion roles.
-val LedgerAccent = Color(0xFFFF6B5E)
-val LedgerAccentDim = Color(0xFFB94742)
-val LedgerOnAccent = Color(0xFF32100D)
+// Brand/action color: brass instrument trim, not the old coral accent -- toggles, the FAB, and
+// selected nav read as a machined brass fitting on the steel panel.
+val LedgerAccent = Color(0xFFC9A24B)
+val LedgerAccentDim = Color(0xFF8F7233)
+val LedgerOnAccent = Color(0xFF241C0A)
 val LedgerSecondary = Color(0xFF9BA6A8)
 val LedgerOnSecondary = Color(0xFF172022)
 val LedgerTertiary = Color(0xFFB8A7FF)
@@ -52,8 +53,8 @@ val LedgerOnTertiary = Color(0xFF211A49)
 val LedgerError = Color(0xFFFF8A80)
 val LedgerOnError = Color(0xFF3B0906)
 
-val LedgerAccentContainerDark = Color(0xFF68241F)
-val LedgerOnAccentContainerDark = Color(0xFFFFDAD5)
+val LedgerAccentContainerDark = Color(0xFF4A3B18)
+val LedgerOnAccentContainerDark = Color(0xFFF3E3B8)
 val LedgerSecondaryContainerDark = Color(0xFF30393B)
 val LedgerOnSecondaryContainerDark = Color(0xFFD8E1E2)
 val LedgerTertiaryContainerDark = Color(0xFF39305F)
@@ -61,8 +62,8 @@ val LedgerOnTertiaryContainerDark = Color(0xFFE6DEFF)
 val LedgerErrorContainerDark = Color(0xFF5C1A16)
 val LedgerOnErrorContainerDark = Color(0xFFFFDAD5)
 
-val LedgerAccentContainerLight = Color(0xFFFFDAD5)
-val LedgerOnAccentContainerLight = Color(0xFF5A1712)
+val LedgerAccentContainerLight = Color(0xFFF3E3B8)
+val LedgerOnAccentContainerLight = Color(0xFF4A3B18)
 val LedgerSecondaryContainerLight = Color(0xFFDCE4E5)
 val LedgerOnSecondaryContainerLight = Color(0xFF182123)
 val LedgerTertiaryContainerLight = Color(0xFFE8E0FF)
@@ -85,10 +86,22 @@ val NightSurfaceRaised = LedgerSurfaceVariantDark
 val NightCoral = LedgerAccent
 val NightCoralShade = LedgerAccentDim
 
-// NTC "Backlit" depth tokens. Dark-mode separation comes from tonal decks and light edges,
-// not drop shadows; glow is reserved for active navigation, FABs, data, and pulse moments.
-val NightDeckLow = Color(0xFF1A2125)
-val NightDeckHigh = Color(0xFF232C30)
-val NightEdgeHairline = Color(0x12FFFFFF)
-val NightSheenTop = Color(0x08FFFFFF)
-val NightGlow = Color(0x2AFF6B5E)
+// Engine-Room Gauge Panel depth tokens. Unlike the retired Backlit rule (hairline-only, no
+// shadow), riveted panels are meant to read as three-dimensional plate: a real cast shadow plus
+// a brass-lit top bezel, not a flat tonal step.
+val NightDeckLow = Color(0xFF181F23)
+val NightDeckHigh = Color(0xFF212A2F)
+val NightEdgeHairline = Color(0x1EFFFFFF)
+val NightSheenTop = Color(0x14C9A24B)
+val NightGlow = Color(0x2AC9A24B)
+
+// Brass instrument trim -- the panel's one warm metal, reserved for controls and active state.
+// Never used as a flat fill; always a rim, ring, or fitting.
+val Brass = LedgerAccent
+val BrassDim = LedgerAccentDim
+val BrassHighlight = Color(0xFFE7C878)
+
+// Rivets are drawn as small radial highlight/shadow pairs at panel corners -- see SurfaceCard's
+// `riveted` flag.
+val RivetHighlight = Color(0x4DFFFFFF)
+val RivetShadow = Color(0x66000000)

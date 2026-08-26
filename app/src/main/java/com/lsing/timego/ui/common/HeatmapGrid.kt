@@ -1,6 +1,7 @@
 package com.lsing.timego.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import com.lsing.timego.ui.theme.NightEdgeHairline
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -110,11 +112,17 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
                     }
                 }
             } else {
+                // A fixed dp size for every dot, not per-column .weight(1f) + aspectRatio: weight
+                // splits the row's width across 18 columns with whatever pixel remainder falls
+                // where it falls, so columns end up 1px apart in width -- and since each dot's
+                // height was derived from ITS OWN column's width, that 1px difference compounded
+                // over 7 stacked dots into a visibly uneven column bottom edge. One shared dotSize
+                // (already computed above for the year view) makes every dot identical instead.
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing)) {
                     for (week in 0 until 18) {
                         val weekStart = currentWeekMonday.minusWeeks(17).plusWeeks(week.toLong())
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(spacing)) {
-                            HeatmapWeekDots(weekStart, today, ratios, lightColor, darkColor, Modifier.fillMaxWidth().aspectRatio(1f), onDateClick)
+                        Column(verticalArrangement = Arrangement.spacedBy(spacing)) {
+                            HeatmapWeekDots(weekStart, today, ratios, lightColor, darkColor, Modifier.size(dotSize), onDateClick)
                         }
                     }
                 }
@@ -125,7 +133,13 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
 
 /** One dot per day of [weekStart]'s week -- color is a [darkColor]-to-[lightColor] lerp by that
  *  day's ratio (dark background: low value blends in, high value pops). A future date, a date
- *  absent from [ratios] (no session logged), or a real 0% ratio all render the same neutral gray. */
+ *  absent from [ratios] (no session logged), or a real 0% ratio all render the same neutral gray.
+ *
+ *  Every dot shares the same geometry (all callers pass the same [dotModifier]), but a bright
+ *  fill on a dark ground reads as visibly larger than a dark fill of identical size -- the eye's
+ *  own irradiation illusion, not a layout bug -- which is what made high-ratio dots look bigger
+ *  than neutral ones. A shared hairline stroke anchors the true edge for every dot regardless of
+ *  fill brightness, so the grid reads as uniform circles rather than illusion-skewed blobs. */
 @Composable
 private fun HeatmapWeekDots(
     weekStart: LocalDate,
@@ -144,6 +158,7 @@ private fun HeatmapWeekDots(
         } else {
             Modifier
         }
+        val edge = Modifier.border(0.75.dp, NightEdgeHairline, CircleShape)
         if (date.isAfter(today) || ratio == null || ratio <= 0f) {
             Box(
                 modifier = dotModifier
@@ -151,11 +166,12 @@ private fun HeatmapWeekDots(
                     // Neutral still means no recorded training, never a failure; it is simply
                     // lifted above the Backlit ground enough to make the calendar structure legible.
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f))
+                    .then(edge)
                     .then(clickModifier),
             )
         } else {
             val cellColor = lerp(darkColor, lightColor, ratio.coerceIn(0f, 1f))
-            Box(modifier = dotModifier.clip(CircleShape).background(cellColor).then(clickModifier))
+            Box(modifier = dotModifier.clip(CircleShape).background(cellColor).then(edge).then(clickModifier))
         }
     }
 }

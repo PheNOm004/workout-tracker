@@ -28,7 +28,7 @@ import kotlin.math.roundToInt
  *  see [buildDayHistoryEntries]. */
 data class DayHistoryEntry(val exerciseName: String, val setDescriptions: List<String>)
 
-private fun formatHistoryDuration(durationMinutes: Double?): String {
+internal fun formatHistoryDuration(durationMinutes: Double?): String {
     val totalSeconds = ((durationMinutes ?: 0.0).coerceAtLeast(0.0) * 60).roundToInt()
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
@@ -75,6 +75,7 @@ fun WorkoutHistoryDialog(
     entries: List<DayHistoryEntry>,
     onDismiss: () -> Unit,
     label: String? = null,
+    durationMinutes: Double? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -83,6 +84,13 @@ fun WorkoutHistoryDialog(
                 Text(title)
                 if (label != null) {
                     Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (durationMinutes != null) {
+                    Text(
+                        "Duration: ${formatHistoryDuration(durationMinutes)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         },
@@ -112,12 +120,9 @@ fun WorkoutHistoryDialog(
 
 @Composable
 fun StatTile(label: String, value: String, caption: String? = null, modifier: Modifier = Modifier) {
-    // A smaller radius than SurfaceCard's 16dp default -- at this tile's compact size (often
-    // nested inside another rounded card, e.g. Personal Records), the full hero-card radius ate
-    // too much of the short edges and read as a melted/uneven corner rather than a clean round.
     SurfaceCard(
         modifier = modifier.padding(Spacing.ExtraSmall),
-        cornerRadius = 10.dp,
+        cornerRadius = 4.dp,
     ) {
         Column(modifier = Modifier.padding(Spacing.Medium)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

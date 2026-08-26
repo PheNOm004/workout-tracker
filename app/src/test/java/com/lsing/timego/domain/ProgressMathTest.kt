@@ -15,19 +15,10 @@ class ProgressMathTest {
     @Test
     fun `ProgressTimeframe sinceDate computes each window`() {
         val today = LocalDate.of(2026, 8, 12)
-        val earliest = LocalDate.of(2026, 1, 1)
 
-        assertEquals(LocalDate.of(2026, 8, 6), ProgressTimeframe.WEEK.sinceDate(earliest, today))
-        assertEquals(LocalDate.of(2026, 7, 14), ProgressTimeframe.MONTH.sinceDate(earliest, today))
-        assertEquals(LocalDate.of(2025, 8, 13), ProgressTimeframe.YEAR.sinceDate(earliest, today))
-        assertEquals(earliest, ProgressTimeframe.LIFETIME.sinceDate(earliest, today))
-    }
-
-    @Test
-    fun `ProgressTimeframe LIFETIME falls back to today with no session history`() {
-        val today = LocalDate.of(2026, 8, 12)
-
-        assertEquals(today, ProgressTimeframe.LIFETIME.sinceDate(null, today))
+        assertEquals(LocalDate.of(2026, 8, 6), ProgressTimeframe.WEEK.sinceDate(today))
+        assertEquals(LocalDate.of(2026, 7, 14), ProgressTimeframe.MONTH.sinceDate(today))
+        assertEquals(LocalDate.of(2025, 8, 13), ProgressTimeframe.YEAR.sinceDate(today))
     }
 
     @Test

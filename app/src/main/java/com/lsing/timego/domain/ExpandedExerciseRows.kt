@@ -1,6 +1,6 @@
 package com.lsing.timego.domain
 
-const val MAX_EXPANDED_EXERCISE_ROWS = 3
+const val MAX_EXPANDED_EXERCISE_ROWS = 1
 
 fun toggleExpandedExerciseIds(
     expandedIds: List<Long>,

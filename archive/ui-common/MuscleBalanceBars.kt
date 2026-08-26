@@ -1,3 +1,12 @@
+// ARCHIVED 2026-08-26: pulled from Progress's Muscle Balance section (bar-chart mode) at the
+// user's request -- "remove for now, maybe migrate it later." Not part of the build (this file
+// lives outside app/src, so it does not compile). To bring it back: move this file into
+// app/src/main/java/com/lsing/timego/ui/common/, restore `rankedMuscleBalanceBars`/`muscleBalance`/
+// `previousMuscleBalance` collection in ProgressScreen.kt (ProgressViewModel already still
+// computes them), and re-add a chart-mode toggle if the radar option should return alongside it.
+// Its unit test (`rankedMuscleBalanceBars keeps absent groups neutral...`) was removed from
+// MuscleDistributionTest.kt in the same change -- re-add it alongside this file.
+
 package com.lsing.timego.ui.common
 
 import androidx.compose.foundation.background

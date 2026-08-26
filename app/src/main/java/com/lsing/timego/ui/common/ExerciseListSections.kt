@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,14 +33,13 @@ import com.lsing.timego.ui.theme.Spacing
 fun formatEnumLabel(rawName: String): String =
     rawName.lowercase().split("_").joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
 
-/** "last 7 days" / "last 30 days" / "last 12 months" / "lifetime" -- shared between the Progress
- *  screen's own Muscle Balance card and the Log landing page's, which has its own independent
- *  timeframe selection but needs identical labels. */
+/** "last 7 days" / "last 30 days" / "last 12 months" -- shared between the Progress screen's own
+ *  Muscle Balance card and the Log landing page's, which has its own independent timeframe
+ *  selection but needs identical labels. */
 fun timeframeLabel(timeframe: ProgressTimeframe): String = when (timeframe) {
     ProgressTimeframe.WEEK -> "last 7 days"
     ProgressTimeframe.MONTH -> "last 30 days"
     ProgressTimeframe.YEAR -> "last 12 months"
-    ProgressTimeframe.LIFETIME -> "lifetime"
 }
 
 private enum class SessionBodyRegion {
@@ -164,13 +165,21 @@ fun ExerciseSections(
     var localQuery by remember { mutableStateOf("") }
     val query = searchQuery ?: localQuery
     var expandedGroupKeys by remember { mutableStateOf<List<String>>(emptyList()) }
+    val setQuery: (String) -> Unit = { value -> onSearchQueryChange?.invoke(value) ?: run { localQuery = value } }
 
     OutlinedTextField(
         value = query,
-        onValueChange = { value -> onSearchQueryChange?.invoke(value) ?: run { localQuery = value } },
+        onValueChange = setQuery,
         label = { Text("Search exercises") },
         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
         singleLine = true,
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { setQuery("") }) {
+                    Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+                }
+            }
+        },
     )
 
     if (query.isNotBlank()) {
