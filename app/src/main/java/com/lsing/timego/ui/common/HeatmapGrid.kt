@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -33,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.lsing.timego.ui.theme.NightEdgeHairline
 import java.time.LocalDate
@@ -81,7 +81,14 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
         }
         Spacer(modifier = Modifier.height(8.dp))
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val dotSize = (maxWidth - spacing * 17) / 18
+            // Whole-pixel integer division, not dp math: (maxWidth - 17 gaps) / 18 in dp sums back
+            // to exactly maxWidth, so dp->px rounding of 18 dots + 17 gaps overruns the row by a
+            // pixel or two and a fillMaxWidth row then starves the last column of width -- its dots
+            // came out narrow-and-tall (ellipses) while columns 1-17 stayed circular. Flooring to
+            // px here guarantees 18*dotPx + 17*gapPx <= maxWidthPx, so every column gets full width.
+            val dotSize = with(LocalDensity.current) {
+                ((constraints.maxWidth - spacing.roundToPx() * 17) / 18).toDp()
+            }
             if (showFullYear) {
                 Column(modifier = Modifier.horizontalScroll(scrollState)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
@@ -117,8 +124,12 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
                 // where it falls, so columns end up 1px apart in width -- and since each dot's
                 // height was derived from ITS OWN column's width, that 1px difference compounded
                 // over 7 stacked dots into a visibly uneven column bottom edge. One shared dotSize
-                // (already computed above for the year view) makes every dot identical instead.
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing)) {
+                // (floored to whole px above) makes every dot identical, and CenterHorizontally
+                // spreads the <=17px of leftover slack evenly instead of piling it on one edge.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
+                ) {
                     for (week in 0 until 18) {
                         val weekStart = currentWeekMonday.minusWeeks(17).plusWeeks(week.toLong())
                         Column(verticalArrangement = Arrangement.spacedBy(spacing)) {
