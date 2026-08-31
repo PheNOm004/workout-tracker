@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +66,7 @@ import com.lsing.timego.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val volumeRatios by viewModel.volumeRatios.collectAsStateWithLifecycle()
@@ -98,6 +102,14 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val historyLabel by viewModel.historyLabel.collectAsStateWithLifecycle()
     val historyDurationMinutes by viewModel.historyDurationMinutes.collectAsStateWithLifecycle()
     val periodBreakdown by viewModel.periodBreakdown.collectAsStateWithLifecycle()
+    // Progress contains two expensive, mostly-static visual sections near the top (the consistency
+    // grid and anatomy diagram). The default one-item prefetch can reach them too late when a user
+    // reverses a fast scroll, after LazyColumn has already disposed their compositions. Keep one
+    // viewport behind and prepare 1.5 viewports ahead so they are ready before becoming visible.
+    // This keeps LazyColumn's bounded memory behavior without changing either visual's renderer.
+    val progressListState = rememberLazyListState(
+        cacheWindow = LazyLayoutCacheWindow(aheadFraction = 1.5f, behindFraction = 1f),
+    )
 
     if (selectedHistoryDate != null) {
         WorkoutHistoryDialog(
@@ -116,7 +128,10 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         )
     }
 
-    LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
+    LazyColumn(
+        state = progressListState,
+        modifier = Modifier.padding(Spacing.Large),
+    ) {
         item {
             Text(
                 "Progress",
