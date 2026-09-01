@@ -193,6 +193,59 @@ fun muscleGroupIntensityForSession(
     return rawDistribution.mapValues { (_, volume) -> (volume / maxVolume).toFloat() }
 }
 
+data class MuscleSetSummary(
+    val bestWeightKg: Double,
+    val bestReps: Int,
+    val setCount: Int,
+)
+
+/** Per-muscle-group "best set + how many sets" summary backing the long-press popup on the
+ *  Progress body diagram. Mirrors [muscleGroupVolumeDistribution]'s filtering (WEIGHT_REPS only,
+ *  cardio/warmup excluded, a set credits every muscle group its exercise is tagged with) but
+ *  reports the raw logged best set -- the one with the highest weightKg*reps, the same rule
+ *  [personalRecords] uses for BEST_SET -- instead of aggregated volume. Weight/reps are the values
+ *  as logged, not [Exercise.muscleWeights]-scaled: the popup answers "what was the hardest set
+ *  that hit this muscle", not "how much of it counted toward the heatmap". HOLD sets carry no
+ *  weight*reps and are left out entirely, so a HOLD-only group is simply absent from the map. */
+fun muscleGroupSetSummaryForTimeframe(
+    timeframe: ProgressTimeframe,
+    sessions: List<WorkoutSession>,
+    sets: List<SetLog>,
+    exercisesById: Map<Long, Exercise>,
+    today: LocalDate,
+): Map<String, MuscleSetSummary> {
+    val since = timeframe.sinceDate(today)
+    val sessionDateById = sessions.associate { it.id to it.date }
+
+    class Acc {
+        var bestVolume = -1.0
+        var bestWeightKg = 0.0
+        var bestReps = 0
+        var setCount = 0
+    }
+
+    val byGroup = mutableMapOf<String, Acc>()
+    for (log in sets) {
+        val exercise = exercisesById[log.exerciseId] ?: continue
+        if (log.isWarmup || exercise.category == ExerciseCategory.WARMUP.name || exercise.category == ExerciseCategory.CARDIO.name) continue
+        if (exercise.loggingType != LoggingType.WEIGHT_REPS.name) continue
+        val date = sessionDateById[log.sessionId] ?: continue
+        if (date.isBefore(since)) continue
+
+        val volume = log.weightKg * log.reps
+        for (group in exercise.muscleGroups) {
+            val acc = byGroup.getOrPut(group) { Acc() }
+            acc.setCount++
+            if (volume > acc.bestVolume) {
+                acc.bestVolume = volume
+                acc.bestWeightKg = log.weightKg
+                acc.bestReps = log.reps
+            }
+        }
+    }
+    return byGroup.mapValues { (_, a) -> MuscleSetSummary(a.bestWeightKg, a.bestReps, a.setCount) }
+}
+
 data class TrainingStats(
     val workouts: Int,
     val totalDurationMinutes: Double,

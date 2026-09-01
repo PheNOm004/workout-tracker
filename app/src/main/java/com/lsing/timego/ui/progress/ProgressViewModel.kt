@@ -15,8 +15,10 @@ import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.latestHeightCm
 import com.lsing.timego.domain.latestWeightKg
 import com.lsing.timego.domain.muscleGroupStrengthCurve
+import com.lsing.timego.domain.MuscleSetSummary
 import com.lsing.timego.domain.muscleBalanceForTimeframe
 import com.lsing.timego.domain.muscleDistributionForTimeframe
+import com.lsing.timego.domain.muscleGroupSetSummaryForTimeframe
 import com.lsing.timego.domain.previousMuscleBalanceForTimeframe
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.personalRecords
@@ -100,6 +102,9 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _muscleBalance = MutableStateFlow<Map<String, Float>>(emptyMap())
     val muscleBalance: StateFlow<Map<String, Float>> = _muscleBalance.asStateFlow()
 
+    private val _muscleSetSummaries = MutableStateFlow<Map<String, MuscleSetSummary>>(emptyMap())
+    val muscleSetSummaries: StateFlow<Map<String, MuscleSetSummary>> = _muscleSetSummaries.asStateFlow()
+
     private val _previousMuscleBalance = MutableStateFlow<Map<String, Float>>(emptyMap())
     val previousMuscleBalance: StateFlow<Map<String, Float>> = _previousMuscleBalance.asStateFlow()
 
@@ -149,6 +154,13 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                     timeframe.sinceDate(today),
                 )
                 _muscleDistribution.value = muscleDistributionForTimeframe(
+                    timeframe = timeframe,
+                    sessions = sessions,
+                    sets = allSets,
+                    exercisesById = exercisesById,
+                    today = today,
+                )
+                _muscleSetSummaries.value = muscleGroupSetSummaryForTimeframe(
                     timeframe = timeframe,
                     sessions = sessions,
                     sets = allSets,

@@ -1,5 +1,12 @@
 package com.lsing.timego.ui.common
 
+import android.graphics.Region
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,12 +22,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,10 +39,18 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import com.lsing.timego.data.MuscleGroup
+import com.lsing.timego.ui.theme.TimeGoMotion
+import com.lsing.timego.domain.MuscleSetSummary
 import com.lsing.timego.domain.boundingBox
 import com.lsing.timego.domain.diagramGroupsForHeatmap
 import com.lsing.timego.domain.diagramZoneIntensity
@@ -61,6 +80,56 @@ private fun buildShapes(specs: List<MusclePathSpec>, viewBox: FloatArray): List<
     }
 }
 
+/** One hit-test region per muscle group, in the same viewBox-local coordinate space [buildShapes]
+ *  produces (origin subtracted) -- a long-press position is mapped back into this space by dividing
+ *  by the canvas scale factor, then tested against each region. The outline and neutral detail
+ *  shapes are skipped: they carry no muscle group. */
+private fun buildGroupRegions(shapes: List<BuiltMuscleShape>, viewBox: FloatArray): Map<MuscleGroup, Region> {
+    val clip = Region(
+        0,
+        0,
+        (viewBox[2] - viewBox[0]).toInt() + 1,
+        (viewBox[3] - viewBox[1]).toInt() + 1,
+    )
+    return shapes
+        .filter { !it.isOutline && it.muscleGroup != null }
+        .groupBy { it.muscleGroup!! }
+        .mapValues { (_, groupShapes) ->
+            Region().apply {
+                groupShapes.forEach { shape ->
+                    op(Region().apply { setPath(shape.path.asAndroidPath(), clip) }, Region.Op.UNION)
+                }
+            }
+        }
+}
+
+private fun regionHitAt(regions: Map<MuscleGroup, Region>, position: Offset, scaleFactor: Float): MuscleGroup? {
+    if (scaleFactor <= 0f) return null
+    val x = (position.x / scaleFactor).toInt()
+    val y = (position.y / scaleFactor).toInt()
+    return regions.entries.firstOrNull { it.value.contains(x, y) }?.key
+}
+
+/** Long-press a muscle zone to raise its readout, release to drop it -- [onHold] fires with the
+ *  hit group on a long press and with null once the finger lifts or the gesture is cancelled. */
+private fun Modifier.muscleHoldGesture(
+    regions: Map<MuscleGroup, Region>,
+    viewBox: FloatArray,
+    onHold: (MuscleGroup?) -> Unit,
+): Modifier = pointerInput(regions) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false)
+        val longPress = awaitLongPressOrCancellation(down.id) ?: return@awaitEachGesture
+        val scaleFactor = this@pointerInput.size.width / (viewBox[2] - viewBox[0])
+        val hit = regionHitAt(regions, longPress.position, scaleFactor) ?: return@awaitEachGesture
+        onHold(hit)
+        do {
+            val event = awaitPointerEvent()
+        } while (event.changes.any { it.pressed })
+        onHold(null)
+    }
+}
+
 private fun hexToColor(hex: String): Color {
     val clean = hex.removePrefix("#")
     val r = clean.substring(0, 2).toInt(16)
@@ -85,6 +154,7 @@ private fun hexToColor(hex: String): Color {
 fun MuscleBodyDiagram(
     intensities: Map<String, Float>,
     periodLabel: String = "this period",
+    setSummaries: Map<String, MuscleSetSummary> = emptyMap(),
     modifier: Modifier = Modifier,
 ) {
     // Theme-adaptive mid-grey rather than onSurface (too stark -- white on dark, black on
@@ -94,6 +164,9 @@ fun MuscleBodyDiagram(
 
     val frontShapes = remember { buildShapes(FRONT_BODY_PATHS, FRONT_BODY_VIEWBOX) }
     val backShapes = remember { buildShapes(BACK_BODY_PATHS, BACK_BODY_VIEWBOX) }
+    val frontRegions = remember(frontShapes) { buildGroupRegions(frontShapes, FRONT_BODY_VIEWBOX) }
+    val backRegions = remember(backShapes) { buildGroupRegions(backShapes, BACK_BODY_VIEWBOX) }
+    var pressedGroup by remember { mutableStateOf<MuscleGroup?>(null) }
     val frontAspect = (FRONT_BODY_VIEWBOX[2] - FRONT_BODY_VIEWBOX[0]) / (FRONT_BODY_VIEWBOX[3] - FRONT_BODY_VIEWBOX[1])
     val backAspect = (BACK_BODY_VIEWBOX[2] - BACK_BODY_VIEWBOX[0]) / (BACK_BODY_VIEWBOX[3] - BACK_BODY_VIEWBOX[1])
 
@@ -112,13 +185,23 @@ fun MuscleBodyDiagram(
 
     Column(modifier = modifier) {
         Row(modifier = Modifier.fillMaxWidth()) {
-            Canvas(modifier = Modifier.weight(1f).aspectRatio(frontAspect)) {
+            Canvas(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(frontAspect)
+                    .muscleHoldGesture(frontRegions, FRONT_BODY_VIEWBOX) { pressedGroup = it },
+            ) {
                 val scaleFactor = size.width / (FRONT_BODY_VIEWBOX[2] - FRONT_BODY_VIEWBOX[0])
                 scale(scaleFactor, scaleFactor, pivot = Offset.Zero) {
                     frontShapes.forEach { drawPath(it.path, color = colorFor(it)) }
                 }
             }
-            Canvas(modifier = Modifier.weight(1f).aspectRatio(backAspect)) {
+            Canvas(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(backAspect)
+                    .muscleHoldGesture(backRegions, BACK_BODY_VIEWBOX) { pressedGroup = it },
+            ) {
                 val scaleFactor = size.width / (BACK_BODY_VIEWBOX[2] - BACK_BODY_VIEWBOX[0])
                 scale(scaleFactor, scaleFactor, pivot = Offset.Zero) {
                     backShapes.forEach { drawPath(it.path, color = colorFor(it)) }
@@ -130,6 +213,64 @@ fun MuscleBodyDiagram(
             periodLabel = periodLabel,
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         )
+    }
+
+    // Kept mounted through the exit animation: targetState follows the hold, currentState lags
+    // until the fade/scale-out finishes. shownGroup holds the last group so the card still has
+    // content to render while it animates away after the finger lifts.
+    val popupVisible = remember { MutableTransitionState(false) }
+    popupVisible.targetState = pressedGroup != null
+    var shownGroup by remember { mutableStateOf<MuscleGroup?>(null) }
+    pressedGroup?.let { shownGroup = it }
+
+    if (popupVisible.currentState || popupVisible.targetState) {
+        Popup(alignment = Alignment.Center) {
+            AnimatedVisibility(
+                visibleState = popupVisible,
+                enter = fadeIn(TimeGoMotion.contentEnter) + scaleIn(TimeGoMotion.contentEnter, initialScale = 0.9f),
+                exit = fadeOut(TimeGoMotion.contentExit) + scaleOut(TimeGoMotion.contentExit, targetScale = 0.9f),
+            ) {
+                shownGroup?.let { group ->
+                    MuscleSetSummaryCard(group, setSummaries[group.name], periodLabel)
+                }
+            }
+        }
+    }
+}
+
+/** Compact hold-to-peek readout for one muscle zone: the hardest set that hit it this period
+ *  (weight and reps as logged) plus how many sets did. */
+@Composable
+private fun MuscleSetSummaryCard(group: MuscleGroup, summary: MuscleSetSummary?, periodLabel: String) {
+    SurfaceCard(modifier = Modifier.widthIn(max = 240.dp), hero = true) {
+        Column(modifier = Modifier.padding(Spacing.Medium)) {
+            Text(formatEnumLabel(group.name), style = MaterialTheme.typography.labelLarge)
+            if (summary == null) {
+                Text(
+                    "No sets · $periodLabel",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Spacing.ExtraSmall),
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.Small),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Medium),
+                ) {
+                    MiniStat("Weight", "%.1f kg".format(summary.bestWeightKg), Modifier.weight(1f))
+                    MiniStat("Reps", summary.bestReps.toString(), Modifier.weight(1f))
+                    MiniStat("Sets", summary.setCount.toString(), Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(value, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

@@ -176,6 +176,62 @@ class MuscleDistributionTest {
     }
 
     @Test
+    fun `muscleGroupSetSummaryForTimeframe reports the raw best set and counts every qualifying set`() {
+        val squat = Exercise(
+            id = 1, name = "Squat", muscleGroups = listOf("QUADS", "GLUTES"), isCustom = false,
+            category = "STRENGTH", loggingType = "WEIGHT_REPS", muscleWeights = mapOf("GLUTES" to 60),
+        )
+        val sessions = listOf(WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 10), routineId = null, startEpochMillis = 0, endEpochMillis = 0))
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            // Higher weight*reps (600 > 500) -> this is the best set.
+            SetLog(id = 2, sessionId = 1, exerciseId = 1, weightKg = 60.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 1),
+        )
+
+        val summary = muscleGroupSetSummaryForTimeframe(
+            timeframe = ProgressTimeframe.WEEK,
+            sessions = sessions,
+            sets = sets,
+            exercisesById = mapOf(1L to squat),
+            today = LocalDate.of(2026, 8, 12),
+        )
+
+        // Best set reported as logged -- muscleWeights (GLUTES 60%) does not scale it.
+        assertEquals(MuscleSetSummary(bestWeightKg = 60.0, bestReps = 10, setCount = 2), summary["QUADS"])
+        assertEquals(MuscleSetSummary(bestWeightKg = 60.0, bestReps = 10, setCount = 2), summary["GLUTES"])
+    }
+
+    @Test
+    fun `muscleGroupSetSummaryForTimeframe excludes sets outside the window, warmups, cardio and holds`() {
+        val bench = Exercise(id = 1, name = "Bench", muscleGroups = listOf("CHEST"), isCustom = false, category = "STRENGTH", loggingType = "WEIGHT_REPS")
+        val run = Exercise(id = 2, name = "Run", muscleGroups = listOf("QUADS"), isCustom = false, category = "CARDIO", loggingType = "DURATION_DISTANCE")
+        val plank = Exercise(id = 3, name = "Plank", muscleGroups = listOf("ABS"), isCustom = false, category = "CALISTHENICS", loggingType = "HOLD")
+        val sessions = listOf(
+            WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 11), routineId = null, startEpochMillis = 0, endEpochMillis = 0),
+            WorkoutSession(id = 2, date = LocalDate.of(2026, 7, 1), routineId = null, startEpochMillis = 0, endEpochMillis = 0),
+        )
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 80.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 1, exerciseId = 1, weightKg = 200.0, reps = 1, targetReps = 1, loggedAtEpochMillis = 1, isWarmup = true),
+            SetLog(id = 3, sessionId = 1, exerciseId = 2, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 2, durationMinutes = 20.0),
+            SetLog(id = 4, sessionId = 1, exerciseId = 3, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 3, holdSeconds = 45),
+            SetLog(id = 5, sessionId = 2, exerciseId = 1, weightKg = 300.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 4),
+        )
+
+        val summary = muscleGroupSetSummaryForTimeframe(
+            timeframe = ProgressTimeframe.WEEK,
+            sessions = sessions,
+            sets = sets,
+            exercisesById = mapOf(1L to bench, 2L to run, 3L to plank),
+            today = LocalDate.of(2026, 8, 12),
+        )
+
+        assertEquals(MuscleSetSummary(bestWeightKg = 80.0, bestReps = 5, setCount = 1), summary["CHEST"])
+        assertEquals(null, summary["QUADS"])
+        assertEquals(null, summary["ABS"])
+    }
+
+    @Test
     fun `trainingStats counts workouts, sets, volume, and estimates duration from set timestamps`() {
         val sessions = listOf(WorkoutSession(id = 1, date = LocalDate.of(2026, 8, 10), routineId = null, startEpochMillis = 0, endEpochMillis = 0))
         val sets = listOf(

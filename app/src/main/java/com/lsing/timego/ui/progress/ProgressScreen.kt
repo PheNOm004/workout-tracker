@@ -83,6 +83,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val weightCurve by viewModel.weightCurve.collectAsStateWithLifecycle()
     val currentBmi by viewModel.currentBmi.collectAsStateWithLifecycle()
     val muscleDistribution by viewModel.muscleDistribution.collectAsStateWithLifecycle()
+    val muscleSetSummaries by viewModel.muscleSetSummaries.collectAsStateWithLifecycle()
     val trainingStats by viewModel.trainingStats.collectAsStateWithLifecycle()
     val timeframe by viewModel.timeframe.collectAsStateWithLifecycle()
 
@@ -185,6 +186,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             } else {
                 MuscleBodyDiagram(
                     intensities = muscleDistribution,
+                    setSummaries = muscleSetSummaries,
                     periodLabel = timeframeLabel(timeframe),
                     modifier = Modifier
                         .fillMaxWidth()
