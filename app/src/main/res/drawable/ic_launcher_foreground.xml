@@ -8,71 +8,71 @@
     <!-- Base Cradle Channel -->
     <path
         android:fillColor="#FF6B5E"
-        android:pathData="M31,66 L77,66 L75,69.5 L33,69.5 Z" />
+        android:pathData="M19,76 L89,76 L86.5,81.5 L21.5,81.5 Z" />
     <path
         android:fillColor="#101315"
-        android:pathData="M33.5,67 L74.5,67 L74.5,68.5 L33.5,68.5 Z" />
+        android:pathData="M22.5,77.5 L85.5,77.5 L85.5,79.5 L22.5,79.5 Z" />
 
     <!-- Divider Wire Hoops -->
     <path
         android:strokeColor="#F4F1EA"
-        android:strokeWidth="0.75"
+        android:strokeWidth="1.3"
         android:fillColor="#00000000"
-        android:pathData="M33.5,66 C33.5,61 36,61 36,66 M43,66 C43,61 45.5,61 45.5,66 M52.5,66 C52.5,61 55,61 55,66 M62,66 C62,61 64.5,61 64.5,66 M71.5,66 C71.5,61 74,61 74,66" />
+        android:pathData="M22.5,76 C22.5,68 26.5,68 26.5,76 M37,76 C37,68 41,68 41,76 M51.5,76 C51.5,68 55.5,68 55.5,76 M66,76 C66,68 70,68 70,76 M80.5,76 C80.5,68 84.5,68 84.5,76" />
 
     <!-- Plate 1: Mint 10kg -->
     <path
         android:fillColor="#9BD8B2"
-        android:pathData="M36,49.5 L43,49.5 A1.5,1.5 0 0 1 44.5,51 L44.5,65 A1,1 0 0 1 43.5,66 L35.5,66 A1,1 0 0 1 34.5,65 L34.5,51 A1.5,1.5 0 0 1 36,49.5 Z" />
+        android:pathData="M26.5,53 A3,3 0 0 1 29.5,50 L35.5,50 A3,3 0 0 1 38.5,53 L38.5,75 A1,1 0 0 1 37.5,76 L27.5,76 A1,1 0 0 1 26.5,75 Z" />
     <path
         android:strokeColor="#181D20"
-        android:strokeWidth="0.75"
-        android:pathData="M39.5,51 L39.5,64" />
+        android:strokeWidth="1.3"
+        android:pathData="M32.5,52 L32.5,73" />
     <path
         android:fillColor="#101315"
         android:strokeColor="#F4F1EA"
-        android:strokeWidth="0.5"
-        android:pathData="M39.5,57.5 m-1.8,0 a1.8,1.8 0 1,0 3.6,0 a1.8,1.8 0 1,0 -3.6,0" />
+        android:strokeWidth="1.0"
+        android:pathData="M32.5,62.5 m-2.8,0 a2.8,2.8 0 1,0 5.6,0 a2.8,2.8 0 1,0 -5.6,0" />
 
     <!-- Plate 2: Amber 15kg -->
     <path
         android:fillColor="#F2B866"
-        android:pathData="M45.5,44.5 L52.5,44.5 A1.5,1.5 0 0 1 54,46 L54,65 A1,1 0 0 1 53,66 L45,66 A1,1 0 0 1 44,65 L44,46 A1.5,1.5 0 0 1 45.5,44.5 Z" />
+        android:pathData="M41,45 A3,3 0 0 1 44,42 L50,42 A3,3 0 0 1 53,45 L53,75 A1,1 0 0 1 52,76 L42,76 A1,1 0 0 1 41,75 Z" />
     <path
         android:strokeColor="#181D20"
-        android:strokeWidth="0.75"
-        android:pathData="M49,46 L49,64" />
+        android:strokeWidth="1.3"
+        android:pathData="M47,44 L47,73" />
     <path
         android:fillColor="#101315"
         android:strokeColor="#F4F1EA"
-        android:strokeWidth="0.5"
-        android:pathData="M49,55 m-1.8,0 a1.8,1.8 0 1,0 3.6,0 a1.8,1.8 0 1,0 -3.6,0" />
+        android:strokeWidth="1.0"
+        android:pathData="M47,58.5 m-2.8,0 a2.8,2.8 0 1,0 5.6,0 a2.8,2.8 0 1,0 -5.6,0" />
 
     <!-- Plate 3: Warm White 20kg -->
     <path
         android:fillColor="#F4F1EA"
-        android:pathData="M55,39.5 L62,39.5 A1.5,1.5 0 0 1 63.5,41 L63.5,65 A1,1 0 0 1 62.5,66 L54.5,66 A1,1 0 0 1 53.5,65 L53.5,41 A1.5,1.5 0 0 1 55,39.5 Z" />
+        android:pathData="M55.5,37 A3,3 0 0 1 58.5,34 L64.5,34 A3,3 0 0 1 67.5,37 L67.5,75 A1,1 0 0 1 66.5,76 L56.5,76 A1,1 0 0 1 55.5,75 Z" />
     <path
         android:strokeColor="#181D20"
-        android:strokeWidth="0.75"
-        android:pathData="M58.5,41 L58.5,64" />
+        android:strokeWidth="1.3"
+        android:pathData="M61.5,36 L61.5,73" />
     <path
         android:fillColor="#101315"
         android:strokeColor="#F4F1EA"
-        android:strokeWidth="0.5"
-        android:pathData="M58.5,52.5 m-1.8,0 a1.8,1.8 0 1,0 3.6,0 a1.8,1.8 0 1,0 -3.6,0" />
+        android:strokeWidth="1.0"
+        android:pathData="M61.5,54.5 m-2.8,0 a2.8,2.8 0 1,0 5.6,0 a2.8,2.8 0 1,0 -5.6,0" />
 
     <!-- Plate 4: Electric Coral 25kg -->
     <path
         android:fillColor="#FF6B5E"
-        android:pathData="M64.5,34.5 L71.5,34.5 A1.5,1.5 0 0 1 73,36 L73,65 A1,1 0 0 1 72,66 L64,66 A1,1 0 0 1 63,65 L63,36 A1.5,1.5 0 0 1 64.5,34.5 Z" />
+        android:pathData="M70,29 A3,3 0 0 1 73,26 L79,26 A3,3 0 0 1 82,29 L82,75 A1,1 0 0 1 81,76 L71,76 A1,1 0 0 1 70,75 Z" />
     <path
         android:strokeColor="#181D20"
-        android:strokeWidth="0.75"
-        android:pathData="M68,36 L68,64" />
+        android:strokeWidth="1.3"
+        android:pathData="M76,28 L76,73" />
     <path
         android:fillColor="#101315"
         android:strokeColor="#F4F1EA"
-        android:strokeWidth="0.5"
-        android:pathData="M68,50 m-1.8,0 a1.8,1.8 0 1,0 3.6,0 a1.8,1.8 0 1,0 -3.6,0" />
+        android:strokeWidth="1.0"
+        android:pathData="M76,50.5 m-2.8,0 a2.8,2.8 0 1,0 5.6,0 a2.8,2.8 0 1,0 -5.6,0" />
 </vector>
