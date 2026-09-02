@@ -8,16 +8,15 @@ import com.lsing.timego.data.SetLog
 fun exerciseUsageFrequency(
     setLogs: List<SetLog>,
     exercisesById: Map<Long, Exercise>,
-): Map<Long, Int> =
-    setLogs
-        .filter { log ->
-            !log.isWarmup && exercisesById[log.exerciseId]?.category !in setOf(
-                ExerciseCategory.WARMUP.name,
-                ExerciseCategory.CARDIO.name,
-            )
-        }
-        .groupingBy { it.exerciseId }
-        .eachCount()
+): Map<Long, Int> {
+    val counts = mutableMapOf<Long, Int>()
+    for (log in setLogs) {
+        val category = exercisesById[log.exerciseId]?.category
+        if (log.isWarmup || category == ExerciseCategory.WARMUP.name || category == ExerciseCategory.CARDIO.name) continue
+        counts[log.exerciseId] = (counts[log.exerciseId] ?: 0) + 1
+    }
+    return counts
+}
 
 /** Sorts exercises by usage count descending, then by name for a stable order. */
 fun exercisesRankedByFrequency(

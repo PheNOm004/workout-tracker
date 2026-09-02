@@ -14,9 +14,15 @@ private const val MIN_SESSIONS_FOR_RANGE = 3
  *  weight yet -- callers fall back to single-targetReps behavior in that case. Warmup sets are
  *  excluded, same convention as [sessionWorkingSetHistory]. */
 fun repRangeAtWeight(allWorkingSets: List<SetLog>, weightKg: Double): RepRange? {
-    val matching = allWorkingSets.filter { !it.isWarmup && it.weightKg == weightKg }
-    val distinctSessions = matching.map { it.sessionId }.toSet()
+    val distinctSessions = mutableSetOf<Long>()
+    var minReps = Int.MAX_VALUE
+    var maxReps = Int.MIN_VALUE
+    for (set in allWorkingSets) {
+        if (set.isWarmup || set.weightKg != weightKg) continue
+        distinctSessions += set.sessionId
+        if (set.reps < minReps) minReps = set.reps
+        if (set.reps > maxReps) maxReps = set.reps
+    }
     if (distinctSessions.size < MIN_SESSIONS_FOR_RANGE) return null
-    val reps = matching.map { it.reps }
-    return RepRange(floor = reps.min(), ceiling = reps.max())
+    return RepRange(floor = minReps, ceiling = maxReps)
 }
