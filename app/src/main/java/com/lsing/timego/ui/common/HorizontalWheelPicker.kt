@@ -1,5 +1,8 @@
 package com.lsing.timego.ui.common
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Box
@@ -22,8 +25,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -32,11 +35,8 @@ import androidx.compose.ui.unit.dp
  *  visually emphasized (larger, primary-colored) and reported via [onSelectedIndexChange] once
  *  scrolling settles. The side content padding is derived from the actual measured container
  *  width via BoxWithConstraints (not a hardcoded guess) so the centered item lands in the real
- *  visual center regardless of device screen width -- a hardcoded padding would only center
- *  correctly on whatever width it was eyeballed against. A hairline center tick below the wheel
- *  is the Training Ledger's one concrete addition here -- the wheel reads as a ruled instrument,
- *  not a bare label carousel; everything else already re-themes automatically through
- *  MaterialTheme's color/type roles. */
+ *  visual center regardless of device screen width. A hairline center tick below the wheel
+ *  is the Training Ledger's one concrete addition here. */
 @Composable
 fun HorizontalWheelPicker(
     items: List<String>,
@@ -80,18 +80,34 @@ fun HorizontalWheelPicker(
             ) {
                 itemsIndexed(items) { index, label ->
                     val isSelected = index == centeredIndex
+                    val itemScale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.12f else 0.88f,
+                        animationSpec = spring(
+                            dampingRatio = 0.82f,
+                            stiffness = Spring.StiffnessMediumLow,
+                        ),
+                        label = "wheelItemScale_$index",
+                    )
+                    val itemAlpha by animateFloatAsState(
+                        targetValue = if (isSelected) 1f else 0.35f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium,
+                        ),
+                        label = "wheelItemAlpha_$index",
+                    )
+
                     Box(
                         modifier = Modifier
                             .width(itemWidth)
                             .padding(vertical = 12.dp)
-                            .alpha(if (isSelected) 1f else 0.4f),
+                            .graphicsLayer {
+                                scaleX = itemScale
+                                scaleY = itemScale
+                                alpha = itemAlpha
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
-                        // maxLines=1 alone doesn't clip -- Box doesn't clip its children by
-                        // default, so a long name (the library has plenty) rendered past its
-                        // itemWidth bled into the neighboring item's space instead of stopping at
-                        // this item's boundary, which is what actually read as "inconsistent
-                        // spacing" between items rather than a spacing value being wrong anywhere.
                         Text(
                             label,
                             style = if (isSelected) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
@@ -104,8 +120,6 @@ fun HorizontalWheelPicker(
                 }
             }
         }
-        // The wheel always snaps the selected label to centre, so a fixed centred pill gives
-        // every picker a clear selection affordance without tracking individual item bounds.
         val indicatorColor = MaterialTheme.colorScheme.primary
         Canvas(
             modifier = Modifier

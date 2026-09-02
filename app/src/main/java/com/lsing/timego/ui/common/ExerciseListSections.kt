@@ -1,19 +1,30 @@
 package com.lsing.timego.ui.common
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -148,22 +159,50 @@ internal fun boundedExerciseSearch(exercises: List<Exercise>, query: String): Li
         .toList()
 }
 
-/** Renders [exercises] with a search box, then grouped by category (collapsible, defaults to
- *  collapsed) and sub-headed by muscle group within each category. [itemContent] renders one
- *  exercise's row -- this component owns only the search/grouping/collapse chrome so Log and
- *  Routines can each supply their own row UI (weight/reps inputs vs a selection checkbox)
- *  without duplicating that structure. A search query flattens the results out of the
- *  category/muscle-group grouping (a plain filtered list), since narrowing to a handful of
- *  matches makes the grouping chrome noise rather than useful navigation. */
+enum class MuscleFilterOption(val label: String) {
+    ALL("All"),
+    FAVORITES("★ Favorites"),
+    CHEST("Chest"),
+    BACK("Back"),
+    SHOULDERS("Shoulders"),
+    ARMS("Arms"),
+    LEGS("Legs"),
+    CORE("Core"),
+    CARDIO("Cardio"),
+}
+
+fun exerciseMatchesFilter(exercise: Exercise, filter: MuscleFilterOption, favoriteIds: Set<Long> = emptySet()): Boolean {
+    return when (filter) {
+        MuscleFilterOption.ALL -> true
+        MuscleFilterOption.FAVORITES -> exercise.id in favoriteIds
+        MuscleFilterOption.CARDIO -> exercise.category == ExerciseCategory.CARDIO.name
+        MuscleFilterOption.CHEST -> exercise.muscleGroups.any { sessionDisplayRegion(it) == SessionDisplayRegion.CHEST }
+        MuscleFilterOption.BACK -> exercise.muscleGroups.any { sessionDisplayRegion(it) == SessionDisplayRegion.BACK }
+        MuscleFilterOption.SHOULDERS -> exercise.muscleGroups.any { sessionDisplayRegion(it) == SessionDisplayRegion.SHOULDERS }
+        MuscleFilterOption.ARMS -> exercise.muscleGroups.any { sessionDisplayRegion(it) == SessionDisplayRegion.ARMS }
+        MuscleFilterOption.LEGS -> exercise.muscleGroups.any { sessionDisplayRegion(it) == SessionDisplayRegion.LEGS }
+        MuscleFilterOption.CORE -> exercise.muscleGroups.any { sessionDisplayRegion(it) == SessionDisplayRegion.CORE }
+    }
+}
+
+/** Renders [exercises] with a search box and sticky muscle filter chips. */
 @Composable
 fun ExerciseSections(
     exercises: List<Exercise>,
     searchQuery: String? = null,
     onSearchQueryChange: ((String) -> Unit)? = null,
+    selectedFilter: MuscleFilterOption = MuscleFilterOption.ALL,
+    onSelectFilter: ((MuscleFilterOption) -> Unit)? = null,
+    favoriteExerciseIds: Set<Long> = emptySet(),
     itemContent: @Composable (Exercise) -> Unit,
 ) {
     var localQuery by remember { mutableStateOf("") }
     val query = searchQuery ?: localQuery
+    var localFilter by remember { mutableStateOf(MuscleFilterOption.ALL) }
+    val currentFilter = if (onSelectFilter != null) selectedFilter else localFilter
+    val setFilter: (MuscleFilterOption) -> Unit = { filter ->
+        if (onSelectFilter != null) onSelectFilter(filter) else localFilter = filter
+    }
     var expandedGroupKeys by remember { mutableStateOf<List<String>>(emptyList()) }
     val setQuery: (String) -> Unit = { value -> onSearchQueryChange?.invoke(value) ?: run { localQuery = value } }
 
@@ -181,6 +220,24 @@ fun ExerciseSections(
             }
         },
     )
+
+    // Muscle Filter Pills Row
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = Spacing.Small)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
+    ) {
+        MuscleFilterOption.entries.forEach { option ->
+            if (option == MuscleFilterOption.FAVORITES && favoriteExerciseIds.isEmpty()) return@forEach
+            FilterChip(
+                selected = currentFilter == option,
+                onClick = { setFilter(option) },
+                label = { Text(option.label) },
+            )
+        }
+    }
 
     if (query.isNotBlank()) {
         val totalMatches = remember(exercises, query) {
@@ -200,25 +257,71 @@ fun ExerciseSections(
         return
     }
 
+    if (currentFilter != MuscleFilterOption.ALL) {
+        val filtered = remember(exercises, currentFilter, favoriteExerciseIds) {
+            exercises.filter { exerciseMatchesFilter(it, currentFilter, favoriteExerciseIds) }
+        }
+        if (filtered.isEmpty()) {
+            Text(
+                "No exercises found for ${currentFilter.label}.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = Spacing.Medium),
+            )
+        } else {
+            // Group by sub-muscle group or render direct list with fast access
+            val bySubGroup = remember(filtered) {
+                filtered.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }.toSortedMap()
+            }
+            bySubGroup.forEach { (subGroup, groupExercises) ->
+                Text(
+                    formatEnumLabel(subGroup),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = Spacing.Medium, bottom = Spacing.ExtraSmall),
+                )
+                groupExercises.forEach { exercise -> itemContent(exercise) }
+            }
+        }
+        return
+    }
+
     val byCategory = remember(exercises) { exercises.groupBy { it.category } }
     ExerciseCategory.entries.forEach { category ->
         val inCategory = byCategory[category.name].orEmpty()
         if (inCategory.isEmpty()) return@forEach
         key(category) {
             var expanded by remember(category) { mutableStateOf(false) }
+            val catBringIntoView = remember { BringIntoViewRequester() }
+            LaunchedEffect(expanded) {
+                if (expanded) {
+                    kotlinx.coroutines.delay(120)
+                    catBringIntoView.bringIntoView()
+                    kotlinx.coroutines.delay(220)
+                    catBringIntoView.bringIntoView()
+                }
+            }
+            val catChevronRotation by animateFloatAsState(
+                targetValue = if (expanded) 90f else 0f,
+                animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
+                label = "catChevronRotation",
+            )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .bringIntoViewRequester(catBringIntoView)
                     .padding(top = Spacing.Large, bottom = Spacing.ExtraSmall)
                     .clickable { expanded = !expanded },
             ) {
                 val visual = categoryVisual(category)
                 Icon(
-                    if (expanded) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = if (expanded) "Collapse" else "Expand",
                     tint = visual.accent,
-                    modifier = Modifier.padding(start = 8.dp, end = 4.dp),
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 4.dp)
+                        .graphicsLayer { rotationZ = catChevronRotation },
                 )
                 Text(
                     formatEnumLabel(category.name),
@@ -227,9 +330,6 @@ fun ExerciseSections(
                 )
             }
             AnimatedExpand(expanded) {
-                // Sorted so iteration order is deterministic across recompositions -- a plain
-                // HashMap's order isn't guaranteed, and combined with key() below, an unstable
-                // order would still churn which composable slot each group lands in.
                 val byMuscleGroup = remember(inCategory) {
                     inCategory.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }.toSortedMap()
                 }
@@ -237,19 +337,36 @@ fun ExerciseSections(
                     key(group) {
                         val groupKey = "${category.name}:$group"
                         val groupExpanded = groupKey in expandedGroupKeys
+                        val groupBringIntoView = remember { BringIntoViewRequester() }
+                        LaunchedEffect(groupExpanded) {
+                            if (groupExpanded) {
+                                kotlinx.coroutines.delay(120)
+                                groupBringIntoView.bringIntoView()
+                                kotlinx.coroutines.delay(220)
+                                groupBringIntoView.bringIntoView()
+                            }
+                        }
+                        val subChevronRotation by animateFloatAsState(
+                            targetValue = if (groupExpanded) 90f else 0f,
+                            animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
+                            label = "subChevronRotation",
+                        )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .bringIntoViewRequester(groupBringIntoView)
                                 .padding(top = Spacing.Small)
                                 .clickable {
                                     expandedGroupKeys = toggleExpandedExerciseGroupKeys(expandedGroupKeys, groupKey)
                                 },
                         ) {
                             Icon(
-                                if (groupExpanded) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = if (groupExpanded) "Collapse" else "Expand",
-                                modifier = Modifier.padding(start = 32.dp, end = 4.dp),
+                                modifier = Modifier
+                                    .padding(start = 32.dp, end = 4.dp)
+                                    .graphicsLayer { rotationZ = subChevronRotation },
                             )
                             Text(
                                 formatEnumLabel(group),

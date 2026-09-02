@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -66,6 +67,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     val sessionHistory by viewModel.sessionHistory.collectAsStateWithLifecycle()
     val backupResult by viewModel.backupResult.collectAsStateWithLifecycle()
     var showRoutineForm by remember { mutableStateOf(false) }
+    var showSettingsSheet by remember { mutableStateOf(false) }
     var showSessionHistory by remember { mutableStateOf(false) }
     var pendingDeleteSessionId by remember { mutableStateOf<Long?>(null) }
 
@@ -92,6 +94,29 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             exercises = exercises,
             onDismiss = { showRoutineForm = false },
             onCreate = viewModel::createRoutine,
+        )
+    }
+
+    if (showSettingsSheet) {
+        SettingsBottomSheet(
+            holdDelaySeconds = holdDelaySeconds,
+            onSetHoldDelaySeconds = viewModel::setHoldDelaySeconds,
+            trainingLean = trainingLean,
+            onSetTrainingLean = viewModel::setTrainingLean,
+            onExportBackup = {
+                showSettingsSheet = false
+                exportLauncher.launch("timego-backup-${LocalDate.now()}.db")
+            },
+            onRestoreBackup = {
+                showSettingsSheet = false
+                restoreLauncher.launch(arrayOf("*/*"))
+            },
+            sessionHistoryCount = sessionHistory.size,
+            onViewSessionHistory = {
+                showSettingsSheet = false
+                showSessionHistory = true
+            },
+            onDismiss = { showSettingsSheet = false },
         )
     }
 
@@ -126,11 +151,23 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
 
     LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
         item {
-            Text(
-                "Routines",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
+            ) {
+                Text(
+                    "Routines",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { showSettingsSheet = true }) {
+                    Icon(
+                        Icons.Outlined.Settings,
+                        contentDescription = "Settings & Preferences",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             Text(
                 "Prepare the next session before you step in.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -187,67 +224,10 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                 }
             }
         }
-        item {
-            SectionHeader(title = "Workout settings", topPadding = Spacing.Large)
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
-                Text(
-                    "Hold-exercise start delay",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = { viewModel.setHoldDelaySeconds(holdDelaySeconds - 1) }) {
-                    Icon(Icons.Filled.Remove, contentDescription = "Decrease delay")
-                }
-                Text("${holdDelaySeconds}s", style = LedgerFigureEmphasis)
-                IconButton(onClick = { viewModel.setHoldDelaySeconds(holdDelaySeconds + 1) }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Increase delay")
-                }
-            }
-            Text(
-                "Suggested exercise style",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
-            )
-            FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
-                TrainingLean.entries.forEach { lean ->
-                    FilterChip(
-                        selected = trainingLean == lean,
-                        onClick = { viewModel.setTrainingLean(lean) },
-                        label = {
-                            Text(
-                                when (lean) {
-                                    TrainingLean.STRENGTH -> "Strength"
-                                    TrainingLean.BALANCED -> "Balanced"
-                                    TrainingLean.CALISTHENICS -> "Calisthenics"
-                                },
-                            )
-                        },
-                        modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
-                    )
-                }
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        }
-        item {
-            SectionHeader(title = "Local backup", topPadding = Spacing.Large)
-            Text(
-                "TimeGo never uploads backups itself. The exported file is an unencrypted copy of your workout data, so choose a private location you trust; a cloud-backed file provider may upload it. Restore only adds data you don't already have -- it never overwrites or removes anything live.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = Spacing.Small),
-            )
-            Row(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
-                Button(
-                    onClick = { exportLauncher.launch("timego-backup-${LocalDate.now()}.db") },
-                    modifier = Modifier.padding(end = Spacing.Small),
-                ) { Text("Export backup") }
-                TextButton(onClick = { restoreLauncher.launch(arrayOf("*/*")) }) { Text("Restore from backup") }
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        }
         items(routines, key = { it.id }) { routine ->
             SurfaceCard(
                 modifier = Modifier
+                    .animateItem()
                     .fillMaxWidth()
                     .padding(vertical = Spacing.ExtraSmall)
                     .then(if (routine == routines.firstOrNull()) Modifier.padding(Spacing.Small) else Modifier),
@@ -284,28 +264,12 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                         }
                     }
                 }
-                val steps = routineExercisesById[routine.id].orEmpty()
-                if (steps.isNotEmpty()) {
-                    RoutineSteps(steps)
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = Spacing.ExtraSmall))
-                }
-            }
-        }
-        if (sessionHistory.isNotEmpty()) {
-            item {
-                SectionHeader(title = "Session history", topPadding = Spacing.Large)
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
-                    Text(
-                        "Delete a mistaken or test session.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Button(onClick = { showSessionHistory = true }) {
-                        Text("View (${sessionHistory.size})")
+                    val steps = routineExercisesById[routine.id].orEmpty()
+                    if (steps.isNotEmpty()) {
+                        RoutineSteps(steps)
                     }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = Spacing.ExtraSmall))
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
     }

@@ -1,8 +1,21 @@
 package com.lsing.timego.ui.log
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.graphics.graphicsLayer
+import com.lsing.timego.ui.theme.TimeGoMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -13,6 +26,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -43,6 +59,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.text.KeyboardOptions
@@ -69,6 +87,7 @@ import com.lsing.timego.domain.estimatedCalorieBurn
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.domain.formatDaysSince
 import com.lsing.timego.domain.orderedMuscleDistributionForChart
+import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.toggleExpandedExerciseIds
 import com.lsing.timego.ui.common.AnimatedExpand
 import com.lsing.timego.ui.common.CroppedMuscleDiagram
@@ -100,60 +119,73 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val landingMuscleBalance by viewModel.landingMuscleBalance.collectAsStateWithLifecycle()
     val routineLastCompleted by viewModel.routineLastCompleted.collectAsStateWithLifecycle()
 
-    when (val state = sessionState) {
-        is SessionUiState.Loading -> { /* nothing to render yet -- first frame only, resolves on the next recomposition */ }
-        is SessionUiState.NoActiveSession -> LogLandingContent(
-            summary = landingSummary,
-            routines = routines,
-            isSessionActive = false,
-            onStartOrContinue = viewModel::startSession,
-            balanceTimeframe = landingBalanceTimeframe,
-            muscleBalance = landingMuscleBalance,
-            routineLastCompleted = routineLastCompleted,
-            onSelectBalanceTimeframe = viewModel::selectLandingBalanceTimeframe,
-        )
-        is SessionUiState.Active -> {
-            // Keyed on sessionId, not just a bare remember{}: this resets to false whenever a
-            // *new* active session starts, but persists correctly across recompositions of the
-            // same session (e.g. suggestion updates after logging a set).
-            var peekingLanding by remember(state.sessionId) { mutableStateOf(false) }
-            if (peekingLanding) {
-                LogLandingContent(
-                    summary = landingSummary,
-                    routines = routines,
-                    isSessionActive = true,
-                    onStartOrContinue = { peekingLanding = false },
-                    balanceTimeframe = landingBalanceTimeframe,
-                    muscleBalance = landingMuscleBalance,
-                    routineLastCompleted = routineLastCompleted,
-                    onSelectBalanceTimeframe = viewModel::selectLandingBalanceTimeframe,
-                )
-            } else {
-                LoggingContent(
-                    sessionId = state.sessionId,
-                    viewModel = viewModel,
-                    onEndSession = viewModel::endActiveSession,
-                    onBackToLanding = { peekingLanding = true },
-                )
+    AnimatedContent(
+        targetState = sessionState,
+        transitionSpec = {
+            val enter = slideInHorizontally(TimeGoMotion.navigationInOffset) { width -> width / 4 } + fadeIn(TimeGoMotion.contentEnter)
+            val exit = slideOutHorizontally(TimeGoMotion.navigationOutOffset) { width -> -width / 4 } + fadeOut(TimeGoMotion.contentExit)
+            enter togetherWith exit
+        },
+        label = "logSessionTransition",
+    ) { state ->
+        when (state) {
+            is SessionUiState.Loading -> { /* nothing to render yet */ }
+            is SessionUiState.NoActiveSession -> LogLandingContent(
+                summary = landingSummary,
+                routines = routines,
+                isSessionActive = false,
+                onStartOrContinue = viewModel::startSession,
+                routineLastCompleted = routineLastCompleted,
+                balanceTimeframe = landingBalanceTimeframe,
+                muscleBalance = landingMuscleBalance,
+                onSelectBalanceTimeframe = viewModel::selectLandingBalanceTimeframe,
+            )
+            is SessionUiState.Active -> {
+                var peekingLanding by remember(state.sessionId) { mutableStateOf(false) }
+                AnimatedContent(
+                    targetState = peekingLanding,
+                    transitionSpec = {
+                        val enter = slideInHorizontally(TimeGoMotion.navigationInOffset) { width -> if (targetState) -width / 4 else width / 4 } + fadeIn(TimeGoMotion.contentEnter)
+                        val exit = slideOutHorizontally(TimeGoMotion.navigationOutOffset) { width -> if (targetState) width / 4 else -width / 4 } + fadeOut(TimeGoMotion.contentExit)
+                        enter togetherWith exit
+                    },
+                    label = "peekingLandingTransition",
+                ) { peeking ->
+                    if (peeking) {
+                        LogLandingContent(
+                            summary = landingSummary,
+                            routines = routines,
+                            isSessionActive = true,
+                            onStartOrContinue = { peekingLanding = false },
+                            routineLastCompleted = routineLastCompleted,
+                            balanceTimeframe = landingBalanceTimeframe,
+                            muscleBalance = landingMuscleBalance,
+                            onSelectBalanceTimeframe = viewModel::selectLandingBalanceTimeframe,
+                        )
+                    } else {
+                        LoggingContent(
+                            sessionId = state.sessionId,
+                            viewModel = viewModel,
+                            onEndSession = viewModel::endActiveSession,
+                            onBackToLanding = { peekingLanding = true },
+                        )
+                    }
+                }
             }
         }
     }
 }
 
-/** Shared between the real landing page (no active session) and the "peek back" view from an
- *  in-progress session -- same last-session summary and recommendation either way; only the
- *  bottom action row changes ([isSessionActive] swaps Freeform/Routine start buttons for a single
- *  "Continue Session" button, since [onStartOrContinue] resumes the existing session rather than
- *  creating a new one when a session is already active). */
+/** Action-centric Command Center landing page: Hero next workout, last session recap, and routines carousel. */
 @Composable
 private fun LogLandingContent(
     summary: LandingSummary,
     routines: List<com.lsing.timego.data.Routine>,
     isSessionActive: Boolean,
     onStartOrContinue: (routineId: Long?) -> Unit,
+    routineLastCompleted: Map<Long, LocalDate>,
     balanceTimeframe: ProgressTimeframe,
     muscleBalance: Map<String, Float>,
-    routineLastCompleted: Map<Long, LocalDate>,
     onSelectBalanceTimeframe: (ProgressTimeframe) -> Unit,
 ) {
     var showLastSessionDetail by remember { mutableStateOf(false) }
@@ -168,20 +200,161 @@ private fun LogLandingContent(
         )
     }
 
+    val todaysScheduledRoutine = remember(routines) {
+        routinesForToday(routines, LocalDate.now().dayOfWeek).firstOrNull()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(Spacing.Large),
     ) {
-        SectionHeader("Last session", topPadding = Spacing.ExtraSmall)
+        if (isSessionActive) {
+            SurfaceCard(
+                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
+                hero = true,
+                riveted = true,
+            ) {
+                Column(modifier = Modifier.padding(Spacing.Medium)) {
+                    Text(
+                        "Session In Progress",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        "You have an active workout open.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
+                    )
+                    Button(
+                        onClick = { onStartOrContinue(null) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Continue Workout")
+                    }
+                }
+            }
+        } else {
+            // HERO: Today's Workout Command Center
+            SectionHeader("Today's Workout", topPadding = Spacing.ExtraSmall)
+            if (todaysScheduledRoutine != null) {
+                SurfaceCard(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
+                    hero = true,
+                    riveted = true,
+                ) {
+                    Column(modifier = Modifier.padding(Spacing.Medium)) {
+                        Text(
+                            "Scheduled for Today",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            todaysScheduledRoutine.name,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(top = 2.dp, bottom = Spacing.ExtraSmall),
+                        )
+                        val lastTrainedStr = formatDaysSince(routineLastCompleted[todaysScheduledRoutine.id], LocalDate.now())
+                        Text(
+                            "Last completed: $lastTrainedStr",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = Spacing.Medium),
+                        )
+                        Button(
+                            onClick = { onStartOrContinue(todaysScheduledRoutine.id) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Start ${todaysScheduledRoutine.name}")
+                        }
+                    }
+                }
+            } else {
+                SurfaceCard(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
+                    hero = true,
+                    riveted = true,
+                ) {
+                    Column(modifier = Modifier.padding(Spacing.Medium)) {
+                        Text(
+                            "Recommended Focus",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        if (summary.recommendedMuscleGroups.isNotEmpty()) {
+                            Text(
+                                formatMuscleGroupList(summary.recommendedMuscleGroups),
+                                style = LedgerFigureValue,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
+                            summary.suggestedExercise?.let { exercise ->
+                                Text(
+                                    "Try: ${exercise.name}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = Spacing.ExtraSmall),
+                                )
+                            }
+                            CroppedMuscleDiagram(
+                                muscleGroups = diagramGroupsForRecommendationCrop(
+                                    summary.recommendedMuscleGroups.toSet(),
+                                ),
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                highlightGroups = summary.recommendedMuscleGroups.toSet(),
+                                neutralizeUnhighlighted = true,
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(vertical = Spacing.Small),
+                            )
+                        } else {
+                            Text(
+                                "All muscles recently trained.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(vertical = Spacing.ExtraSmall),
+                            )
+                        }
+                        Button(
+                            onClick = { onStartOrContinue(null) },
+                            modifier = Modifier.fillMaxWidth().padding(top = Spacing.Small),
+                        ) {
+                            Text("Start Freeform Workout")
+                        }
+                    }
+                }
+            }
+
+            // Quick Routines Carousel
+            if (routines.isNotEmpty()) {
+                SectionHeader("Your Routines", topPadding = Spacing.Small)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = Spacing.Medium)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                ) {
+                    Button(onClick = { onStartOrContinue(null) }) {
+                        Text("Freeform")
+                    }
+                    routines.forEach { routine ->
+                        OutlinedButton(onClick = { onStartOrContinue(routine.id) }) {
+                            Text(routine.name)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Secondary: Last Session Recap
+        SectionHeader("Last Session Recap", topPadding = Spacing.Small)
         if (summary.lastSession == null) {
             Text("No sessions logged yet.", style = MaterialTheme.typography.bodyMedium)
         } else {
             SurfaceCard(
                 modifier = Modifier.fillMaxWidth().clickable { showLastSessionDetail = true },
-                hero = true,
-                riveted = true,
             ) {
                 Column(modifier = Modifier.padding(Spacing.Medium)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -197,12 +370,12 @@ private fun LogLandingContent(
                         )
                     }
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.Medium),
+                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.Small),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         LandingMetric("Sets", "${summary.lastSession.sets}", Modifier.weight(1f))
                         androidx.compose.material3.VerticalDivider(
-                            modifier = Modifier.height(40.dp),
+                            modifier = Modifier.height(36.dp),
                             color = MaterialTheme.colorScheme.outlineVariant,
                         )
                         LandingMetric(
@@ -215,130 +388,57 @@ private fun LogLandingContent(
                         muscleGroups = summary.lastSession.muscleGroups,
                         intensities = summary.lastSession.muscleIntensities,
                         accentColor = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 148.dp).padding(top = Spacing.Medium),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(top = Spacing.Small),
                     )
                     if (summary.lastSession.muscleGroups.isNotEmpty()) {
                         MuscleHeatLegend(
                             detailColor = MaterialTheme.colorScheme.surfaceVariant,
                             periodLabel = "this session",
-                            modifier = Modifier.padding(top = Spacing.Small),
-                        )
-                    }
-                }
-            }
-        }
-
-        SectionHeader("Recommended")
-        if (summary.recommendedMuscleGroups.isEmpty()) {
-            Text("Everything's been trained recently -- nice balance.", style = MaterialTheme.typography.bodyMedium)
-        } else {
-            SurfaceCard(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(modifier = Modifier.padding(Spacing.Medium)) {
-                    Text(
-                        formatMuscleGroupList(summary.recommendedMuscleGroups),
-                        style = LedgerFigureValue,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        "A fresh focus based on what has gone longest without training.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = Spacing.ExtraSmall),
-                    )
-                    summary.suggestedExercise?.let { exercise ->
-                        Text(
-                            "Try: ${exercise.name}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = Spacing.ExtraSmall),
                         )
                     }
-                    CroppedMuscleDiagram(
-                        // Size the artwork from the relevant body region only; the recommendation
-                        // remains the only highlighted group set.
-                        muscleGroups = diagramGroupsForRecommendationCrop(
-                            summary.recommendedMuscleGroups.toSet(),
-                        ),
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        highlightGroups = summary.recommendedMuscleGroups.toSet(),
-                        neutralizeUnhighlighted = true,
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 148.dp).padding(top = Spacing.Small),
-                    )
                 }
             }
         }
 
-        SectionHeader("Muscle Balance (${timeframeLabel(balanceTimeframe)})")
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall)) {
+        // Muscle Balance Radar Section on Landing
+        SectionHeader("Muscle Balance (${timeframeLabel(balanceTimeframe)})", topPadding = Spacing.Small)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = Spacing.ExtraSmall)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
+        ) {
             ProgressTimeframe.entries.forEach { option ->
                 FilterChip(
                     selected = balanceTimeframe == option,
                     onClick = { onSelectBalanceTimeframe(option) },
                     label = { Text(formatEnumLabel(option.name)) },
-                    modifier = Modifier.padding(end = Spacing.ExtraSmall),
                 )
             }
         }
-        if (muscleBalance.isNotEmpty()) {
-            RadarChart(
-                values = orderedMuscleDistributionForChart(muscleBalance)
-                    .mapKeys { (group, _) -> formatEnumLabel(group) },
-                modifier = Modifier.fillMaxWidth().height(220.dp).padding(vertical = Spacing.Small),
-            )
-        }
-        if (routines.isNotEmpty()) {
-            Column(modifier = Modifier.padding(top = Spacing.Small)) {
-                routines
-                    .sortedWith(compareBy(nullsFirst()) { routine -> routineLastCompleted[routine.id] })
-                    .forEach { routine ->
-                        Text(
-                            "${routine.name} — ${formatDaysSince(routineLastCompleted[routine.id], LocalDate.now())}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 2.dp),
-                        )
-                    }
+        SurfaceCard(
+            modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(Spacing.Small)) {
+                if (muscleBalance.isEmpty()) {
+                    Text(
+                        "No strength sets logged in the ${timeframeLabel(balanceTimeframe)}.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
+                    )
+                }
+                RadarChart(
+                    values = orderedMuscleDistributionForChart(muscleBalance)
+                        .mapKeys { (group, _) -> formatEnumLabel(group) },
+                    modifier = Modifier.fillMaxWidth().height(220.dp).padding(vertical = Spacing.Small),
+                )
             }
         }
 
-        if (isSessionActive) {
-            SectionHeader("Session in progress")
-            Button(onClick = { onStartOrContinue(null) }) {
-                Text("Continue Session")
-            }
-        } else {
-            SectionHeader("Start a session")
-            if (routines.isEmpty()) {
-                SurfaceCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(Spacing.Medium)) {
-                        Text("No routines yet", style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            "Start freeform today. Build a reusable plan in Routines when your session repeats.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
-                        )
-                        Button(onClick = { onStartOrContinue(null) }) { Text("Start freeform") }
-                    }
-                }
-            } else {
-                Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                    Button(onClick = { onStartOrContinue(null) }, modifier = Modifier.padding(end = Spacing.Small)) {
-                        Text("Freeform")
-                    }
-                    routines.forEach { routine ->
-                        Button(onClick = { onStartOrContinue(routine.id) }, modifier = Modifier.padding(end = Spacing.Small)) {
-                            Text(routine.name)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Leave enough scrollable room for the final landing card to clear the persistent bottom
-        // navigation bar when the user scrolls to the recommendation artwork.
+        // Bottom spacer
         Spacer(modifier = Modifier.height(Spacing.ExtraLarge + 64.dp))
     }
 }
@@ -369,6 +469,7 @@ private fun LoggingContent(
     val latestBodyWeightKg by viewModel.latestBodyWeightKg.collectAsStateWithLifecycle()
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
     val setLoggedPulse by viewModel.setLoggedPulse.collectAsStateWithLifecycle()
+    val activeSessionSetsByExercise by viewModel.activeSessionSetsByExercise.collectAsStateWithLifecycle()
     var expandedExerciseIds by remember(sessionId) { mutableStateOf<List<Long>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showEndSessionConfirmation by remember { mutableStateOf(false) }
@@ -447,6 +548,17 @@ private fun LoggingContent(
                 }
             }
             item {
+                // Live in-session summary of completed sets
+                val exercisesById = remember(exercises) { exercises.associateBy { it.id } }
+                ActiveWorkoutSection(
+                    activeSetsByExercise = activeSessionSetsByExercise,
+                    exercisesById = exercisesById,
+                    onSelectExercise = { exerciseId ->
+                        expandedExerciseIds = listOf(exerciseId)
+                    },
+                )
+            }
+            item {
                 val favoriteExercises = exercises.filter { it.id in favoriteExerciseIds }
                 if (favoriteExercises.isNotEmpty()) {
                     SectionHeader("Favorites", topPadding = Spacing.Small)
@@ -478,11 +590,14 @@ private fun LoggingContent(
                         }
                     }
                 }
+                SectionHeader("Exercise Library", topPadding = Spacing.Small)
                 ExerciseSections(
                     exercises = exercises,
                     searchQuery = librarySearchQuery,
                     onSearchQueryChange = { librarySearchQuery = it },
+                    favoriteExerciseIds = favoriteExerciseIds,
                 ) { exercise ->
+                    val currentExerciseSets = activeSessionSetsByExercise[exercise.id].orEmpty()
                     when (exercise.loggingType) {
                         LoggingType.HOLD.name -> HoldLogRow(
                             exerciseName = exercise.name,
@@ -518,6 +633,7 @@ private fun LoggingContent(
                             category = exercise.category,
                             suggestion = suggestions[exercise.id],
                             lastWorkingSet = lastWorkingSets[exercise.id],
+                            currentSessionSets = currentExerciseSets,
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
                             isFavorite = exercise.id in favoriteExerciseIds,
@@ -561,6 +677,17 @@ private fun ExerciseRowHeader(
     onToggleFavorite: () -> Unit,
     onToggle: () -> Unit,
 ) {
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 90f else 0f,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
+        label = "chevronRotation",
+    )
+    val starScale by animateFloatAsState(
+        targetValue = if (isFavorite) 1.2f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "starScale",
+    )
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -583,11 +710,16 @@ private fun ExerciseRowHeader(
                 if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                 contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                 tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = starScale
+                    scaleY = starScale
+                },
             )
         }
         Icon(
-            if (expanded) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = if (expanded) "Collapse" else "Expand",
+            modifier = Modifier.graphicsLayer { rotationZ = chevronRotation },
         )
     }
 }
@@ -599,12 +731,22 @@ private fun ExerciseRowHeader(
  *  is always the theme's one committed brand color. */
 @Composable
 private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Composable () -> Unit) {
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    LaunchedEffect(expanded) {
+        if (expanded) {
+            kotlinx.coroutines.delay(120)
+            bringIntoViewRequester.bringIntoView()
+            kotlinx.coroutines.delay(200)
+            bringIntoViewRequester.bringIntoView()
+        }
+    }
     val accent = MaterialTheme.colorScheme.primary
     TrainingPulse(
         active = expanded,
         pulseId = pulseId,
         modifier = Modifier
             .fillMaxWidth()
+            .bringIntoViewRequester(bringIntoViewRequester)
             .padding(start = Spacing.Large, end = Spacing.Small)
             .then(if (expanded) Modifier.background(MaterialTheme.colorScheme.surfaceContainer) else Modifier),
     ) {
@@ -619,11 +761,36 @@ private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Compos
 }
 
 @Composable
+private fun AnimatedAssistChip(
+    onClick: () -> Unit,
+    label: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scale = remember { Animatable(1f) }
+    val scope = rememberCoroutineScope()
+    AssistChip(
+        onClick = {
+            scope.launch {
+                scale.animateTo(0.88f, spring(stiffness = Spring.StiffnessHigh))
+                scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+            }
+            onClick()
+        },
+        label = label,
+        modifier = modifier.graphicsLayer {
+            scaleX = scale.value
+            scaleY = scale.value
+        },
+    )
+}
+
+@Composable
 private fun StrengthLogRow(
     exerciseName: String,
     category: String,
     suggestion: com.lsing.timego.domain.OverloadSuggestion?,
     lastWorkingSet: SetLog?,
+    currentSessionSets: List<SetLog> = emptyList(),
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
     isFavorite: Boolean,
@@ -700,6 +867,18 @@ private fun StrengthLogRow(
                     modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
                 )
             }
+            if (currentSessionSets.isNotEmpty()) {
+                val setsSummary = currentSessionSets.mapIndexed { idx, s ->
+                    val w = if (isBodyweight && s.addedWeightKg != null) formatCalisthenicsWeight(s.addedWeightKg) else "${s.weightKg}kg"
+                    "#${idx + 1}: $w x ${s.reps}"
+                }.joinToString("  •  ")
+                Text(
+                    "Today: $setsSummary",
+                    style = LedgerFigureValue.copy(fontSize = 12.sp),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
+                )
+            }
             if (isBodyweight && bodyWeight == null) {
                 Text(
                     "Log a valid body weight on Progress before logging calisthenics.",
@@ -735,6 +914,44 @@ private fun StrengthLogRow(
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
+                    )
+                }
+                // Quick Stepper Chips for Fast In-Gym Adjustment
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
+                ) {
+                    AnimatedAssistChip(
+                        onClick = {
+                            val cur = enteredWeight ?: 0.0
+                            val next = (cur - 2.5).coerceAtLeast(0.0)
+                            weightText = if (next == 0.0 && isBodyweight) "" else "%.1f".format(next).trimEnd('0').trimEnd('.')
+                        },
+                        label = { Text("-2.5kg", style = MaterialTheme.typography.labelSmall) },
+                    )
+                    AnimatedAssistChip(
+                        onClick = {
+                            val cur = enteredWeight ?: 0.0
+                            val next = cur + 2.5
+                            weightText = "%.1f".format(next).trimEnd('0').trimEnd('.')
+                        },
+                        label = { Text("+2.5kg", style = MaterialTheme.typography.labelSmall) },
+                    )
+                    AnimatedAssistChip(
+                        onClick = {
+                            val curReps = reps ?: 0
+                            val next = (curReps - 1).coerceAtLeast(1)
+                            repsText = next.toString()
+                        },
+                        label = { Text("-1 rep", style = MaterialTheme.typography.labelSmall) },
+                    )
+                    AnimatedAssistChip(
+                        onClick = {
+                            val curReps = reps ?: (suggestion?.reps ?: 0)
+                            val next = curReps + 1
+                            repsText = next.toString()
+                        },
+                        label = { Text("+1 rep", style = MaterialTheme.typography.labelSmall) },
                     )
                 }
                 Row(

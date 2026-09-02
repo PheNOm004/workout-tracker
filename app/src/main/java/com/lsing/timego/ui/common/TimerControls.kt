@@ -1,5 +1,11 @@
 package com.lsing.timego.ui.common
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -66,35 +72,48 @@ fun TimerControls(
         modifier = modifier.fillMaxWidth().padding(Spacing.Medium),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        when (val current = phase) {
-            null -> {
-                Button(onClick = {
-                    val now = System.currentTimeMillis()
-                    // Seed the phase synchronously so the strip doesn't show idle for the frame
-                    // before the effect's first pass lands.
-                    phase = timerPhaseAt(now, delaySeconds, now)
-                    startedAtEpochMillis = now
-                }) { Text("Start timer") }
-                TextButton(onClick = onEnterManually) { Text("Enter manually") }
-            }
-            is HoldTimerPhase.CountingDown -> {
-                Text(
-                    "Starting in ${current.secondsRemaining}s...",
-                    style = LedgerFigureValue,
-                    modifier = Modifier.weight(1f),
-                )
-                Button(onClick = { startedAtEpochMillis = null }) { Text("Cancel") }
-            }
-            is HoldTimerPhase.Running -> {
-                Text(
-                    formatElapsed(current.elapsedSeconds),
-                    style = LedgerFigureValue,
-                    modifier = Modifier.weight(1f),
-                )
-                Button(onClick = {
-                    onStop(current.elapsedSeconds)
-                    startedAtEpochMillis = null
-                }) { Text("Stop & Log") }
+        AnimatedContent(
+            targetState = phase,
+            transitionSpec = {
+                val enter = fadeIn() + slideInHorizontally { it / 4 }
+                val exit = fadeOut() + slideOutHorizontally { -it / 4 }
+                enter togetherWith exit
+            },
+            label = "timerPhaseTransition",
+        ) { current ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                when (current) {
+                    null -> {
+                        Button(onClick = {
+                            val now = System.currentTimeMillis()
+                            phase = timerPhaseAt(now, delaySeconds, now)
+                            startedAtEpochMillis = now
+                        }) { Text("Start timer") }
+                        TextButton(onClick = onEnterManually) { Text("Enter manually") }
+                    }
+                    is HoldTimerPhase.CountingDown -> {
+                        Text(
+                            "Starting in ${current.secondsRemaining}s...",
+                            style = LedgerFigureValue,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Button(onClick = { startedAtEpochMillis = null }) { Text("Cancel") }
+                    }
+                    is HoldTimerPhase.Running -> {
+                        Text(
+                            formatElapsed(current.elapsedSeconds),
+                            style = LedgerFigureValue,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Button(onClick = {
+                            onStop(current.elapsedSeconds)
+                            startedAtEpochMillis = null
+                        }) { Text("Stop & Log") }
+                    }
+                }
             }
         }
     }

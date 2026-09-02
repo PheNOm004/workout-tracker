@@ -39,6 +39,11 @@ import java.time.LocalDate
 
 enum class CurveMode { EXERCISE, MUSCLE_GROUP }
 
+enum class ProgressSegment(val label: String) {
+    TRAINING("Training"),
+    BODY("Body"),
+}
+
 /** Named holder for the four-way [combine] feeding the Progress screen's derived state --
  *  destructured at the collector, so the positional tuple never escapes this file. */
 private data class Inputs(
@@ -116,6 +121,9 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
 
     private val _timeframe = MutableStateFlow(ProgressTimeframe.MONTH)
     val timeframe: StateFlow<ProgressTimeframe> = _timeframe.asStateFlow()
+
+    private val _selectedSegment = MutableStateFlow(ProgressSegment.TRAINING)
+    val selectedSegment: StateFlow<ProgressSegment> = _selectedSegment.asStateFlow()
 
     init {
         // Every input this block reads is now an observed Flow. Previously only `sessions` and
@@ -198,6 +206,10 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                 }
             }
         }
+    }
+
+    fun selectSegment(segment: ProgressSegment) {
+        _selectedSegment.value = segment
     }
 
     fun selectTimeframe(timeframe: ProgressTimeframe) {

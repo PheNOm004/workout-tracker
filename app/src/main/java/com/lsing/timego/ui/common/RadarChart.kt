@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lsing.timego.ui.theme.NightViolet
 import com.lsing.timego.ui.theme.TimeGoMotion
@@ -33,43 +34,52 @@ private fun lerpValues(from: Map<String, Float>, to: Map<String, Float>, t: Floa
         start + (target - start) * t
     }
 
-/** Spider/radar chart -- pure geometry (N axes spaced evenly by angle, a value polygon, a couple
- *  of reference rings), no vector art needed, unlike an anatomical muscle-diagram illustration.
- *  [values] maps an axis label to a 0f..1f normalized magnitude (the caller decides what "1f"
- *  means, e.g. divide every muscle group's volume by the single highest one). Values are
- *  square-root scaled only when drawn so low, non-zero training volume remains legible; the
- *  supplied values and their relative ordering are unchanged. Axis order follows the map's
- *  iteration order -- pass a LinkedHashMap or similar if order matters to the caller.
- *
- *  Selecting a new timeframe swaps the whole [values]/[comparisonValues] map rather than
- *  mutating it in place, so the polygon reshapes over [TimeGoMotion.contentEnter] instead of
- *  snapping -- each axis morphs from its last drawn position to the new one. */
+private val CANONICAL_RADAR_AXES = listOf(
+    "Chest", "Front Delts", "Side Delts", "Rear Delts",
+    "Traps", "Upper Back", "Lats", "Lower Back",
+    "Biceps", "Triceps", "Forearms",
+    "Abs", "Quads", "Hamstrings", "Glutes", "Calves",
+)
+
+private fun prepareRadarValues(input: Map<String, Float>): Map<String, Float> {
+    val result = linkedMapOf<String, Float>()
+    CANONICAL_RADAR_AXES.forEach { axis ->
+        result[axis] = input[axis] ?: 0f
+    }
+    return result
+}
+
+/** Spider/radar chart -- pure geometry (16 canonical anatomical axes spaced evenly by angle,
+ *  a value polygon, reference rings, and ghost comparison polygon).
+ *  Selecting a new timeframe swaps the whole [values]/[comparisonValues] map, smoothly morphing
+ *  the polygon over [TimeGoMotion.contentEnter] instead of snapping. */
 @Composable
 fun RadarChart(
     values: Map<String, Float>,
     modifier: Modifier = Modifier,
     comparisonValues: Map<String, Float> = emptyMap(),
 ) {
+    val resolvedValues = remember(values) { prepareRadarValues(values) }
+    val resolvedComparison = remember(comparisonValues) { prepareRadarValues(comparisonValues) }
+
     val fillColor = MaterialTheme.colorScheme.primary
     val gridColor = MaterialTheme.colorScheme.onSurfaceVariant
     val labelColor = MaterialTheme.colorScheme.onSurface
     val density = LocalDensity.current
-    val labelTextSizePx = with(density) { 12.sp.toPx() }
+    val labelTextSizePx = with(density) { 11.sp.toPx() }
 
     val progress = remember { Animatable(1f) }
-    var animationStart by remember { mutableStateOf(values) }
-    var animationTarget by remember { mutableStateOf(values) }
-    var comparisonAnimationStart by remember { mutableStateOf(comparisonValues) }
-    var comparisonAnimationTarget by remember { mutableStateOf(comparisonValues) }
+    var animationStart by remember { mutableStateOf(resolvedValues) }
+    var animationTarget by remember { mutableStateOf(resolvedValues) }
+    var comparisonAnimationStart by remember { mutableStateOf(resolvedComparison) }
+    var comparisonAnimationTarget by remember { mutableStateOf(resolvedComparison) }
 
-    LaunchedEffect(values, comparisonValues) {
-        if (values != animationTarget || comparisonValues != comparisonAnimationTarget) {
-            // Freeze whatever is currently on screen (not the old target) as the new start, so a
-            // timeframe change mid-animation redirects smoothly instead of jumping back first.
+    LaunchedEffect(resolvedValues, resolvedComparison) {
+        if (resolvedValues != animationTarget || resolvedComparison != comparisonAnimationTarget) {
             animationStart = lerpValues(animationStart, animationTarget, progress.value)
             comparisonAnimationStart = lerpValues(comparisonAnimationStart, comparisonAnimationTarget, progress.value)
-            animationTarget = values
-            comparisonAnimationTarget = comparisonValues
+            animationTarget = resolvedValues
+            comparisonAnimationTarget = resolvedComparison
             progress.snapTo(0f)
             progress.animateTo(1f, animationSpec = TimeGoMotion.contentEnter)
         }
@@ -82,7 +92,7 @@ fun RadarChart(
         val axisCount = displayedValues.size
         if (axisCount < 3) return@Canvas
         val center = Offset(size.width / 2f, size.height / 2f)
-        val maxRadius = min(size.width, size.height) / 2f - labelTextSizePx * 2
+        val maxRadius = min(size.width, size.height) / 2f - labelTextSizePx * 3.4f
 
         fun pointFor(index: Int, radiusFraction: Float): Offset {
             val angle = (-Math.PI / 2) + (2 * Math.PI * index / axisCount)
@@ -103,33 +113,44 @@ fun RadarChart(
                 if (i == 0) ringPath.moveTo(point.x, point.y) else ringPath.lineTo(point.x, point.y)
             }
             ringPath.close()
-            drawPath(ringPath, color = gridColor.copy(alpha = 0.25f), style = Stroke(width = 1.5f))
+            drawPath(ringPath, color = gridColor.copy(alpha = 0.22f), style = Stroke(width = 1.2f))
         }
         for (i in 0 until axisCount) {
-            drawLine(color = gridColor.copy(alpha = 0.25f), start = center, end = pointFor(i, 1f), strokeWidth = 1.5f)
+            drawLine(color = gridColor.copy(alpha = 0.22f), start = center, end = pointFor(i, 1f), strokeWidth = 1.2f)
         }
 
-        // Missing prior spokes are absence, not zero. Draw a comparison only when every current
-        // spoke has a real prior value, so the ghost polygon never fabricates a data point.
-        if (displayedComparison.isNotEmpty() && displayedValues.keys.all(displayedComparison::containsKey)) {
+        // Draw comparison ghost polygon if comparison has non-zero values
+        val hasComparisonData = displayedComparison.values.any { it > 0.01f }
+        if (hasComparisonData) {
             val comparisonPath = Path()
             displayedValues.keys.forEachIndexed { index, label ->
-                val point = pointForValue(index, displayedComparison.getValue(label))
+                val point = pointForValue(index, displayedComparison[label] ?: 0f)
                 if (index == 0) comparisonPath.moveTo(point.x, point.y) else comparisonPath.lineTo(point.x, point.y)
             }
             comparisonPath.close()
-            drawPath(comparisonPath, color = NightViolet.copy(alpha = 0.5f), style = Stroke(width = 2f))
+            drawPath(comparisonPath, color = NightViolet.copy(alpha = 0.45f), style = Stroke(width = 2f))
         }
 
         // The current-period value polygon.
-        val valuePath = Path()
-        displayedValues.values.forEachIndexed { index, value ->
-            val point = pointForValue(index, value)
-            if (index == 0) valuePath.moveTo(point.x, point.y) else valuePath.lineTo(point.x, point.y)
+        val hasCurrentData = displayedValues.values.any { it > 0.01f }
+        if (hasCurrentData) {
+            val valuePath = Path()
+            displayedValues.values.forEachIndexed { index, value ->
+                val point = pointForValue(index, value)
+                if (index == 0) valuePath.moveTo(point.x, point.y) else valuePath.lineTo(point.x, point.y)
+            }
+            valuePath.close()
+            drawPath(valuePath, color = fillColor.copy(alpha = 0.32f))
+            drawPath(valuePath, color = fillColor, style = Stroke(width = 2.5f))
+
+            // Draw vertex dots on trained spokes
+            displayedValues.values.forEachIndexed { index, value ->
+                if (value > 0.05f) {
+                    val point = pointForValue(index, value)
+                    drawCircle(color = fillColor, radius = 3.5.dp.toPx(), center = point)
+                }
+            }
         }
-        valuePath.close()
-        drawPath(valuePath, color = fillColor.copy(alpha = 0.35f))
-        drawPath(valuePath, color = fillColor, style = Stroke(width = 3f))
 
         val nativePaint = android.graphics.Paint().apply {
             color = labelColor.toArgb()
@@ -138,13 +159,13 @@ fun RadarChart(
             textAlign = android.graphics.Paint.Align.CENTER
         }
         displayedValues.keys.forEachIndexed { index, label ->
-            val labelPoint = pointFor(index, 1.18f)
+            val labelPoint = pointFor(index, 1.15f)
             nativePaint.textAlign = when {
-                labelPoint.x < center.x - labelTextSizePx -> android.graphics.Paint.Align.RIGHT
-                labelPoint.x > center.x + labelTextSizePx -> android.graphics.Paint.Align.LEFT
+                labelPoint.x < center.x - labelTextSizePx * 1.5f -> android.graphics.Paint.Align.RIGHT
+                labelPoint.x > center.x + labelTextSizePx * 1.5f -> android.graphics.Paint.Align.LEFT
                 else -> android.graphics.Paint.Align.CENTER
             }
-            drawContext.canvas.nativeCanvas.drawText(label, labelPoint.x, labelPoint.y, nativePaint)
+            drawContext.canvas.nativeCanvas.drawText(label, labelPoint.x, labelPoint.y + labelTextSizePx / 3f, nativePaint)
         }
     }
 }

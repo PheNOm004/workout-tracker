@@ -1,5 +1,11 @@
 package com.lsing.timego.ui.common
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -126,7 +132,17 @@ fun StatTile(label: String, value: String, caption: String? = null, modifier: Mo
     ) {
         Column(modifier = Modifier.padding(Spacing.Medium)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = LedgerFigureValue, color = MaterialTheme.colorScheme.onSurface)
+            AnimatedContent(
+                targetState = value,
+                transitionSpec = {
+                    val enter = slideInVertically { height -> height / 2 } + fadeIn()
+                    val exit = slideOutVertically { height -> -height / 2 } + fadeOut()
+                    enter togetherWith exit
+                },
+                label = "statTileValueTransition",
+            ) { targetValue ->
+                Text(targetValue, style = LedgerFigureValue, color = MaterialTheme.colorScheme.onSurface)
+            }
             if (caption != null) {
                 Text(caption, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

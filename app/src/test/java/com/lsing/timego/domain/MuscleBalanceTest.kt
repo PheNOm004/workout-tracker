@@ -268,6 +268,7 @@ class MuscleBalanceTest {
         assertEquals(true, isCardioOnlySession(setLogs, mapOf(5L to running)))
     }
 
+
     @Test
     fun `isCardioOnlySession is false when a weight-reps set is present`() {
         val setLogs = listOf(
@@ -284,5 +285,35 @@ class MuscleBalanceTest {
         val cardioSet = SetLog(id = 2, sessionId = 10, exerciseId = 5, weightKg = 0.0, reps = 0, targetReps = 0, loggedAtEpochMillis = 0, durationMinutes = 20.0)
 
         assertEquals(true, isCardioOnlySession(listOf(warmupSquat, cardioSet), mapOf(1L to legsExercise, 5L to running)))
+    }
+
+    @Test
+    fun `recommendSynergisticMuscleGroups pairs Back with Biceps or Pull synergists rather than push shoulders`() {
+        val lastTrained = mapOf(
+            "LATS" to LocalDate.of(2026, 8, 1),
+            "SIDE_DELTS" to LocalDate.of(2026, 8, 2),
+            "BICEPS" to LocalDate.of(2026, 8, 3),
+        )
+        val allGroups = listOf("LATS", "SIDE_DELTS", "BICEPS")
+        val today = LocalDate.of(2026, 8, 14)
+
+        val result = recommendSynergisticMuscleGroups(allGroups, lastTrained, today)
+
+        assertEquals(listOf("LATS", "BICEPS"), result)
+    }
+
+    @Test
+    fun `recommendSynergisticMuscleGroups pairs Quads with Hamstrings or Legs cluster`() {
+        val lastTrained = mapOf(
+            "QUADS" to LocalDate.of(2026, 8, 1),
+            "TRICEPS" to LocalDate.of(2026, 8, 2),
+            "HAMSTRINGS" to LocalDate.of(2026, 8, 4),
+        )
+        val allGroups = listOf("QUADS", "TRICEPS", "HAMSTRINGS")
+        val today = LocalDate.of(2026, 8, 14)
+
+        val result = recommendSynergisticMuscleGroups(allGroups, lastTrained, today)
+
+        assertEquals(listOf("QUADS", "HAMSTRINGS"), result)
     }
 }

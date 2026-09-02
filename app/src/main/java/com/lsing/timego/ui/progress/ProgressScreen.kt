@@ -5,11 +5,17 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,10 +23,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,10 +54,12 @@ import com.lsing.timego.domain.PrType
 import com.lsing.timego.domain.BmiCategory
 import com.lsing.timego.domain.bmiCategory
 import com.lsing.timego.domain.formatCalisthenicsWeight
+import com.lsing.timego.domain.orderedMuscleDistributionForChart
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.HeatmapGrid
 import com.lsing.timego.ui.common.HorizontalWheelPicker
 import com.lsing.timego.ui.common.MuscleBodyDiagram
+import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.PeriodBreakdownDialog
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SparklineChart
@@ -66,12 +76,19 @@ import com.lsing.timego.ui.theme.NightCoralShade
 import com.lsing.timego.ui.theme.NightMint
 import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.ui.theme.Spacing
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+
+enum class BalanceChartMode { DIAGRAM, RADAR }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
+    val selectedSegment by viewModel.selectedSegment.collectAsStateWithLifecycle()
     val volumeRatios by viewModel.volumeRatios.collectAsStateWithLifecycle()
     val records by viewModel.records.collectAsStateWithLifecycle()
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
@@ -87,6 +104,10 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val trainingStats by viewModel.trainingStats.collectAsStateWithLifecycle()
     val timeframe by viewModel.timeframe.collectAsStateWithLifecycle()
 
+    val muscleBalance by viewModel.muscleBalance.collectAsStateWithLifecycle()
+    val previousMuscleBalance by viewModel.previousMuscleBalance.collectAsStateWithLifecycle()
+    var balanceChartMode by remember { mutableStateOf(BalanceChartMode.DIAGRAM) }
+
     var weightText by remember { mutableStateOf("") }
     var waistText by remember { mutableStateOf("") }
     var heightText by remember { mutableStateOf("") }
@@ -98,7 +119,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             (waistText.isBlank() || enteredWaist != null) &&
             (heightText.isBlank() || enteredHeight != null) &&
             (enteredWeight != null || enteredWaist != null || enteredHeight != null)
-    var selectedPrExerciseId by remember { mutableStateOf<Long?>(null) }
     var showPeriodBreakdown by remember { mutableStateOf(false) }
 
     val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsStateWithLifecycle()
@@ -106,11 +126,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val historyLabel by viewModel.historyLabel.collectAsStateWithLifecycle()
     val historyDurationMinutes by viewModel.historyDurationMinutes.collectAsStateWithLifecycle()
     val periodBreakdown by viewModel.periodBreakdown.collectAsStateWithLifecycle()
-    // Progress contains two expensive, mostly-static visual sections near the top (the consistency
-    // grid and anatomy diagram). The default one-item prefetch can reach them too late when a user
-    // reverses a fast scroll, after LazyColumn has already disposed their compositions. Keep one
-    // viewport behind and prepare 1.5 viewports ahead so they are ready before becoming visible.
-    // This keeps LazyColumn's bounded memory behavior without changing either visual's renderer.
+
     val progressListState = rememberLazyListState(
         cacheWindow = LazyLayoutCacheWindow(aheadFraction = 1.5f, behindFraction = 1f),
     )
@@ -132,163 +148,298 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         )
     }
 
-    LazyColumn(
-        state = progressListState,
-        modifier = Modifier.padding(Spacing.Large),
-    ) {
-        item {
-            Text(
-                "Progress",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
-            )
-            Text(
-                "A clear read on how your training is moving.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = Spacing.Small),
-            )
-        }
-        item {
-            SectionHeader("Consistency", topPadding = Spacing.ExtraSmall)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
-            ) {
-                HeatmapGrid(
-                    ratios = volumeRatios,
-                    lightColor = NightCoral,
-                    darkColor = NightCoralShade,
-                    onDateClick = { date -> viewModel.selectHistoryDate(date) },
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = progressListState,
+            modifier = Modifier.padding(horizontal = Spacing.Large),
+        ) {
+            item {
+                Text(
+                    "Progress",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall),
                 )
             }
-        }
-        item {
-            SectionHeader("Muscle Balance (${timeframeLabel(timeframe)})")
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                ProgressTimeframe.entries.forEach { option ->
-                    FilterChip(
-                        selected = timeframe == option,
-                        onClick = { viewModel.selectTimeframe(option) },
-                        label = { Text(formatEnumLabel(option.name)) },
-                        modifier = Modifier.padding(end = 4.dp),
+
+        if (selectedSegment == ProgressSegment.TRAINING) {
+            // ==================== TRAINING SEGMENT ====================
+            item {
+                SectionHeader("Consistency", topPadding = Spacing.ExtraSmall)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
+                ) {
+                    HeatmapGrid(
+                        ratios = volumeRatios,
+                        lightColor = NightCoral,
+                        darkColor = NightCoralShade,
+                        onDateClick = { date -> viewModel.selectHistoryDate(date) },
                     )
                 }
             }
-            if (muscleDistribution.isEmpty()) {
-                Text(
-                    "No strength sets logged (${timeframeLabel(timeframe)}) yet.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 4.dp),
-                )
-            } else {
-                MuscleBodyDiagram(
-                    intensities = muscleDistribution,
-                    setSummaries = muscleSetSummaries,
-                    periodLabel = timeframeLabel(timeframe),
+            item {
+                SectionHeader("Muscle Balance (${timeframeLabel(timeframe)})", topPadding = Spacing.Small)
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
-                )
-            }
-            FlowRow(modifier = Modifier.fillMaxWidth()) {
-                val tapToBreakdown = Modifier.clickable { showPeriodBreakdown = true }
-                StatTile("Workouts", trainingStats.workouts.toString(), modifier = tapToBreakdown)
-                StatTile("Duration", "${trainingStats.totalDurationMinutes.toInt()} min", modifier = tapToBreakdown)
-                StatTile("Volume", "${trainingStats.totalVolumeKg.toInt()} kg", modifier = tapToBreakdown)
-                StatTile("Sets", trainingStats.totalSets.toString(), modifier = tapToBreakdown)
-            }
-        }
-        item {
-            SectionHeader("Personal Records")
-        }
-        val recordsByExercise = records.groupBy { it.exerciseId }
-        val exercisesWithRecords = exercises.filter { it.id in recordsByExercise.keys }.sortedBy { it.name }
-        if (exercisesWithRecords.isEmpty()) {
-            item {
-                Text(
-                    "No personal records yet -- log a few sets to see them here.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 4.dp),
-                )
-            }
-        } else {
-            item {
-                val selectedIndex = exercisesWithRecords.indexOfFirst { it.id == selectedPrExerciseId }.coerceAtLeast(0)
-                HorizontalWheelPicker(
-                    items = exercisesWithRecords.map { it.name },
-                    selectedIndex = selectedIndex,
-                    onSelectedIndexChange = { index -> selectedPrExerciseId = exercisesWithRecords[index].id },
-                    modifier = Modifier.padding(vertical = 4.dp),
-                )
-                val selectedExercise = exercisesWithRecords[selectedIndex]
+                        .padding(vertical = 4.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
+                ) {
+                    ProgressTimeframe.entries.forEach { option ->
+                        FilterChip(
+                            selected = timeframe == option,
+                            onClick = { viewModel.selectTimeframe(option) },
+                            label = { Text(formatEnumLabel(option.name)) },
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
+                ) {
+                    FilterChip(
+                        selected = balanceChartMode == BalanceChartMode.DIAGRAM,
+                        onClick = { balanceChartMode = BalanceChartMode.DIAGRAM },
+                        label = { Text("Anatomical Map") },
+                    )
+                    FilterChip(
+                        selected = balanceChartMode == BalanceChartMode.RADAR,
+                        onClick = { balanceChartMode = BalanceChartMode.RADAR },
+                        label = { Text("Radar Chart") },
+                    )
+                }
                 SurfaceCard(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
-                    hero = true,
-                    riveted = true,
                 ) {
-                    Column(modifier = Modifier.padding(Spacing.Medium)) {
-                        // Exercise name dropped -- it's already the centered item on the wheel
-                        // picker directly above this card, repeating it here was redundant.
+                    Column(modifier = Modifier.padding(Spacing.Small)) {
+                        if (muscleDistribution.isEmpty()) {
+                            Text(
+                                "No strength sets logged in the ${timeframeLabel(timeframe)} yet.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
+                            )
+                        }
                         AnimatedContent(
-                            targetState = selectedExercise.id,
-                            transitionSpec = {
-                                fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit)
-                            },
-                        ) { exerciseId ->
-                            val exerciseRecords = recordsByExercise[exerciseId].orEmpty()
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                if (selectedExercise.loggingType == LoggingType.HOLD.name) {
-                                    // No dial here: a hold is a duration, not a magnitude read
-                                    // against a scale the way a loaded lift is -- forcing it onto
-                                    // the same gauge shape read as "a weight scale for a hold,"
-                                    // which is exactly backwards.
-                                    val record = exerciseRecords.firstOrNull { it.type == PrType.LONGEST_HOLD }
-                                    Row(modifier = Modifier.fillMaxWidth()) {
-                                        StatTile(
-                                            label = "Longest Hold",
-                                            value = record?.let { "${it.value.toInt()}s" } ?: "--",
-                                            caption = record?.achievedOn?.format(PR_DATE_FORMATTER),
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                    }
-                                } else {
-                                    // All three tiles read off the same best-set record (weight, reps,
-                                    // weight*reps) -- they used to be independently maximized across
-                                    // different sets, which could report a heavy triple's weight next to
-                                    // a lighter high-rep set's reps as if one set did both.
-                                    val record = exerciseRecords.firstOrNull { it.type == PrType.BEST_SET }
-                                    val caption = record?.achievedOn?.format(PR_DATE_FORMATTER)
-                                    val isBodyweight = selectedExercise.category == ExerciseCategory.CALISTHENICS.name
-                                    Row(modifier = Modifier.fillMaxWidth()) {
-                                        StatTile(
-                                            label = "Weight",
-                                            value = record?.let {
-                                                if (isBodyweight && it.addedWeightKg != null) {
-                                                    formatCalisthenicsWeight(it.addedWeightKg)
+                            targetState = balanceChartMode,
+                            transitionSpec = { fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit) },
+                            label = "balanceChartMode",
+                        ) { mode ->
+                            when (mode) {
+                                BalanceChartMode.DIAGRAM -> {
+                                    MuscleBodyDiagram(
+                                        intensities = muscleDistribution,
+                                        setSummaries = muscleSetSummaries,
+                                        periodLabel = timeframeLabel(timeframe),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
+                                    )
+                                }
+                                BalanceChartMode.RADAR -> {
+                                    RadarChart(
+                                        values = orderedMuscleDistributionForChart(muscleDistribution)
+                                            .mapKeys { (group, _) -> formatEnumLabel(group) },
+                                        comparisonValues = orderedMuscleDistributionForChart(previousMuscleBalance)
+                                            .mapKeys { (group, _) -> formatEnumLabel(group) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(260.dp)
+                                            .padding(vertical = 4.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                FlowRow(modifier = Modifier.fillMaxWidth()) {
+                    val tapToBreakdown = Modifier.clickable { showPeriodBreakdown = true }
+                    StatTile("Workouts", trainingStats.workouts.toString(), modifier = tapToBreakdown)
+                    StatTile("Duration", "${trainingStats.totalDurationMinutes.toInt()} min", modifier = tapToBreakdown)
+                    StatTile("Volume", "${trainingStats.totalVolumeKg.toInt()} kg", modifier = tapToBreakdown)
+                    StatTile("Sets", trainingStats.totalSets.toString(), modifier = tapToBreakdown)
+                }
+            }
+
+            // UNIFIED EXERCISE PERFORMANCE (PRs + Strength Progression Curve)
+            item {
+                SectionHeader("Exercise Performance", topPadding = Spacing.Small)
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                    FilterChip(
+                        selected = curveMode == CurveMode.EXERCISE,
+                        onClick = { selectedExerciseId?.let { viewModel.selectExercise(it) } },
+                        label = { Text("By Exercise") },
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                    FilterChip(
+                        selected = curveMode == CurveMode.MUSCLE_GROUP,
+                        onClick = { viewModel.selectMuscleGroup(selectedMuscleGroup ?: MuscleGroup.entries.first().name) },
+                        label = { Text("By Muscle Group") },
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                }
+            }
+
+            item {
+                AnimatedContent(
+                    targetState = curveMode,
+                    transitionSpec = { fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit) },
+                    label = "curveModeTransition",
+                ) { mode ->
+                    when (mode) {
+                        CurveMode.EXERCISE -> {
+                            Column {
+                                if (exercises.isNotEmpty()) {
+                                    val selectedIndex = exercises.indexOfFirst { it.id == selectedExerciseId }.coerceAtLeast(0)
+                                    HorizontalWheelPicker(
+                                        items = exercises.map { it.name },
+                                        selectedIndex = selectedIndex,
+                                        onSelectedIndexChange = { index -> viewModel.selectExercise(exercises[index].id) },
+                                        modifier = Modifier.padding(vertical = 4.dp),
+                                    )
+                                    val selectedExercise = exercises[selectedIndex]
+                                    val recordsByExercise = records.groupBy { it.exerciseId }
+                                    val exerciseRecords = recordsByExercise[selectedExercise.id].orEmpty()
+
+                                    AnimatedContent(
+                                        targetState = selectedExercise.id,
+                                        transitionSpec = { fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit) },
+                                        label = "exercisePerformanceTransition",
+                                    ) { _ ->
+                                        SurfaceCard(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+                                            hero = true,
+                                            riveted = true,
+                                        ) {
+                                            Column(modifier = Modifier.padding(Spacing.Medium)) {
+                                                Text(
+                                                    "Personal Records",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
+                                                )
+                                                if (exerciseRecords.isEmpty()) {
+                                                    Text(
+                                                        "No personal records yet for this exercise.",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    )
+                                                } else if (selectedExercise.loggingType == LoggingType.HOLD.name) {
+                                                    val record = exerciseRecords.firstOrNull { it.type == PrType.LONGEST_HOLD }
+                                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                                        StatTile(
+                                                            label = "Longest Hold",
+                                                            value = record?.let { "${it.value.toInt()}s" } ?: "--",
+                                                            caption = record?.achievedOn?.format(PR_DATE_FORMATTER),
+                                                            modifier = Modifier.weight(1f),
+                                                        )
+                                                    }
                                                 } else {
-                                                    "%.1fkg".format(it.value)
+                                                    val record = exerciseRecords.firstOrNull { it.type == PrType.BEST_SET }
+                                                    val caption = record?.achievedOn?.format(PR_DATE_FORMATTER)
+                                                    val isBodyweight = selectedExercise.category == ExerciseCategory.CALISTHENICS.name
+                                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                                        StatTile(
+                                                            label = "Weight",
+                                                            value = record?.let {
+                                                                if (isBodyweight && it.addedWeightKg != null) {
+                                                                    formatCalisthenicsWeight(it.addedWeightKg)
+                                                                } else {
+                                                                    "%.1fkg".format(it.value)
+                                                                }
+                                                            } ?: "--",
+                                                            caption = caption,
+                                                            modifier = Modifier.weight(1f),
+                                                        )
+                                                        StatTile(
+                                                            label = "Reps",
+                                                            value = record?.secondaryValue?.let { "${it.toInt()}" } ?: "--",
+                                                            caption = caption,
+                                                            modifier = Modifier.weight(1f),
+                                                        )
+                                                        StatTile(
+                                                            label = "Total Weight",
+                                                            value = record?.let { "%.1fkg".format(it.value * (it.secondaryValue ?: 0.0)) } ?: "--",
+                                                            caption = caption,
+                                                            modifier = Modifier.weight(1f),
+                                                        )
+                                                    }
                                                 }
-                                            } ?: "--",
-                                            caption = caption,
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        StatTile(
-                                            label = "Reps",
-                                            value = record?.secondaryValue?.let { "${it.toInt()}" } ?: "--",
-                                            caption = caption,
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        StatTile(
-                                            label = "Total Weight",
-                                            value = record?.let { "%.1fkg".format(it.value * (it.secondaryValue ?: 0.0)) } ?: "--",
-                                            caption = caption,
-                                            modifier = Modifier.weight(1f),
-                                        )
+
+                                                HorizontalDivider(
+                                                    modifier = Modifier.padding(vertical = Spacing.Medium),
+                                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                                )
+
+                                                Text(
+                                                    "Strength Progression Curve",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
+                                                )
+                                                if (strengthCurve.isEmpty()) {
+                                                    Text(
+                                                        "No logged sets yet to draw progression curve.",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    )
+                                                } else {
+                                                    SparklineChart(
+                                                        strengthCurve,
+                                                        modifier = Modifier.fillMaxWidth().height(150.dp).padding(vertical = 4.dp),
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        CurveMode.MUSCLE_GROUP -> {
+                            Column {
+                                val groupNames = MuscleGroup.entries.map { it.name }
+                                val selectedIndex = groupNames.indexOf(selectedMuscleGroup).coerceAtLeast(0)
+                                HorizontalWheelPicker(
+                                    items = groupNames.map { formatEnumLabel(it) },
+                                    selectedIndex = selectedIndex,
+                                    onSelectedIndexChange = { index -> viewModel.selectMuscleGroup(groupNames[index]) },
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                )
+                                AnimatedContent(
+                                    targetState = selectedMuscleGroup,
+                                    transitionSpec = { fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit) },
+                                    label = "muscleGroupPerformanceTransition",
+                                ) { _ ->
+                                    SurfaceCard(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+                                        hero = true,
+                                        riveted = true,
+                                    ) {
+                                        Column(modifier = Modifier.padding(Spacing.Medium)) {
+                                            Text(
+                                                "Group Strength Progression",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
+                                            )
+                                            if (strengthCurve.isEmpty()) {
+                                                Text(
+                                                    "No logged sets yet for this muscle group.",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            } else {
+                                                SparklineChart(
+                                                    strengthCurve,
+                                                    modifier = Modifier.fillMaxWidth().height(150.dp).padding(vertical = 4.dp),
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -296,143 +447,186 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     }
                 }
             }
-        }
-        item {
-            SectionHeader("Strength Curve")
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                FilterChip(
-                    selected = curveMode == CurveMode.EXERCISE,
-                    onClick = { selectedExerciseId?.let { viewModel.selectExercise(it) } },
-                    label = { Text("This exercise") },
-                    modifier = Modifier.padding(end = 8.dp),
-                )
-                FilterChip(
-                    selected = curveMode == CurveMode.MUSCLE_GROUP,
-                    onClick = { viewModel.selectMuscleGroup(selectedMuscleGroup ?: MuscleGroup.entries.first().name) },
-                    label = { Text("Muscle group") },
-                    modifier = Modifier.padding(end = 8.dp),
-                )
-            }
-        }
-        if (curveMode == CurveMode.EXERCISE) {
             item {
-                if (exercises.isNotEmpty()) {
-                    val selectedIndex = exercises.indexOfFirst { it.id == selectedExerciseId }.coerceAtLeast(0)
-                    HorizontalWheelPicker(
-                        items = exercises.map { it.name },
-                        selectedIndex = selectedIndex,
-                        onSelectedIndexChange = { index -> viewModel.selectExercise(exercises[index].id) },
-                        modifier = Modifier.padding(vertical = 4.dp),
-                    )
-                }
+                Spacer(modifier = Modifier.height(76.dp))
             }
         } else {
+            // ==================== BODY SEGMENT ====================
             item {
-                val groupNames = MuscleGroup.entries.map { it.name }
-                val selectedIndex = groupNames.indexOf(selectedMuscleGroup).coerceAtLeast(0)
-                HorizontalWheelPicker(
-                    items = groupNames.map { formatEnumLabel(it) },
-                    selectedIndex = selectedIndex,
-                    onSelectedIndexChange = { index -> viewModel.selectMuscleGroup(groupNames[index]) },
-                    modifier = Modifier.padding(vertical = 4.dp),
-                )
-            }
-        }
-        item {
-            val curveKey = if (curveMode == CurveMode.EXERCISE) selectedExerciseId else selectedMuscleGroup
-            AnimatedContent(
-                targetState = curveKey,
-                transitionSpec = {
-                    fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit)
-                },
-            ) { targetCurveKey ->
-                key(targetCurveKey) {
-                    if (strengthCurve.isEmpty()) {
-                        Text("No logged sets yet for this selection.", style = MaterialTheme.typography.bodySmall)
-                    } else {
-                        SparklineChart(strengthCurve, modifier = Modifier.fillMaxWidth().height(160.dp).padding(vertical = 8.dp))
-                    }
-                }
-            }
-        }
-        item {
-            SectionHeader("Body Metrics")
-            if (currentBmi != null) {
-                val category = bmiCategory(currentBmi!!)
-                val bmiColor = when (category) {
-                    BmiCategory.NORMAL -> NightMint
-                    BmiCategory.OVERWEIGHT -> NightAmber
-                    BmiCategory.UNDERWEIGHT, BmiCategory.OBESE -> MaterialTheme.colorScheme.error
-                }
-                Text(
-                    "BMI: %.1f (${formatEnumLabel(category.name)})".format(currentBmi),
-                    style = LedgerFigureValue.copy(fontSize = 14.sp),
-                    color = bmiColor,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            } else {
-                Text(
-                    "Log a weight and height to see your BMI.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-            if (weightCurve.isNotEmpty()) {
-                Text("Weight trend", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 12.dp))
-                SparklineChart(weightCurve, modifier = Modifier.fillMaxWidth().height(140.dp).padding(vertical = 8.dp))
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = weightText,
-                    onValueChange = { weightText = it },
-                    label = { Text("Weight (kg)") },
-                    isError = weightText.isNotBlank() && enteredWeight == null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f).padding(end = 8.dp),
-                )
-                OutlinedTextField(
-                    value = waistText,
-                    onValueChange = { waistText = it },
-                    label = { Text("Waist (cm)") },
-                    isError = waistText.isNotBlank() && enteredWaist == null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f).padding(end = 8.dp),
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = heightText,
-                    onValueChange = { heightText = it },
-                    label = { Text("Height (cm, optional)") },
-                    isError = heightText.isNotBlank() && enteredHeight == null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f).padding(end = 8.dp),
-                )
-                Button(
-                    enabled = bodyMetricInputValid,
-                    onClick = {
-                        viewModel.logBodyMetric(enteredWeight, enteredWaist, enteredHeight)
-                        weightText = ""
-                        waistText = ""
-                        heightText = ""
-                    }
+                SectionHeader("BMI & Composition", topPadding = Spacing.ExtraSmall)
+                SurfaceCard(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+                    hero = true,
+                    riveted = true,
                 ) {
-                    Text("Log")
+                    Column(modifier = Modifier.padding(Spacing.Medium)) {
+                        if (currentBmi != null) {
+                            val category = bmiCategory(currentBmi!!)
+                            val bmiColor = when (category) {
+                                BmiCategory.NORMAL -> NightMint
+                                BmiCategory.OVERWEIGHT -> NightAmber
+                                BmiCategory.UNDERWEIGHT, BmiCategory.OBESE -> MaterialTheme.colorScheme.error
+                            }
+                            Text(
+                                "Current BMI",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                "%.1f".format(currentBmi),
+                                style = LedgerFigureValue.copy(fontSize = 32.sp),
+                                color = bmiColor,
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
+                            Text(
+                                "Category: ${formatEnumLabel(category.name)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = bmiColor,
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
+                        } else {
+                            Text(
+                                "Log a weight and height below to calculate your BMI and track body composition trends.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
+
+            if (weightCurve.isNotEmpty()) {
+                item {
+                    SectionHeader("Weight Trend", topPadding = Spacing.Small)
+                    SurfaceCard(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+                    ) {
+                        Column(modifier = Modifier.padding(Spacing.Medium)) {
+                            SparklineChart(
+                                weightCurve,
+                                modifier = Modifier.fillMaxWidth().height(140.dp).padding(vertical = 4.dp),
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                SectionHeader("Log Body Metrics", topPadding = Spacing.Small)
+                SurfaceCard(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+                ) {
+                    Column(modifier = Modifier.padding(Spacing.Medium)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            OutlinedTextField(
+                                value = weightText,
+                                onValueChange = { weightText = it },
+                                label = { Text("Weight (kg)") },
+                                isError = weightText.isNotBlank() && enteredWeight == null,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            )
+                            OutlinedTextField(
+                                value = waistText,
+                                onValueChange = { waistText = it },
+                                label = { Text("Waist (cm)") },
+                                isError = waistText.isNotBlank() && enteredWaist == null,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            OutlinedTextField(
+                                value = heightText,
+                                onValueChange = { heightText = it },
+                                label = { Text("Height (cm)") },
+                                isError = heightText.isNotBlank() && enteredHeight == null,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            )
+                            Button(
+                                enabled = bodyMetricInputValid,
+                                onClick = {
+                                    viewModel.logBodyMetric(enteredWeight, enteredWaist, enteredHeight)
+                                    weightText = ""
+                                    waistText = ""
+                                    heightText = ""
+                                },
+                            ) {
+                                Text("Save")
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (bodyMetrics.isNotEmpty()) {
+                item {
+                    SectionHeader("Metric History", topPadding = Spacing.Small)
+                }
+                items(bodyMetrics, key = { it.id }) { metric ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp, horizontal = Spacing.Small),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "${metric.date}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        val w = metric.weightKg?.let { "%.1f kg".format(it) } ?: "--"
+                        val waist = metric.waistCm?.let { "%.1f cm".format(it) } ?: "--"
+                        Text(
+                            "$w  •  Waist: $waist",
+                            style = LedgerFigureValue.copy(fontSize = 13.sp),
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            }
+            item {
+                Spacer(modifier = Modifier.height(76.dp))
+            }
         }
-        items(bodyMetrics, key = { it.id }) { metric ->
-            Text(
-                "${metric.date}: ${metric.weightKg?.let { "${it}kg" } ?: "--"} / ${metric.waistCm?.let { "${it}cm" } ?: "--"}",
-                style = LedgerFigureValue.copy(fontSize = 13.sp),
-            )
+    }
+
+    // Floating thumb-friendly Segment Selector at bottom of Progress screen
+    Surface(
+            shape = RoundedCornerShape(32.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+            tonalElevation = 6.dp,
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 12.dp)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(32.dp),
+                ),
+        ) {
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+            ) {
+                ProgressSegment.entries.forEachIndexed { index, segment ->
+                    SegmentedButton(
+                        selected = selectedSegment == segment,
+                        onClick = { viewModel.selectSegment(segment) },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = ProgressSegment.entries.size),
+                    ) {
+                        Text(segment.label)
+                    }
+                }
+            }
         }
     }
 }

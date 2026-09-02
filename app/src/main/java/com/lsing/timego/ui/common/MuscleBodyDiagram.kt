@@ -170,11 +170,22 @@ fun MuscleBodyDiagram(
     val frontAspect = (FRONT_BODY_VIEWBOX[2] - FRONT_BODY_VIEWBOX[0]) / (FRONT_BODY_VIEWBOX[3] - FRONT_BODY_VIEWBOX[1])
     val backAspect = (BACK_BODY_VIEWBOX[2] - BACK_BODY_VIEWBOX[0]) / (BACK_BODY_VIEWBOX[3] - BACK_BODY_VIEWBOX[1])
 
+    val animatedGroupIntensities = MuscleGroup.entries.associateWith { group ->
+        androidx.compose.animation.core.animateFloatAsState(
+            targetValue = diagramZoneIntensity(group, intensities),
+            animationSpec = androidx.compose.animation.core.spring(
+                dampingRatio = 0.85f,
+                stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow,
+            ),
+            label = "groupIntensity_${group.name}",
+        ).value
+    }
+
     fun colorFor(shape: BuiltMuscleShape): Color = when {
         shape.isOutline -> outlineColor
         shape.muscleGroup != null -> {
-            val intensity = diagramZoneIntensity(shape.muscleGroup, intensities)
-            if (intensity <= 0f) {
+            val intensity = animatedGroupIntensities[shape.muscleGroup] ?: 0f
+            if (intensity <= 0.01f) {
                 detailColor
             } else {
                 hexToColor(recolorByLightness(heatColor(intensity), shape.lightness))

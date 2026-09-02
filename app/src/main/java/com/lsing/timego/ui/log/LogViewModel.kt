@@ -39,6 +39,7 @@ import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.muscleGroupIntensityForSession
 import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.domain.rankUntrainedMuscleGroups
+import com.lsing.timego.domain.recommendSynergisticMuscleGroups
 import com.lsing.timego.domain.repRangeAtWeight
 import com.lsing.timego.domain.routineLastCompletedDates
 import com.lsing.timego.domain.routinesForToday
@@ -138,6 +139,12 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _sessionState = MutableStateFlow<SessionUiState>(SessionUiState.Loading)
     val sessionState: StateFlow<SessionUiState> = _sessionState.asStateFlow()
+
+    private val _activeSessionSets = MutableStateFlow<List<SetLog>>(emptyList())
+    val activeSessionSets: StateFlow<List<SetLog>> = _activeSessionSets.asStateFlow()
+
+    private val _activeSessionSetsByExercise = MutableStateFlow<Map<Long, List<SetLog>>>(emptyMap())
+    val activeSessionSetsByExercise: StateFlow<Map<Long, List<SetLog>>> = _activeSessionSetsByExercise.asStateFlow()
 
     private val _landingSummary = MutableStateFlow(
         LandingSummary(
@@ -306,7 +313,9 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         refreshLandingSummary(exercises, allSets, sessions)
         val active = sessions.firstOrNull { it.endEpochMillis == null }
         if (active != null) {
-            val sets = allSets.filter { it.sessionId == active.id }
+            val sets = allSets.filter { it.sessionId == active.id }.sortedBy { it.loggedAtEpochMillis }
+            _activeSessionSets.value = sets
+            _activeSessionSetsByExercise.value = sets.groupBy { it.exerciseId }
             val lastSetTime = sets.maxOfOrNull { it.loggedAtEpochMillis }
             val decision = if (lastSetTime != null) {
                 checkSessionAutoClose(lastSetTime, System.currentTimeMillis())
@@ -319,11 +328,15 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                     if (session.id == active.id) session.copy(endEpochMillis = lastSetTime) else session
                 }
                 refreshLandingSummary(exercises, allSets, latestSessions)
+                _activeSessionSets.value = emptyList()
+                _activeSessionSetsByExercise.value = emptyMap()
                 _sessionState.value = SessionUiState.NoActiveSession
                 return
             }
             _sessionState.value = SessionUiState.Active(active.id)
         } else {
+            _activeSessionSets.value = emptyList()
+            _activeSessionSetsByExercise.value = emptyMap()
             _sessionState.value = SessionUiState.NoActiveSession
         }
     }
@@ -358,7 +371,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         val exercisesById = exercises.associateBy { it.id }
         val lastTrained = lastTrainedDatesByMuscleGroup(allSets, exercisesById, sessionDateById)
         val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
-        val recommendedSeeds = rankUntrainedMuscleGroups(allGroups, lastTrained, LocalDate.now()).take(2)
+        val recommendedSeeds = recommendSynergisticMuscleGroups(allGroups, lastTrained, LocalDate.now())
         val recommended = expandMuscleGroupRegions(recommendedSeeds).toList()
         val suggestedExercise = suggestedExerciseFor(
             targetGroups = recommended.toSet(),
