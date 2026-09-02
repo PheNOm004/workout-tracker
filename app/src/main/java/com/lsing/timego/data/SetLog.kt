@@ -18,7 +18,7 @@ import androidx.room.PrimaryKey
     // Schema-10 indices remain part of the migration contract. Session deletion uses sessionId;
     // exerciseId keeps targeted history reads efficient if the unbounded log table outgrows the
     // current in-memory screen snapshot strategy.
-    indices = [Index("sessionId"), Index("exerciseId")],
+    indices = [Index("sessionId"), Index("exerciseId"), Index("loggedAtEpochMillis")],
 )
 data class SetLog(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

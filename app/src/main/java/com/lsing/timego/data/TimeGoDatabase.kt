@@ -150,20 +150,29 @@ val MIGRATION_13_14 = object : Migration(13, 14) {
     }
 }
 
+/** Supports the full-history chronological Flow used by every active root screen. Without this
+ * index, each set insertion makes SQLite scan and build a temporary B-tree to satisfy the
+ * set_logs ORDER BY loggedAtEpochMillis query. */
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_set_logs_loggedAtEpochMillis` ON `set_logs` (`loggedAtEpochMillis`)")
+    }
+}
+
 /** Shared with [com.lsing.timego.data.BackupManager], which opens a *separate* temporary Room
  *  instance against a restored backup file -- that copy needs the exact same migration path as the
  *  live database in case it was exported by an older app version. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-    MIGRATION_13_14,
+    MIGRATION_13_14, MIGRATION_14_15,
 )
 
 const val TIMEGO_DATABASE_FILE_NAME = "timego.db"
 
 @Database(
     entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class, ShadowSnapshotEntity::class, ShadowAuditEntity::class],
-    version = 14,
+    version = 15,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
