@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,6 +27,7 @@ import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.ui.theme.LedgerFigureValue
+import com.lsing.timego.ui.theme.NightEyebrow
 import com.lsing.timego.ui.theme.Spacing
 import kotlin.math.roundToInt
 
@@ -85,17 +87,33 @@ fun WorkoutHistoryDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.extraLarge,
         title = {
             Column {
-                Text(title)
+                Text(
+                    "SESSION",
+                    style = NightEyebrow,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
                 if (label != null) {
-                    Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
                 }
                 if (durationMinutes != null) {
                     Text(
-                        "Duration: ${formatHistoryDuration(durationMinutes)}",
-                        style = MaterialTheme.typography.bodySmall,
+                        "Duration ${formatHistoryDuration(durationMinutes)}",
+                        style = LedgerFigureValue.copy(fontSize = 13.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
                     )
                 }
             }
@@ -103,15 +121,27 @@ fun WorkoutHistoryDialog(
         text = {
             Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 if (entries.isEmpty()) {
-                    Text("No sets logged.")
+                    Text(
+                        "No sets logged.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 } else {
-                    entries.forEach { entry ->
-                        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                            Text(entry.exerciseName, style = MaterialTheme.typography.bodyMedium)
+                    entries.forEachIndexed { index, entry ->
+                        if (index > 0) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        }
+                        Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.Small)) {
                             Text(
-                                entry.setDescriptions.joinToString(", "),
+                                entry.exerciseName,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                entry.setDescriptions.joinToString("   "),
                                 style = LedgerFigureValue.copy(fontSize = 13.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 2.dp),
                             )
                         }
                     }
