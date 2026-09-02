@@ -4,7 +4,9 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -23,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.HorizontalDivider
@@ -31,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +61,7 @@ import com.lsing.timego.ui.theme.Spacing
 fun ActiveWorkoutSection(
     activeSetsByExercise: Map<Long, List<SetLog>>,
     exercisesById: Map<Long, Exercise>,
+    selectedExerciseId: Long?,
     onSelectExercise: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -103,12 +108,32 @@ fun ActiveWorkoutSection(
             activeSetsByExercise.forEach { (exerciseId, sets) ->
                 val exercise = exercisesById[exerciseId] ?: return@forEach
                 val visual = categoryVisual(exercise.category)
+                val selected = exerciseId == selectedExerciseId
+                val rowColor by animateColorAsState(
+                    targetValue = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface,
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    label = "activeExerciseRowColor",
+                )
+                val rowScale by animateFloatAsState(
+                    targetValue = if (selected) 1.015f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium,
+                    ),
+                    label = "activeExerciseRowScale",
+                )
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .graphicsLayer {
+                            scaleX = rowScale
+                            scaleY = rowScale
+                        }
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(rowColor)
                         .clickable { onSelectExercise(exerciseId) }
-                        .padding(vertical = Spacing.Small),
+                        .padding(horizontal = Spacing.Small, vertical = Spacing.Small),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

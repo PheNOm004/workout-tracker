@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
@@ -109,6 +110,8 @@ import com.lsing.timego.ui.common.timeframeLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.Spacing
 import java.time.LocalDate
+
+private const val ACTIVE_LIBRARY_ITEM_INDEX = 4
 
 @Composable
 fun LogScreen(viewModel: LogViewModel = viewModel()) {
@@ -474,6 +477,8 @@ private fun LoggingContent(
     var showAddDialog by remember { mutableStateOf(false) }
     var showEndSessionConfirmation by remember { mutableStateOf(false) }
     var librarySearchQuery by remember { mutableStateOf("") }
+    val activeListState = rememberLazyListState()
+    val activeScope = rememberCoroutineScope()
 
     if (showAddDialog) {
         AddExerciseDialog(
@@ -509,8 +514,11 @@ private fun LoggingContent(
             }
         },
     ) { fabPadding ->
-        LazyColumn(modifier = Modifier.padding(Spacing.Large).padding(fabPadding)) {
-            item {
+        LazyColumn(
+            state = activeListState,
+            modifier = Modifier.padding(Spacing.Large).padding(fabPadding),
+        ) {
+            item(key = "activeHeader") {
                 Text(
                     "Log your next set",
                     style = MaterialTheme.typography.headlineSmall,
@@ -547,27 +555,37 @@ private fun LoggingContent(
                     }
                 }
             }
-            item {
+            item(key = "activeSummary") {
                 // Live in-session summary of completed sets
                 val exercisesById = remember(exercises) { exercises.associateBy { it.id } }
                 ActiveWorkoutSection(
                     activeSetsByExercise = activeSessionSetsByExercise,
                     exercisesById = exercisesById,
+                    selectedExerciseId = expandedExerciseIds.singleOrNull(),
                     onSelectExercise = { exerciseId ->
-                        expandedExerciseIds = listOf(exerciseId)
+                        exercisesById[exerciseId]?.let { exercise ->
+                            librarySearchQuery = exercise.name
+                            expandedExerciseIds = listOf(exerciseId)
+                            activeScope.launch {
+                                activeListState.animateScrollToItem(ACTIVE_LIBRARY_ITEM_INDEX)
+                            }
+                        }
                     },
                 )
             }
-            item {
+            item(key = "favorites") {
                 val favoriteExercises = exercises.filter { it.id in favoriteExerciseIds }
                 if (favoriteExercises.isNotEmpty()) {
                     SectionHeader("Favorites", topPadding = Spacing.Small)
                     FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
                         favoriteExercises.forEach { exercise ->
-                            AssistChip(
+                            AnimatedAssistChip(
                                 onClick = {
                                     librarySearchQuery = exercise.name
                                     expandedExerciseIds = listOf(exercise.id)
+                                    activeScope.launch {
+                                        activeListState.animateScrollToItem(ACTIVE_LIBRARY_ITEM_INDEX)
+                                    }
                                 },
                                 label = { Text(exercise.name) },
                                 modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
@@ -575,14 +593,19 @@ private fun LoggingContent(
                         }
                     }
                 }
+            }
+            item(key = "quickAdd") {
                 if (quickAddExercises.isNotEmpty()) {
                     SectionHeader("Quick add", topPadding = Spacing.Small)
                     FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
                         quickAddExercises.forEach { exercise ->
-                            AssistChip(
+                            AnimatedAssistChip(
                                 onClick = {
                                     librarySearchQuery = exercise.name
                                     expandedExerciseIds = listOf(exercise.id)
+                                    activeScope.launch {
+                                        activeListState.animateScrollToItem(ACTIVE_LIBRARY_ITEM_INDEX)
+                                    }
                                 },
                                 label = { Text(exercise.name) },
                                 modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
@@ -590,6 +613,8 @@ private fun LoggingContent(
                         }
                     }
                 }
+            }
+            item(key = "exerciseLibrary") {
                 SectionHeader("Exercise Library", topPadding = Spacing.Small)
                 ExerciseSections(
                     exercises = exercises,
@@ -650,7 +675,7 @@ private fun LoggingContent(
                     }
                 }
             }
-            item {
+            item(key = "activeBottomSpacer") {
                 // Bottom spacer so the last exercise card isn't hidden behind the FAB.
                 Spacer(modifier = Modifier.height(64.dp))
             }

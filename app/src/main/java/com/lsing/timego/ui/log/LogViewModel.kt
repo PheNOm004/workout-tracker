@@ -48,11 +48,13 @@ import com.lsing.timego.domain.suggestedExerciseFor
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.buildDayHistoryEntries
 import com.lsing.timego.ui.common.sessionDayLabel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 sealed interface SessionUiState {
@@ -198,22 +200,28 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 latestSetLogs = setLogs
                 latestSessions = sessions
                 val exercisesById = list.associateBy { it.id }
-                exerciseUsageCounts = exerciseUsageFrequency(setLogs, exercisesById)
-                _lastWorkingSets.value = lastWorkingSetByExercise(setLogs, sessions, exercisesById)
-                // Session state first: refreshSuggestions reads the active session id to decide
-                // whether an exercise's suggestion should lock to this session's first working
-                // set. Computing it while _sessionState is still Loading made every suggestion
-                // fall back to the between-session decision table on a cold start mid-session.
+                // Put the saved set on screen before rebuilding whole-history suggestions,
+                // recommendations, usage ranks, and balance data.
                 refreshSessionState(sessions, setLogs, list)
+                val (usageCounts, lastWorkingSets) = withContext(Dispatchers.Default) {
+                    exerciseUsageFrequency(setLogs, exercisesById) to
+                        lastWorkingSetByExercise(setLogs, sessions, exercisesById)
+                }
+                exerciseUsageCounts = usageCounts
+                _lastWorkingSets.value = lastWorkingSets
+                // refreshSuggestions reads the active session id to decide whether an exercise's
+                // suggestion should lock to this session's first working set.
                 refreshSuggestions(list, setLogs, sessions)
                 refreshDisplayedExercises()
-                _landingMuscleBalance.value = muscleBalanceForTimeframe(
-                    timeframe = timeframe,
-                    sessions = sessions,
-                    sets = setLogs,
-                    exercisesById = exercisesById,
-                    today = LocalDate.now(),
-                )
+                _landingMuscleBalance.value = withContext(Dispatchers.Default) {
+                    muscleBalanceForTimeframe(
+                        timeframe = timeframe,
+                        sessions = sessions,
+                        sets = setLogs,
+                        exercisesById = exercisesById,
+                        today = LocalDate.now(),
+                    )
+                }
             }
         }
         viewModelScope.launch {
@@ -272,37 +280,40 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
      *  plus, separately, the active session's own working sets for that exercise so far -- see the
      *  2026-08-12 warmup-session-aware-suggester design for why suggestions no longer look at a flat
      *  raw-set history. */
-    private fun refreshSuggestions(
+    private suspend fun refreshSuggestions(
         exerciseList: List<Exercise>,
         allSets: List<SetLog>,
         sessions: List<com.lsing.timego.data.WorkoutSession>,
     ) {
-        val sessionStartById = sessions.associate { it.id to it.startEpochMillis }
         val activeSessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId
-        val setsByExercise = allSets.groupBy { it.exerciseId }
-        val map = mutableMapOf<Long, OverloadSuggestion>()
-        val holdMap = mutableMapOf<Long, HoldSuggestion>()
-        for (exercise in exerciseList) {
-            val exerciseSets = setsByExercise[exercise.id].orEmpty()
-            val sessionHistory = sessionWorkingSetHistory(exerciseSets, sessionStartById)
-            val currentSessionWorkingSets = if (activeSessionId != null) {
-                exerciseSets.filter { it.sessionId == activeSessionId && !it.isWarmup }.sortedBy { it.loggedAtEpochMillis }
-            } else {
-                emptyList()
+        val (suggestionMap, holdSuggestionMap) = withContext(Dispatchers.Default) {
+            val sessionStartById = sessions.associate { it.id to it.startEpochMillis }
+            val setsByExercise = allSets.groupBy { it.exerciseId }
+            val map = mutableMapOf<Long, OverloadSuggestion>()
+            val holdMap = mutableMapOf<Long, HoldSuggestion>()
+            for (exercise in exerciseList) {
+                val exerciseSets = setsByExercise[exercise.id].orEmpty()
+                val sessionHistory = sessionWorkingSetHistory(exerciseSets, sessionStartById)
+                val currentSessionWorkingSets = if (activeSessionId != null) {
+                    exerciseSets.filter { it.sessionId == activeSessionId && !it.isWarmup }.sortedBy { it.loggedAtEpochMillis }
+                } else {
+                    emptyList()
+                }
+                if (exercise.loggingType == LoggingType.HOLD.name) {
+                    val historyPerf = sessionHistory.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
+                    val currentPerf = currentSessionWorkingSets.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
+                    holdSuggester.suggestNext(historyPerf, currentPerf, exercise.name)?.let { holdMap[exercise.id] = it }
+                } else {
+                    val repRange = repRangeFor(exerciseSets, sessionHistory)
+                    val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
+                    val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
+                    suggester.suggestNext(historyPerf, currentPerf, weightIncrementFor(exercise), repRange)?.let { map[exercise.id] = it }
+                }
             }
-            if (exercise.loggingType == LoggingType.HOLD.name) {
-                val historyPerf = sessionHistory.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
-                val currentPerf = currentSessionWorkingSets.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
-                holdSuggester.suggestNext(historyPerf, currentPerf, exercise.name)?.let { holdMap[exercise.id] = it }
-            } else {
-                val repRange = repRangeFor(exerciseSets, sessionHistory)
-                val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
-                val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
-                suggester.suggestNext(historyPerf, currentPerf, weightIncrementFor(exercise), repRange)?.let { map[exercise.id] = it }
-            }
+            map to holdMap
         }
-        _suggestions.value = map
-        _holdSuggestions.value = holdMap
+        _suggestions.value = suggestionMap
+        _holdSuggestions.value = holdSuggestionMap
     }
 
     private suspend fun refreshSessionState(
@@ -310,7 +321,6 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         allSets: List<SetLog>,
         exercises: List<Exercise>,
     ) {
-        refreshLandingSummary(exercises, allSets, sessions)
         val active = sessions.firstOrNull { it.endEpochMillis == null }
         if (active != null) {
             val sets = allSets.filter { it.sessionId == active.id }.sortedBy { it.loggedAtEpochMillis }
@@ -339,52 +349,59 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             _activeSessionSetsByExercise.value = emptyMap()
             _sessionState.value = SessionUiState.NoActiveSession
         }
+        // Publish the active-session UI first. The landing summary is derived in the background
+        // so saving a set never waits for recommendation/history work before the row can update.
+        refreshLandingSummary(exercises, allSets, sessions)
     }
 
-    private fun refreshLandingSummary(
+    private suspend fun refreshLandingSummary(
         exercises: List<Exercise>,
         allSets: List<SetLog>,
         sessions: List<com.lsing.timego.data.WorkoutSession>,
     ) {
-        val lastSession = sessions
-            .asSequence()
-            .filter { it.endEpochMillis != null }
-            .maxByOrNull { it.endEpochMillis!! }
-        val summary = lastSession?.let { session ->
-            val sets = allSets.filter { it.sessionId == session.id }
+        val trainingLean = _trainingLean.value
+        val landingSummary = withContext(Dispatchers.Default) {
+            val lastSession = sessions
+                .asSequence()
+                .filter { it.endEpochMillis != null }
+                .maxByOrNull { it.endEpochMillis!! }
+            val summary = lastSession?.let { session ->
+                val sets = allSets.filter { it.sessionId == session.id }
+                val exercisesById = exercises.associateBy { it.id }
+                val muscleGroups = muscleGroupsAffectedInSession(session.id, sets, exercises)
+                val primaryMuscleGroups = muscleGroupsWorkedInSession(session.id, sets, exercises)
+                val muscleIntensities = muscleGroupIntensityForSession(session.id, sets, exercisesById)
+                val detail = buildDayHistoryEntries(sets, exercisesById)
+                LastSessionSummary(
+                    sets = sets.size,
+                    muscleGroups = muscleGroups,
+                    muscleIntensities = muscleIntensities,
+                    label = sessionDayLabel(primaryMuscleGroups, isCardioOnlySession(sets, exercisesById)),
+                    durationMinutes = (session.endEpochMillis ?: session.startEpochMillis).minus(session.startEpochMillis) / 60_000,
+                    detail = detail,
+                )
+            }
+
+            val sessionDateById = sessions.associate { it.id to it.date }
             val exercisesById = exercises.associateBy { it.id }
-            val muscleGroups = muscleGroupsAffectedInSession(session.id, sets, exercises)
-            val primaryMuscleGroups = muscleGroupsWorkedInSession(session.id, sets, exercises)
-            val muscleIntensities = muscleGroupIntensityForSession(session.id, sets, exercisesById)
-            val detail = buildDayHistoryEntries(sets, exercisesById)
-            LastSessionSummary(
-                sets = sets.size,
-                muscleGroups = muscleGroups,
-                muscleIntensities = muscleIntensities,
-                label = sessionDayLabel(primaryMuscleGroups, isCardioOnlySession(sets, exercisesById)),
-                durationMinutes = (session.endEpochMillis ?: session.startEpochMillis).minus(session.startEpochMillis) / 60_000,
-                detail = detail,
+            val lastTrained = lastTrainedDatesByMuscleGroup(allSets, exercisesById, sessionDateById)
+            val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
+            val recommendedSeeds = recommendSynergisticMuscleGroups(allGroups, lastTrained, LocalDate.now())
+            val recommended = expandMuscleGroupRegions(recommendedSeeds).toList()
+            val suggestedExercise = suggestedExerciseFor(
+                targetGroups = recommended.toSet(),
+                exercises = exercises,
+                lean = trainingLean,
+                usageCounts = exerciseUsageFrequency(allSets, exercisesById),
+            )
+
+            LandingSummary(
+                lastSession = summary,
+                recommendedMuscleGroups = recommended,
+                suggestedExercise = suggestedExercise,
             )
         }
-
-        val sessionDateById = sessions.associate { it.id to it.date }
-        val exercisesById = exercises.associateBy { it.id }
-        val lastTrained = lastTrainedDatesByMuscleGroup(allSets, exercisesById, sessionDateById)
-        val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
-        val recommendedSeeds = recommendSynergisticMuscleGroups(allGroups, lastTrained, LocalDate.now())
-        val recommended = expandMuscleGroupRegions(recommendedSeeds).toList()
-        val suggestedExercise = suggestedExerciseFor(
-            targetGroups = recommended.toSet(),
-            exercises = exercises,
-            lean = _trainingLean.value,
-            usageCounts = exerciseUsageFrequency(allSets, exercisesById),
-        )
-
-        _landingSummary.value = LandingSummary(
-            lastSession = summary,
-            recommendedMuscleGroups = recommended,
-            suggestedExercise = suggestedExercise,
-        )
+        _landingSummary.value = landingSummary
     }
 
     fun startSession(routineId: Long?) {
