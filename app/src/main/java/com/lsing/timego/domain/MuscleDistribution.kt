@@ -285,18 +285,24 @@ data class DayTrainingStats(
  *  same duration-estimate convention (span of that day's logged-set timestamps, per session).
  *  Only days with at least one session appear; a day with zero training isn't a zero-row, it's
  *  absent, same convention [HeatmapGrid] uses. Newest day first. */
-fun trainingStatsByDay(sessions: List<WorkoutSession>, sets: List<SetLog>, since: LocalDate): List<DayTrainingStats> =
-    sessions.filter { !it.date.isBefore(since) }
+fun trainingStatsByDay(sessions: List<WorkoutSession>, sets: List<SetLog>, since: LocalDate): List<DayTrainingStats> {
+    val sessionsSince = sessions.filter { !it.date.isBefore(since) }
+    val sessionIdsSince = sessionsSince.mapTo(hashSetOf()) { it.id }
+    // Index the history once. Filtering the complete set list separately for every training day
+    // made this O(days * sets), which becomes visible after several years of workout history.
+    val setsBySession = sets
+        .asSequence()
+        .filter { it.sessionId in sessionIdsSince }
+        .groupBy { it.sessionId }
+
+    return sessionsSince
         .groupBy { it.date }
         .map { (date, daySessions) ->
-            val sessionIds = daySessions.map { it.id }.toSet()
-            val daySets = sets.filter { it.sessionId in sessionIds }
-            val durationMinutes = daySets.groupBy { it.sessionId }
-                .values
-                .sumOf { sessionSets ->
-                    val timestamps = sessionSets.map { it.loggedAtEpochMillis }
-                    ((timestamps.max() - timestamps.min()) / 60_000.0)
-                }
+            val daySets = daySessions.flatMap { setsBySession[it.id].orEmpty() }
+            val durationMinutes = daySessions.sumOf { session ->
+                val timestamps = setsBySession[session.id].orEmpty().map { it.loggedAtEpochMillis }
+                if (timestamps.isEmpty()) 0.0 else (timestamps.max() - timestamps.min()) / 60_000.0
+            }
             DayTrainingStats(
                 date = date,
                 workouts = daySessions.size,
@@ -306,3 +312,4 @@ fun trainingStatsByDay(sessions: List<WorkoutSession>, sets: List<SetLog>, since
             )
         }
         .sortedByDescending { it.date }
+}

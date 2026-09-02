@@ -248,6 +248,34 @@ class MuscleDistributionTest {
     }
 
     @Test
+    fun `trainingStatsByDay preserves empty sessions and aggregates multiple sessions on one day`() {
+        val august10 = LocalDate.of(2026, 8, 10)
+        val august11 = LocalDate.of(2026, 8, 11)
+        val sessions = listOf(
+            WorkoutSession(id = 1, date = august10, routineId = null, startEpochMillis = 0, endEpochMillis = 600_000),
+            WorkoutSession(id = 2, date = august10, routineId = null, startEpochMillis = 700_000, endEpochMillis = 700_000),
+            WorkoutSession(id = 3, date = LocalDate.of(2026, 7, 1), routineId = null, startEpochMillis = 0, endEpochMillis = 0),
+            WorkoutSession(id = 4, date = august11, routineId = null, startEpochMillis = 0, endEpochMillis = 0),
+        )
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 1, exerciseId = 1, weightKg = 100.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 600_000),
+            SetLog(id = 3, sessionId = 2, exerciseId = 1, weightKg = 10.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 700_000),
+            SetLog(id = 4, sessionId = 3, exerciseId = 1, weightKg = 999.0, reps = 10, targetReps = 10, loggedAtEpochMillis = 0),
+        )
+
+        val result = trainingStatsByDay(sessions, sets, since = august10)
+
+        assertEquals(
+            listOf(
+                DayTrainingStats(august11, workouts = 1, durationMinutes = 0.0, volumeKg = 0.0, sets = 0),
+                DayTrainingStats(august10, workouts = 2, durationMinutes = 10.0, volumeKg = 1_100.0, sets = 3),
+            ),
+            result,
+        )
+    }
+
+    @Test
     fun `effortWeight gives full credit to effective-rep-range RPE and to missing RPE`() {
         assertEquals(1.0, effortWeight(7), 0.001)
         assertEquals(1.0, effortWeight(8), 0.001)
