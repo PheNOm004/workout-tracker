@@ -14,6 +14,11 @@ class SeedExercisesTest {
         "Straddle Front Lever", "Tuck Back Lever", "Straddle Back Lever", "Ring Support Hold",
         "Bent-Arm Iron Cross Hold", "Star Plank", "Single-Leg Wall Sit", "Human Flag Tuck",
         "Human Flag Straddle", "Bear Crawl Hold", "Animal Flow Beast Hold",
+        // Advanced Calisthenics & Gymnastics Statics Expansion
+        "V-Sit Hold", "Manna Hold", "Victorian Cross Hold", "Chest-to-Wall Handstand Hold",
+        "Straddle L-Sit Hold", "Arch Body Hold", "Iron Cross Hold", "Inverted Cross Hold",
+        "Maltese Hold", "Victorian Cross on Rings", "RTO Support Hold", "German Hang Hold",
+        "Inverted Hang Hold", "Towel Grip Dead Hang",
     )
 
     @Test
@@ -129,8 +134,8 @@ class SeedExercisesTest {
     }
 
     @Test
-    fun `library has grown to roughly 600 exercises`() {
-        assertEquals(true, SEED_EXERCISES.size in 550..700)
+    fun `library has grown to roughly 700 to 800 exercises`() {
+        assertEquals(true, SEED_EXERCISES.size in 700..900)
     }
 
     @Test
