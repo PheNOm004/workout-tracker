@@ -28,10 +28,14 @@ import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.buildDayHistoryEntries
 import com.lsing.timego.ui.common.sessionDayLabel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -118,71 +122,83 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     val selectedSegment: StateFlow<ProgressSegment> = _selectedSegment.asStateFlow()
 
     init {
-        // Every input this block reads is now an observed Flow. Previously only `sessions` and
-        // `_timeframe` drove it while the set list was fetched one-shot inside, so sets logged
-        // into an already-open session never refreshed records/volume/stats/distribution.
         viewModelScope.launch {
-            combine(
-                repository.sessions,
-                repository.setLogs,
-                repository.exercises,
-                _timeframe,
-            ) { sessions, allSets, exerciseList, timeframe ->
-                Inputs(sessions, allSets, exerciseList, timeframe)
-            }.collect { (sessions, allSets, exerciseList, timeframe) ->
-                latestSessions = sessions
-                latestSetLogs = allSets
-                latestExercises = exerciseList
-                _exercises.value = exerciseList
-                if (_selectedExerciseId.value == null) {
-                    _selectedExerciseId.value = exerciseList.firstOrNull()?.id
-                }
-                val sessionDateById = sessions.associate { it.id to it.date }
-                val exercisesById = exerciseList.associateBy { it.id }
-                val today = LocalDate.now()
+            // This ViewModel is activity-scoped by the custom root-tab host. Use an always-
+            // collected screen state as the lifecycle signal so hidden/backgrounded Progress
+            // stops its Room subscriptions instead of rebuilding the full history after Log saves.
+            _selectedSegment.subscriptionCount
+                .map { count -> count > 0 }
+                .distinctUntilChanged()
+                .collectLatest { screenStarted ->
+                    if (!screenStarted) return@collectLatest
+                    coroutineScope {
+                        // Every input this block reads is observed. Sets logged into an open
+                        // session therefore refresh records, volume, stats, and distribution.
+                        launch {
+                            combine(
+                                repository.sessions,
+                                repository.setLogs,
+                                repository.exercises,
+                                _timeframe,
+                            ) { sessions, allSets, exerciseList, timeframe ->
+                                Inputs(sessions, allSets, exerciseList, timeframe)
+                            }.collect { (sessions, allSets, exerciseList, timeframe) ->
+                                latestSessions = sessions
+                                latestSetLogs = allSets
+                                latestExercises = exerciseList
+                                _exercises.value = exerciseList
+                                if (_selectedExerciseId.value == null) {
+                                    _selectedExerciseId.value = exerciseList.firstOrNull()?.id
+                                }
+                                val sessionDateById = sessions.associate { it.id to it.date }
+                                val exercisesById = exerciseList.associateBy { it.id }
+                                val today = LocalDate.now()
 
-                _volumeRatios.value = workoutVolumeRatios(sessions, allSets)
-                _records.value = personalRecords(allSets, sessionDateById, exercisesById)
-                _trainingStats.value = trainingStats(
-                    sessions,
-                    allSets,
-                    timeframe.sinceDate(today),
-                )
-                _periodBreakdown.value = trainingStatsByDay(
-                    sessions,
-                    allSets,
-                    timeframe.sinceDate(today),
-                )
-                _muscleDistribution.value = muscleDistributionForTimeframe(
-                    timeframe = timeframe,
-                    sessions = sessions,
-                    sets = allSets,
-                    exercisesById = exercisesById,
-                    today = today,
-                )
-                _muscleSetSummaries.value = muscleGroupSetSummaryForTimeframe(
-                    timeframe = timeframe,
-                    sessions = sessions,
-                    sets = allSets,
-                    exercisesById = exercisesById,
-                    today = today,
-                )
-                refreshStrengthCurve()
-                refreshSelectedHistory()
-            }
-        }
-        viewModelScope.launch {
-            repository.bodyMetrics.collect { metrics ->
-                _bodyMetrics.value = metrics
-                _weightCurve.value = metrics.mapNotNull { metric -> metric.weightKg?.let { metric.date to it } }
-                val latestWeight = latestWeightKg(metrics)
-                val latestHeight = latestHeightCm(metrics)
-                _currentBmi.value = if (latestWeight != null && latestHeight != null) {
-                    bodyMassIndex(latestWeight, latestHeight)
-                } else {
-                    null
+                                _volumeRatios.value = workoutVolumeRatios(sessions, allSets)
+                                _records.value = personalRecords(allSets, sessionDateById, exercisesById)
+                                _trainingStats.value = trainingStats(
+                                    sessions,
+                                    allSets,
+                                    timeframe.sinceDate(today),
+                                )
+                                _periodBreakdown.value = trainingStatsByDay(
+                                    sessions,
+                                    allSets,
+                                    timeframe.sinceDate(today),
+                                )
+                                _muscleDistribution.value = muscleDistributionForTimeframe(
+                                    timeframe = timeframe,
+                                    sessions = sessions,
+                                    sets = allSets,
+                                    exercisesById = exercisesById,
+                                    today = today,
+                                )
+                                _muscleSetSummaries.value = muscleGroupSetSummaryForTimeframe(
+                                    timeframe = timeframe,
+                                    sessions = sessions,
+                                    sets = allSets,
+                                    exercisesById = exercisesById,
+                                    today = today,
+                                )
+                                refreshStrengthCurve()
+                                refreshSelectedHistory()
+                            }
+                        }
+                        launch {
+                            repository.bodyMetrics.collect { metrics ->
+                                _bodyMetrics.value = metrics
+                                _weightCurve.value = metrics.mapNotNull { metric -> metric.weightKg?.let { metric.date to it } }
+                                val latestWeight = latestWeightKg(metrics)
+                                val latestHeight = latestHeightCm(metrics)
+                                _currentBmi.value = if (latestWeight != null && latestHeight != null) {
+                                    bodyMassIndex(latestWeight, latestHeight)
+                                } else {
+                                    null
+                                }
+                            }
+                        }
+                    }
                 }
-            }
         }
     }
 

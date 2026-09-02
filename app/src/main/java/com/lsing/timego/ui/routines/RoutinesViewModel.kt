@@ -18,10 +18,14 @@ import com.lsing.timego.domain.exercisesRankedByFrequency
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
 import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.untrainedMuscleGroups
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -67,39 +71,52 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
 
     init {
         viewModelScope.launch {
-            combine(
-                repository.routines,
-                repository.routineExercises,
-                repository.exercises,
-                repository.setLogs,
-                repository.sessions,
-            ) { routines, routineExercises, exercises, setLogs, sessions ->
-                val exercisesById = exercises.associateBy { it.id }
-                val routineLinksById = routineExercises.groupBy { it.routineId }
+            // RoutinesViewModel is activity-scoped, so it survives after its tab leaves
+            // composition. Stop every reactive input when its always-collected screen state has
+            // no STARTED subscriber; returning to the tab immediately receives fresh Flow values.
+            _routines.subscriptionCount
+                .map { count -> count > 0 }
+                .distinctUntilChanged()
+                .collectLatest { screenStarted ->
+                    if (!screenStarted) return@collectLatest
+                    coroutineScope {
+                        launch {
+                            combine(
+                                repository.routines,
+                                repository.routineExercises,
+                                repository.exercises,
+                                repository.setLogs,
+                                repository.sessions,
+                            ) { routines, routineExercises, exercises, setLogs, sessions ->
+                                val exercisesById = exercises.associateBy { it.id }
+                                val routineLinksById = routineExercises.groupBy { it.routineId }
 
-                _routines.value = routines
-                _routineExercisesById.value = routines.associate { routine ->
-                    routine.id to routineLinksById[routine.id].orEmpty()
-                        .mapNotNull { exercisesById[it.exerciseId] }
+                                _routines.value = routines
+                                _routineExercisesById.value = routines.associate { routine ->
+                                    routine.id to routineLinksById[routine.id].orEmpty()
+                                        .mapNotNull { exercisesById[it.exerciseId] }
+                                }
+                                _exercises.value = exercisesRankedByFrequency(
+                                    exercises,
+                                    exerciseUsageFrequency(setLogs, exercisesById),
+                                )
+                                refreshUntrainedGroups(exercisesById, setLogs, sessions)
+
+                                val countsBySession = setLogs.groupingBy { it.sessionId }.eachCount()
+                                _sessionHistory.value = sessions
+                                    .filter { it.endEpochMillis != null }
+                                    .sortedByDescending { it.endEpochMillis }
+                                    .map { SessionHistoryEntry(it.id, it.date, countsBySession[it.id] ?: 0) }
+                            }.collect {}
+                        }
+                        launch {
+                            settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
+                        }
+                        launch {
+                            settingsRepository.trainingLean.collect { _trainingLean.value = it }
+                        }
+                    }
                 }
-                _exercises.value = exercisesRankedByFrequency(
-                    exercises,
-                    exerciseUsageFrequency(setLogs, exercisesById),
-                )
-                refreshUntrainedGroups(exercisesById, setLogs, sessions)
-
-                val countsBySession = setLogs.groupingBy { it.sessionId }.eachCount()
-                _sessionHistory.value = sessions
-                    .filter { it.endEpochMillis != null }
-                    .sortedByDescending { it.endEpochMillis }
-                    .map { SessionHistoryEntry(it.id, it.date, countsBySession[it.id] ?: 0) }
-            }.collect {}
-        }
-        viewModelScope.launch {
-            settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
-        }
-        viewModelScope.launch {
-            settingsRepository.trainingLean.collect { _trainingLean.value = it }
         }
     }
 

@@ -49,10 +49,14 @@ import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.buildDayHistoryEntries
 import com.lsing.timego.ui.common.sessionDayLabel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -175,78 +179,86 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
-        }
-        viewModelScope.launch {
-            settingsRepository.favoriteExerciseIds.collect { _favoriteExerciseIds.value = it }
-        }
-        viewModelScope.launch {
-            settingsRepository.trainingLean.collect { lean ->
-                _trainingLean.value = lean
-                refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
-            }
-        }
-        viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
-            combine(
-                repository.exercises,
-                repository.setLogs,
-                repository.sessions,
-                _landingBalanceTimeframe,
-            ) { exercises, setLogs, sessions, timeframe ->
-                LandingInputs(exercises, setLogs, sessions, timeframe)
-            }.collect { (list, setLogs, sessions, timeframe) ->
-                allExercises = list
-                latestSetLogs = setLogs
-                latestSessions = sessions
-                val exercisesById = list.associateBy { it.id }
-                // Put the saved set on screen before rebuilding whole-history suggestions,
-                // recommendations, usage ranks, and balance data.
-                refreshSessionState(sessions, setLogs, list)
-                val (usageCounts, lastWorkingSets) = withContext(Dispatchers.Default) {
-                    exerciseUsageFrequency(setLogs, exercisesById) to
-                        lastWorkingSetByExercise(setLogs, sessions, exercisesById)
-                }
-                exerciseUsageCounts = usageCounts
-                _lastWorkingSets.value = lastWorkingSets
-                // refreshSuggestions reads the active session id to decide whether an exercise's
-                // suggestion should lock to this session's first working set.
-                refreshSuggestions(list, setLogs, sessions)
-                refreshDisplayedExercises()
-                _landingMuscleBalance.value = withContext(Dispatchers.Default) {
-                    muscleBalanceForTimeframe(
-                        timeframe = timeframe,
-                        sessions = sessions,
-                        sets = setLogs,
-                        exercisesById = exercisesById,
-                        today = LocalDate.now(),
-                    )
-                }
-            }
-        }
-        viewModelScope.launch {
-            repository.routines.collect { routineList ->
-                _routines.value = routineList
-                if (!hasAutoSelectedTodaysRoutine) {
-                    hasAutoSelectedTodaysRoutine = true
-                    routinesForToday(routineList, LocalDate.now().dayOfWeek).firstOrNull()?.let {
-                        selectRoutine(it.id)
+            // This ViewModel is activity-scoped by the custom root-tab host. Its session state is
+            // always collected while Log is STARTED, so subscriber presence is the lifecycle
+            // signal that starts all Room/DataStore work and cancels it off-screen/backgrounded.
+            _sessionState.subscriptionCount
+                .map { count -> count > 0 }
+                .distinctUntilChanged()
+                .collectLatest { screenStarted ->
+                    if (!screenStarted) return@collectLatest
+                    coroutineScope {
+                        launch {
+                            settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
+                        }
+                        launch {
+                            settingsRepository.favoriteExerciseIds.collect { _favoriteExerciseIds.value = it }
+                        }
+                        launch {
+                            settingsRepository.trainingLean.collect { lean ->
+                                _trainingLean.value = lean
+                                refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
+                            }
+                        }
+                        launch {
+                            combine(
+                                repository.exercises,
+                                repository.setLogs,
+                                repository.sessions,
+                                _landingBalanceTimeframe,
+                            ) { exercises, setLogs, sessions, timeframe ->
+                                LandingInputs(exercises, setLogs, sessions, timeframe)
+                            }.collect { (list, setLogs, sessions, timeframe) ->
+                                allExercises = list
+                                latestSetLogs = setLogs
+                                latestSessions = sessions
+                                _routineLastCompleted.value = routineLastCompletedDates(sessions)
+                                val exercisesById = list.associateBy { it.id }
+                                // Put the saved set on screen before rebuilding whole-history
+                                // suggestions, recommendations, usage ranks, and balance data.
+                                refreshSessionState(sessions, setLogs, list)
+                                val (usageCounts, lastWorkingSets) = withContext(Dispatchers.Default) {
+                                    exerciseUsageFrequency(setLogs, exercisesById) to
+                                        lastWorkingSetByExercise(setLogs, sessions, exercisesById)
+                                }
+                                exerciseUsageCounts = usageCounts
+                                _lastWorkingSets.value = lastWorkingSets
+                                // Suggestions read active session state so later working sets stay
+                                // locked to the first set's weight/target for this session.
+                                refreshSuggestions(list, setLogs, sessions)
+                                refreshDisplayedExercises()
+                                _landingMuscleBalance.value = withContext(Dispatchers.Default) {
+                                    muscleBalanceForTimeframe(
+                                        timeframe = timeframe,
+                                        sessions = sessions,
+                                        sets = setLogs,
+                                        exercisesById = exercisesById,
+                                        today = LocalDate.now(),
+                                    )
+                                }
+                            }
+                        }
+                        launch {
+                            repository.routines.collect { routineList ->
+                                _routines.value = routineList
+                                if (!hasAutoSelectedTodaysRoutine) {
+                                    hasAutoSelectedTodaysRoutine = true
+                                    routinesForToday(routineList, LocalDate.now().dayOfWeek).firstOrNull()?.let {
+                                        selectRoutine(it.id)
+                                    }
+                                }
+                            }
+                        }
+                        // Collected, not read once: calisthenics sets compute stored weightKg as
+                        // bodyweight + added k, so a Progress update must reach Log without restart.
+                        launch {
+                            repository.bodyMetrics.collect { metrics ->
+                                _latestBodyWeightKg.value = latestWeightKg(metrics)
+                            }
+                        }
                     }
                 }
-            }
-        }
-        viewModelScope.launch {
-            combine(repository.routines, repository.sessions) { _, sessions -> sessions }
-                .collect { sessions -> _routineLastCompleted.value = routineLastCompletedDates(sessions) }
-        }
-        // Collected, not read once: calisthenics sets compute their stored weightKg as
-        // bodyweight + added k at log time, so a bodyweight logged on the Progress tab has to
-        // reach this screen without a process restart -- otherwise the set is persisted against
-        // a stale (or absent) bodyweight and every 1RM/PR derived from it is wrong.
-        viewModelScope.launch {
-            repository.bodyMetrics.collect { metrics ->
-                _latestBodyWeightKg.value = latestWeightKg(metrics)
-            }
         }
     }
 
