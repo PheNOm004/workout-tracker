@@ -425,19 +425,19 @@ private fun LogLandingContent(
             modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
         ) {
             Column(modifier = Modifier.fillMaxWidth().padding(Spacing.Small)) {
-                if (muscleBalance.isEmpty()) {
-                    Text(
-                        "No strength sets logged in the ${timeframeLabel(balanceTimeframe)}.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
-                    )
-                }
                 RadarChart(
                     values = orderedMuscleDistributionForChart(muscleBalance)
                         .mapKeys { (group, _) -> formatEnumLabel(group) },
                     modifier = Modifier.fillMaxWidth().height(220.dp).padding(vertical = Spacing.Small),
                 )
+                if (muscleBalance.isEmpty()) {
+                    Text(
+                        "No strength sets logged in the ${timeframeLabel(balanceTimeframe)}.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.ExtraSmall),
+                    )
+                }
             }
         }
 
