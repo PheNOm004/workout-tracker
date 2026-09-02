@@ -302,15 +302,16 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                         onSelectedIndexChange = { index -> viewModel.selectExercise(exercises[index].id) },
                                         modifier = Modifier.padding(vertical = 4.dp),
                                     )
-                                    val selectedExercise = exercises[selectedIndex]
-                                    val recordsByExercise = records.groupBy { it.exerciseId }
-                                    val exerciseRecords = recordsByExercise[selectedExercise.id].orEmpty()
+                                    val exercisesById = remember(exercises) { exercises.associateBy { it.id } }
+                                    val recordsByExercise = remember(records) { records.groupBy { it.exerciseId } }
 
                                     AnimatedContent(
-                                        targetState = selectedExercise.id,
+                                        targetState = exercises[selectedIndex].id,
                                         transitionSpec = { fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit) },
                                         label = "exercisePerformanceTransition",
-                                    ) { _ ->
+                                    ) { exerciseId ->
+                                        val selectedExercise = exercisesById[exerciseId] ?: return@AnimatedContent
+                                        val exerciseRecords = recordsByExercise[exerciseId].orEmpty()
                                         SurfaceCard(
                                             modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                                             hero = true,
@@ -318,7 +319,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                         ) {
                                             Column(modifier = Modifier.padding(Spacing.Medium)) {
                                                 Text(
-                                                    "Personal Records",
+                                                    "${selectedExercise.name} Records",
                                                     style = MaterialTheme.typography.labelMedium,
                                                     color = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
@@ -414,7 +415,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                     targetState = selectedMuscleGroup,
                                     transitionSpec = { fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit) },
                                     label = "muscleGroupPerformanceTransition",
-                                ) { _ ->
+                                ) { muscleGroup ->
                                     SurfaceCard(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                                         hero = true,
@@ -422,7 +423,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                     ) {
                                         Column(modifier = Modifier.padding(Spacing.Medium)) {
                                             Text(
-                                                "Group Strength Progression",
+                                                "${muscleGroup?.let { formatEnumLabel(it) } ?: "Muscle Group"} Strength Progression",
                                                 style = MaterialTheme.typography.labelMedium,
                                                 color = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
