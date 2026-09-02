@@ -99,6 +99,16 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         rpe: Int? = null,
         targetProvenance: String = TargetProvenance.UNKNOWN.name,
     ) {
+        requireValidWeightRepsLog(
+            sessionId = sessionId,
+            exerciseId = exerciseId,
+            weightKg = weightKg,
+            reps = reps,
+            targetReps = targetReps,
+            addedWeightKg = addedWeightKg,
+            rpe = rpe,
+            targetProvenance = targetProvenance,
+        )
         db.setLogDao().insert(
             SetLog(
                 sessionId = sessionId,
@@ -116,6 +126,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
     }
 
     suspend fun logCardioSet(sessionId: Long, exerciseId: Long, durationMinutes: Double, distanceKm: Double?) {
+        requireValidCardioLog(sessionId, exerciseId, durationMinutes, distanceKm)
         db.setLogDao().insert(
             SetLog(
                 sessionId = sessionId,
@@ -138,6 +149,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         isWarmup: Boolean = false,
         targetProvenance: String = TargetProvenance.UNKNOWN.name,
     ) {
+        requireValidHoldLog(sessionId, exerciseId, durationSeconds, targetDurationSeconds, targetProvenance)
         db.setLogDao().insert(
             SetLog(
                 sessionId = sessionId,
@@ -282,6 +294,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
     )
 
     suspend fun logBodyMetric(date: LocalDate, weightKg: Double?, waistCm: Double?, heightCm: Double?) {
+        requireValidBodyMetric(weightKg, waistCm, heightCm)
         db.bodyMetricDao().insert(BodyMetric(date = date, weightKg = weightKg, waistCm = waistCm, heightCm = heightCm))
     }
 
