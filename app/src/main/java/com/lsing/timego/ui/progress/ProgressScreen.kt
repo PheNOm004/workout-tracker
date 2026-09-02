@@ -357,18 +357,11 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                                     color = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                                 )
-                                                if (strengthCurve.isEmpty()) {
-                                                    Text(
-                                                        "No logged sets yet to draw progression curve.",
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    )
-                                                } else {
-                                                    SparklineChart(
-                                                        strengthCurve,
-                                                        modifier = Modifier.fillMaxWidth().height(150.dp).padding(vertical = 4.dp),
-                                                    )
-                                                }
+                                                AnimatedStrengthCurve(
+                                                    strengthCurve = strengthCurve,
+                                                    emptyMessage = "No logged sets yet to draw progression curve.",
+                                                    label = "exerciseStrengthCurveContent",
+                                                )
                                             }
                                         }
                                     }
@@ -402,18 +395,11 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                                 color = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                             )
-                                            if (strengthCurve.isEmpty()) {
-                                                Text(
-                                                    "No logged sets yet for this muscle group.",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                )
-                                            } else {
-                                                SparklineChart(
-                                                    strengthCurve,
-                                                    modifier = Modifier.fillMaxWidth().height(150.dp).padding(vertical = 4.dp),
-                                                )
-                                            }
+                                            AnimatedStrengthCurve(
+                                                strengthCurve = strengthCurve,
+                                                emptyMessage = "No logged sets yet for this muscle group.",
+                                                label = "muscleGroupStrengthCurveContent",
+                                            )
                                         }
                                     }
                                 }
@@ -603,6 +589,33 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AnimatedStrengthCurve(
+    strengthCurve: List<Pair<LocalDate, Double>>,
+    emptyMessage: String,
+    label: String,
+) {
+    AnimatedContent(
+        targetState = strengthCurve,
+        contentKey = { it.isEmpty() },
+        transitionSpec = { fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit) },
+        label = label,
+    ) { visibleCurve ->
+        if (visibleCurve.isEmpty()) {
+            Text(
+                emptyMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            SparklineChart(
+                visibleCurve,
+                modifier = Modifier.fillMaxWidth().height(150.dp).padding(vertical = 4.dp),
+            )
         }
     }
 }
