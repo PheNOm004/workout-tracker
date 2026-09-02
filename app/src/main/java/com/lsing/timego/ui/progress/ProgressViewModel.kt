@@ -16,10 +16,8 @@ import com.lsing.timego.domain.latestHeightCm
 import com.lsing.timego.domain.latestWeightKg
 import com.lsing.timego.domain.muscleGroupStrengthCurve
 import com.lsing.timego.domain.MuscleSetSummary
-import com.lsing.timego.domain.muscleBalanceForTimeframe
 import com.lsing.timego.domain.muscleDistributionForTimeframe
 import com.lsing.timego.domain.muscleGroupSetSummaryForTimeframe
-import com.lsing.timego.domain.previousMuscleBalanceForTimeframe
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.personalRecords
 import com.lsing.timego.domain.strengthCurve
@@ -104,14 +102,8 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _muscleDistribution = MutableStateFlow<Map<String, Float>>(emptyMap())
     val muscleDistribution: StateFlow<Map<String, Float>> = _muscleDistribution.asStateFlow()
 
-    private val _muscleBalance = MutableStateFlow<Map<String, Float>>(emptyMap())
-    val muscleBalance: StateFlow<Map<String, Float>> = _muscleBalance.asStateFlow()
-
     private val _muscleSetSummaries = MutableStateFlow<Map<String, MuscleSetSummary>>(emptyMap())
     val muscleSetSummaries: StateFlow<Map<String, MuscleSetSummary>> = _muscleSetSummaries.asStateFlow()
-
-    private val _previousMuscleBalance = MutableStateFlow<Map<String, Float>>(emptyMap())
-    val previousMuscleBalance: StateFlow<Map<String, Float>> = _previousMuscleBalance.asStateFlow()
 
     private val _trainingStats = MutableStateFlow(TrainingStats(0, 0.0, 0.0, 0))
     val trainingStats: StateFlow<TrainingStats> = _trainingStats.asStateFlow()
@@ -169,20 +161,6 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                     today = today,
                 )
                 _muscleSetSummaries.value = muscleGroupSetSummaryForTimeframe(
-                    timeframe = timeframe,
-                    sessions = sessions,
-                    sets = allSets,
-                    exercisesById = exercisesById,
-                    today = today,
-                )
-                _muscleBalance.value = muscleBalanceForTimeframe(
-                    timeframe = timeframe,
-                    sessions = sessions,
-                    sets = allSets,
-                    exercisesById = exercisesById,
-                    today = today,
-                )
-                _previousMuscleBalance.value = previousMuscleBalanceForTimeframe(
                     timeframe = timeframe,
                     sessions = sessions,
                     sets = allSets,

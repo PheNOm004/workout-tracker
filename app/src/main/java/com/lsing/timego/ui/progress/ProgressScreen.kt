@@ -3,6 +3,8 @@ package com.lsing.timego.ui.progress
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
@@ -32,7 +34,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,12 +55,10 @@ import com.lsing.timego.domain.PrType
 import com.lsing.timego.domain.BmiCategory
 import com.lsing.timego.domain.bmiCategory
 import com.lsing.timego.domain.formatCalisthenicsWeight
-import com.lsing.timego.domain.orderedMuscleDistributionForChart
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.HeatmapGrid
 import com.lsing.timego.ui.common.HorizontalWheelPicker
 import com.lsing.timego.ui.common.MuscleBodyDiagram
-import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.PeriodBreakdownDialog
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SparklineChart
@@ -83,8 +82,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-enum class BalanceChartMode { DIAGRAM, RADAR }
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
@@ -103,10 +100,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val muscleSetSummaries by viewModel.muscleSetSummaries.collectAsStateWithLifecycle()
     val trainingStats by viewModel.trainingStats.collectAsStateWithLifecycle()
     val timeframe by viewModel.timeframe.collectAsStateWithLifecycle()
-
-    val muscleBalance by viewModel.muscleBalance.collectAsStateWithLifecycle()
-    val previousMuscleBalance by viewModel.previousMuscleBalance.collectAsStateWithLifecycle()
-    var balanceChartMode by remember { mutableStateOf(BalanceChartMode.DIAGRAM) }
 
     var weightText by remember { mutableStateOf("") }
     var waistText by remember { mutableStateOf("") }
@@ -127,7 +120,10 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val historyDurationMinutes by viewModel.historyDurationMinutes.collectAsStateWithLifecycle()
     val periodBreakdown by viewModel.periodBreakdown.collectAsStateWithLifecycle()
 
-    val progressListState = rememberLazyListState(
+    val trainingListState = rememberLazyListState(
+        cacheWindow = LazyLayoutCacheWindow(aheadFraction = 1.5f, behindFraction = 1f),
+    )
+    val bodyListState = rememberLazyListState(
         cacheWindow = LazyLayoutCacheWindow(aheadFraction = 1.5f, behindFraction = 1f),
     )
 
@@ -149,19 +145,33 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            state = progressListState,
-            modifier = Modifier.padding(horizontal = Spacing.Large),
-        ) {
-            item {
-                Text(
-                    "Progress",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall),
-                )
-            }
+        AnimatedContent(
+            targetState = selectedSegment,
+            transitionSpec = {
+                val movingForward = targetState.ordinal > initialState.ordinal
+                val enter = slideInHorizontally(TimeGoMotion.navigationInOffset) { width ->
+                    if (movingForward) width / 5 else -width / 5
+                } + fadeIn(TimeGoMotion.contentEnter)
+                val exit = slideOutHorizontally(TimeGoMotion.navigationOutOffset) { width ->
+                    if (movingForward) -width / 5 else width / 5
+                } + fadeOut(TimeGoMotion.contentExit)
+                enter togetherWith exit
+            },
+            label = "progressSegmentTransition",
+        ) { segment ->
+            LazyColumn(
+                state = if (segment == ProgressSegment.TRAINING) trainingListState else bodyListState,
+                modifier = Modifier.padding(horizontal = Spacing.Large),
+            ) {
+                item {
+                    Text(
+                        "Progress",
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall),
+                    )
+                }
 
-        if (selectedSegment == ProgressSegment.TRAINING) {
+        if (segment == ProgressSegment.TRAINING) {
             // ==================== TRAINING SEGMENT ====================
             item {
                 SectionHeader("Consistency", topPadding = Spacing.ExtraSmall)
@@ -179,7 +189,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 }
             }
             item {
-                SectionHeader("Muscle Balance (${timeframeLabel(timeframe)})", topPadding = Spacing.Small)
+                SectionHeader("Muscle Distribution (${timeframeLabel(timeframe)})", topPadding = Spacing.Small)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -195,23 +205,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                         )
                     }
                 }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
-                ) {
-                    FilterChip(
-                        selected = balanceChartMode == BalanceChartMode.DIAGRAM,
-                        onClick = { balanceChartMode = BalanceChartMode.DIAGRAM },
-                        label = { Text("Anatomical Map") },
-                    )
-                    FilterChip(
-                        selected = balanceChartMode == BalanceChartMode.RADAR,
-                        onClick = { balanceChartMode = BalanceChartMode.RADAR },
-                        label = { Text("Radar Chart") },
-                    )
-                }
                 SurfaceCard(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                 ) {
@@ -224,37 +217,15 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                 modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                             )
                         }
-                        AnimatedContent(
-                            targetState = balanceChartMode,
-                            transitionSpec = { fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit) },
-                            label = "balanceChartMode",
-                        ) { mode ->
-                            when (mode) {
-                                BalanceChartMode.DIAGRAM -> {
-                                    MuscleBodyDiagram(
-                                        intensities = muscleDistribution,
-                                        setSummaries = muscleSetSummaries,
-                                        periodLabel = timeframeLabel(timeframe),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 4.dp)
-                                            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
-                                    )
-                                }
-                                BalanceChartMode.RADAR -> {
-                                    RadarChart(
-                                        values = orderedMuscleDistributionForChart(muscleDistribution)
-                                            .mapKeys { (group, _) -> formatEnumLabel(group) },
-                                        comparisonValues = orderedMuscleDistributionForChart(previousMuscleBalance)
-                                            .mapKeys { (group, _) -> formatEnumLabel(group) },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(260.dp)
-                                            .padding(vertical = 4.dp),
-                                    )
-                                }
-                            }
-                        }
+                        MuscleBodyDiagram(
+                            intensities = muscleDistribution,
+                            setSummaries = muscleSetSummaries,
+                            periodLabel = timeframeLabel(timeframe),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
+                        )
                     }
                 }
                 FlowRow(modifier = Modifier.fillMaxWidth()) {
@@ -598,7 +569,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 Spacer(modifier = Modifier.height(76.dp))
             }
         }
-    }
+            }
+        }
 
     // Floating thumb-friendly Segment Selector at bottom of Progress screen
     Surface(
