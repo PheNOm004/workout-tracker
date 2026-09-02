@@ -212,14 +212,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Small)) {
-                        if (muscleDistribution.isEmpty()) {
-                            Text(
-                                "No strength sets logged in the ${timeframeLabel(timeframe)} yet.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
-                            )
-                        }
                         MuscleBodyDiagram(
                             intensities = muscleDistribution,
                             setSummaries = muscleSetSummaries,
