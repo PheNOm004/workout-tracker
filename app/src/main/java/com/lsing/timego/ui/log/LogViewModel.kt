@@ -215,15 +215,19 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                                 latestSessions = sessions
                                 _routineLastCompleted.value = routineLastCompletedDates(sessions)
                                 val exercisesById = list.associateBy { it.id }
-                                // Put the saved set on screen before rebuilding whole-history
-                                // suggestions, recommendations, usage ranks, and balance data.
-                                refreshSessionState(sessions, setLogs, list)
-                                val (usageCounts, lastWorkingSets) = withContext(Dispatchers.Default) {
-                                    exerciseUsageFrequency(setLogs, exercisesById) to
-                                        lastWorkingSetByExercise(setLogs, sessions, exercisesById)
+                                // One full-history usage-frequency pass per emission, shared by
+                                // session state (landing summary) and the picker ranks below --
+                                // refreshLandingSummary used to repeat this same pass internally.
+                                val usageCounts = withContext(Dispatchers.Default) {
+                                    exerciseUsageFrequency(setLogs, exercisesById)
                                 }
                                 exerciseUsageCounts = usageCounts
-                                _lastWorkingSets.value = lastWorkingSets
+                                // Put the saved set on screen before rebuilding whole-history
+                                // suggestions, recommendations, and balance data.
+                                refreshSessionState(sessions, setLogs, list, usageCounts)
+                                _lastWorkingSets.value = withContext(Dispatchers.Default) {
+                                    lastWorkingSetByExercise(setLogs, sessions, exercisesById)
+                                }
                                 // Suggestions read active session state so later working sets stay
                                 // locked to the first set's weight/target for this session.
                                 refreshSuggestions(list, setLogs, sessions)
@@ -332,6 +336,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         sessions: List<com.lsing.timego.data.WorkoutSession>,
         allSets: List<SetLog>,
         exercises: List<Exercise>,
+        usageCounts: Map<Long, Int> = exerciseUsageCounts,
     ) {
         val active = sessions.firstOrNull { it.endEpochMillis == null }
         if (active != null) {
@@ -349,7 +354,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 latestSessions = sessions.map { session ->
                     if (session.id == active.id) session.copy(endEpochMillis = lastSetTime) else session
                 }
-                refreshLandingSummary(exercises, allSets, latestSessions)
+                refreshLandingSummary(exercises, allSets, latestSessions, usageCounts)
                 _activeSessionSets.value = emptyList()
                 _activeSessionSetsByExercise.value = emptyMap()
                 _sessionState.value = SessionUiState.NoActiveSession
@@ -363,13 +368,14 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
         // Publish the active-session UI first. The landing summary is derived in the background
         // so saving a set never waits for recommendation/history work before the row can update.
-        refreshLandingSummary(exercises, allSets, sessions)
+        refreshLandingSummary(exercises, allSets, sessions, usageCounts)
     }
 
     private suspend fun refreshLandingSummary(
         exercises: List<Exercise>,
         allSets: List<SetLog>,
         sessions: List<com.lsing.timego.data.WorkoutSession>,
+        usageCounts: Map<Long, Int> = exerciseUsageCounts,
     ) {
         val trainingLean = _trainingLean.value
         val landingSummary = withContext(Dispatchers.Default) {
@@ -404,7 +410,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 targetGroups = recommended.toSet(),
                 exercises = exercises,
                 lean = trainingLean,
-                usageCounts = exerciseUsageFrequency(allSets, exercisesById),
+                usageCounts = usageCounts,
             )
 
             LandingSummary(

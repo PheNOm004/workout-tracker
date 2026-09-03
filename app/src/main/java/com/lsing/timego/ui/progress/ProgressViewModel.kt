@@ -28,6 +28,7 @@ import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.buildDayHistoryEntries
 import com.lsing.timego.ui.common.sessionDayLabel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +38,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 enum class CurveMode { EXERCISE, MUSCLE_GROUP }
@@ -150,38 +152,44 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                                 if (_selectedExerciseId.value == null) {
                                     _selectedExerciseId.value = exerciseList.firstOrNull()?.id
                                 }
-                                val sessionDateById = sessions.associate { it.id to it.date }
-                                val exercisesById = exerciseList.associateBy { it.id }
-                                val today = LocalDate.now()
+                                // All of the derivations below are pure functions of the observed
+                                // snapshots, some over the full unbounded set history (records,
+                                // volume ratios). LogViewModel already runs its equivalent block
+                                // on Dispatchers.Default; Progress ran it on the main dispatcher.
+                                withContext(Dispatchers.Default) {
+                                    val sessionDateById = sessions.associate { it.id to it.date }
+                                    val exercisesById = exerciseList.associateBy { it.id }
+                                    val today = LocalDate.now()
 
-                                _volumeRatios.value = workoutVolumeRatios(sessions, allSets)
-                                _records.value = personalRecords(allSets, sessionDateById, exercisesById)
-                                _trainingStats.value = trainingStats(
-                                    sessions,
-                                    allSets,
-                                    timeframe.sinceDate(today),
-                                )
-                                _periodBreakdown.value = trainingStatsByDay(
-                                    sessions,
-                                    allSets,
-                                    timeframe.sinceDate(today),
-                                )
-                                _muscleDistribution.value = muscleDistributionForTimeframe(
-                                    timeframe = timeframe,
-                                    sessions = sessions,
-                                    sets = allSets,
-                                    exercisesById = exercisesById,
-                                    today = today,
-                                )
-                                _muscleSetSummaries.value = muscleGroupSetSummaryForTimeframe(
-                                    timeframe = timeframe,
-                                    sessions = sessions,
-                                    sets = allSets,
-                                    exercisesById = exercisesById,
-                                    today = today,
-                                )
-                                refreshStrengthCurve()
-                                refreshSelectedHistory()
+                                    _volumeRatios.value = workoutVolumeRatios(sessions, allSets)
+                                    _records.value = personalRecords(allSets, sessionDateById, exercisesById)
+                                    _trainingStats.value = trainingStats(
+                                        sessions,
+                                        allSets,
+                                        timeframe.sinceDate(today),
+                                    )
+                                    _periodBreakdown.value = trainingStatsByDay(
+                                        sessions,
+                                        allSets,
+                                        timeframe.sinceDate(today),
+                                    )
+                                    _muscleDistribution.value = muscleDistributionForTimeframe(
+                                        timeframe = timeframe,
+                                        sessions = sessions,
+                                        sets = allSets,
+                                        exercisesById = exercisesById,
+                                        today = today,
+                                    )
+                                    _muscleSetSummaries.value = muscleGroupSetSummaryForTimeframe(
+                                        timeframe = timeframe,
+                                        sessions = sessions,
+                                        sets = allSets,
+                                        exercisesById = exercisesById,
+                                        today = today,
+                                    )
+                                    refreshStrengthCurve()
+                                    refreshSelectedHistory()
+                                }
                             }
                         }
                         launch {

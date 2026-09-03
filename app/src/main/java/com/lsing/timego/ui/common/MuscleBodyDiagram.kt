@@ -153,9 +153,9 @@ private fun hexToColor(hex: String): Color {
 @Composable
 fun MuscleBodyDiagram(
     intensities: Map<String, Float>,
+    modifier: Modifier = Modifier,
     periodLabel: String = "this period",
     setSummaries: Map<String, MuscleSetSummary> = emptyMap(),
-    modifier: Modifier = Modifier,
 ) {
     // Theme-adaptive mid-grey rather than onSurface (too stark -- white on dark, black on
     // light) or a fixed color (disappears against a same-toned background on one theme).
@@ -296,10 +296,10 @@ private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier
 fun CroppedMuscleDiagram(
     muscleGroups: Set<String>,
     accentColor: Color,
+    modifier: Modifier = Modifier,
     intensities: Map<String, Float> = emptyMap(),
     highlightGroups: Set<String> = muscleGroups,
     neutralizeUnhighlighted: Boolean = false,
-    modifier: Modifier = Modifier,
     emptyLabel: String = "Nothing yet",
 ) {
     val drawableGroups = remember(muscleGroups) { diagramGroupsForHeatmap(muscleGroups) }

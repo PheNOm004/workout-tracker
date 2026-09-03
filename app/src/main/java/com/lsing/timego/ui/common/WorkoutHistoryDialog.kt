@@ -155,7 +155,7 @@ fun WorkoutHistoryDialog(
 }
 
 @Composable
-fun StatTile(label: String, value: String, caption: String? = null, modifier: Modifier = Modifier) {
+fun StatTile(label: String, value: String, modifier: Modifier = Modifier, caption: String? = null) {
     SurfaceCard(
         modifier = modifier.padding(Spacing.ExtraSmall),
         cornerRadius = 4.dp,

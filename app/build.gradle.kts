@@ -15,9 +15,10 @@ android {
     defaultConfig {
         applicationId = "com.lsing.timego"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 3
-        versionName = "1.1"
+        targetSdk = 37
+        versionCode = 4
+        versionName = "1.2"
+        // targetSdk tracks compileSdk 37; keep them moving together (HeatP is also on 37).
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -27,11 +28,15 @@ android {
             optimization {
                 enable = true
             }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
         compose = true

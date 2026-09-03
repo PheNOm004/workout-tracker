@@ -1,21 +1,8 @@
 package com.lsing.timego.domain
 
-/**
- * Light/dark hex-color pair derived from a habit's own [colorHex], for the per-habit heatmap
- * (see SummaryScreen.kt's HeatmapGreenLight/HeatmapGreenDark for the aggregate heatmap's
- * equivalent fixed pair). Deliberately plain Kotlin, no android.graphics.Color dependency, so
- * it stays unit-testable without Robolectric.
- */
-fun habitHeatmapColorHexes(colorHex: String): Pair<String, String> {
-    val (r, g, b) = hexToRgb(colorHex)
-    val (h, s, v) = rgbToHsv(r, g, b)
-    val light = hsvToHex(h, (s * 0.35f).coerceIn(0f, 1f), 1f)
-    val dark = hsvToHex(h, s.coerceAtLeast(0.55f).coerceIn(0f, 1f), (v * 0.55f).coerceIn(0.2f, 1f))
-    return light to dark
-}
-
-/** Internal (not private) so MuscleHeatColor.kt can reuse this small hex/HSV toolkit rather than
- *  duplicating it -- both files do the same "hex string in, hex string out" color math. */
+/** Small hex/HSV colour toolkit -- plain Kotlin, no android.graphics.Color dependency, so it
+ *  stays unit-testable without Robolectric. `internal` (not private) so MuscleHeatColor.kt can
+ *  reuse it rather than duplicating the same "hex string in, hex string out" math. */
 internal fun hexToRgb(hex: String): Triple<Int, Int, Int> {
     val clean = hex.removePrefix("#")
     val r = clean.substring(0, 2).toInt(16)
