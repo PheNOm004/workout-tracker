@@ -22,8 +22,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun TrainingPulse(
     active: Boolean,
-    pulseId: Long = 0L,
     modifier: Modifier = Modifier,
+    pulseId: Long = 0L,
     content: @Composable () -> Unit,
 ) {
     var isBursting by remember { mutableStateOf(false) }

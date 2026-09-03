@@ -146,7 +146,7 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
  *  day's ratio (dark background: low value blends in, high value pops). A future date, a date
  *  absent from [ratios] (no session logged), or a real 0% ratio all render the same neutral gray.
  *
- *  Every dot shares the same geometry (all callers pass the same [dotModifier]), but a bright
+ *  Every dot shares the same geometry (all callers pass the same [modifier]), but a bright
  *  fill on a dark ground reads as visibly larger than a dark fill of identical size -- the eye's
  *  own irradiation illusion, not a layout bug -- which is what made high-ratio dots look bigger
  *  than neutral ones. A shared hairline stroke anchors the true edge for every dot regardless of
@@ -158,7 +158,7 @@ private fun HeatmapWeekDots(
     ratios: Map<LocalDate, Float>,
     lightColor: Color,
     darkColor: Color,
-    dotModifier: Modifier,
+    modifier: Modifier = Modifier,
     onDateClick: ((LocalDate) -> Unit)? = null,
 ) {
     for (dayOffset in 0 until 7) {
@@ -172,7 +172,7 @@ private fun HeatmapWeekDots(
         val edge = Modifier.border(0.75.dp, NightEdgeHairline, CircleShape)
         if (date.isAfter(today) || ratio == null || ratio <= 0f) {
             Box(
-                modifier = dotModifier
+                modifier = modifier
                     .clip(CircleShape)
                     // Neutral still means no recorded training, never a failure; it is simply
                     // lifted above the Backlit ground enough to make the calendar structure legible.
@@ -182,7 +182,7 @@ private fun HeatmapWeekDots(
             )
         } else {
             val cellColor = lerp(darkColor, lightColor, ratio.coerceIn(0f, 1f))
-            Box(modifier = dotModifier.clip(CircleShape).background(cellColor).then(edge).then(clickModifier))
+            Box(modifier = modifier.clip(CircleShape).background(cellColor).then(edge).then(clickModifier))
         }
     }
 }
