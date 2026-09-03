@@ -86,3 +86,55 @@ Each applied finding: one commit on `optimisation-2026-09-03`, gated on
 `lintDebug testDebugUnitTest assembleDebug assembleRelease` before the next. Full R8 build +
 emulator re-measure at the end, `versionCode`/`versionName` bump as its own commit, then merge to
 `master` (`--no-ff`) and push after the user accepts the S23 build.
+
+---
+
+## Applied (2026-09-03/04, branch `optimisation-2026-09-03`)
+
+| Finding | Commit | Result |
+|---------|--------|--------|
+| docs | `f150e94` | audit + baseline + seed |
+| A1 | `8393401` | one shared `exerciseUsageFrequency` pass per `LogViewModel` emission (was 2) |
+| A2 | `612ca29` | `ProgressViewModel` derivations wrapped in `Dispatchers.Default` (was `Main.immediate`) |
+| B1 | `2a37d1f` | `ModifierParameter` lint 5 → 0 |
+| B2 | `a4972a2` | `mipmap-anydpi-v26` removed; `ObsoleteSdkInt` cleared |
+| B3 | `52d44de` | template `colors.xml` deleted; 7 `UnusedResources` cleared |
+| B4 | `9068884` | `YearWindow.kt` + `habitHeatmapColorHexes` + 6 dead tests removed (kept the hex toolkit, `previousMuscleBalanceForTimeframe`) |
+| C7+C9 | `db6ceae` | JDK 17 source/target; `proguard-rules.pro` wired into the release R8 config |
+| C1 | `5127756` | AGP 9.3.0 → 9.4.0, Gradle 9.5.0 → 9.6.0 |
+| C2 (1) | `136d547` | Compose BOM 2026.02.01 → 2026.08.00, core-ktx / activity / navigation / datastore |
+| C2 (2) | `efc115e` | test `androidx.test.ext:junit` 1.3.0, `espresso-core` 3.7.0 |
+| C4 | `80834e0` | `targetSdk` 36 → 37 (device-verified before merge) |
+| C5 | `f36b448` | Latin-subset fonts: Manrope 165→64 KB, JetBrains Mono 300→121 KB |
+| version | `b87af96` | `versionCode` 3→4, `versionName` 1.1→1.2 |
+
+**Deferred / not done this pass:**
+- **A3** — the ~1500-entry `sessionDateById` map is still rebuilt inside three timeframe functions.
+  After A2 that work is off the main thread, and threading an optional param through three shared
+  domain signatures + their tests is more churn than the sub-ms/emission gain warrants. Revisit
+  only if a probe regresses.
+- **C8** — `room-testing` / `kotlinx-coroutines-test` / Turbine not added. No test uses them yet
+  (migration tests hand-roll their schema DBs); add alongside the first data/ViewModel test that
+  needs them rather than committing unused dependencies.
+- **C3** — `kotlin.plugin.compose` 2.4.10 available; left pinned to Kotlin 2.2.10 (must move together).
+- **C6** — `material-icons-extended` kept; R8 full-mode strips it (`classes.dex` 2.8 MB, members not present).
+- **A4** — full `set_logs` table in memory ×3 ViewModels: architectural, out of scope.
+- **B5** — adaptive-coach: audit only; findings recorded above for next session's coach work.
+
+**Result — lint:** 0 errors, 23 → **2** warnings (`AndroidGradlePluginVersion`,
+`NewerVersionAvailable` — both toolchain-version notices, intentionally not chased). Matches HeatP's
+1.6 end state.
+
+**Result — tests:** 264 → **258** JVM tests (6 removed with the dead code), 0 failures throughout.
+
+**Result — APK:** unsigned R8 1,993,512 → **1,927,506 B** (−66,006 B / −3.3 %); signed
+2,009,723 → **1,943,853 B**. Font subset −280 KB of raw TTF, partly offset by the newer androidx
+runtime libraries.
+
+**Result — performance:** cold start **~240–285 ms** median vs 240 ms baseline — neutral (the higher
+end is a hours-warm emulator). Post-pass scroll on the low-mid AVD with a quiet host, five-year
+workload: **Log 1,413 frames / 0.00 % jank / 5 ms 50th / 7 ms 99th**; **Progress 1,240 frames /
+0.00 % jank / 5 ms 50th / 8 ms 99th** — both clean, confirming A2 (Progress derivation off the main
+thread) holds at scale. The pre-pass baseline's elevated jank flag was host-CPU contention (see
+`perf-baseline-2026-09-03.md`); with the host quiet, before and after both read clean. No rendering
+or list code changed; A1/A2 move background derivation work only.
