@@ -16,8 +16,8 @@ android {
         applicationId = "com.lsing.timego"
         minSdk = 26
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.1"
+        versionCode = 4
+        versionName = "1.2"
         // targetSdk tracks compileSdk 37; keep them moving together (HeatP is also on 37).
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
