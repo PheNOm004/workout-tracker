@@ -344,15 +344,12 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             _activeSessionSets.value = sets
             _activeSessionSetsByExercise.value = sets.groupBy { it.exerciseId }
             val lastSetTime = sets.maxOfOrNull { it.loggedAtEpochMillis }
-            val decision = if (lastSetTime != null) {
-                checkSessionAutoClose(lastSetTime, System.currentTimeMillis())
-            } else {
-                SessionAutoCloseDecision.STAY_ACTIVE // just started, nothing logged yet -- never auto-close an empty session
-            }
+            val decision = checkSessionAutoClose(lastSetTime, active.startEpochMillis, System.currentTimeMillis())
             if (decision == SessionAutoCloseDecision.AUTO_CLOSE) {
-                repository.endSession(active.id, lastSetTime!!)
+                val endTime = lastSetTime ?: active.startEpochMillis
+                repository.endSession(active.id, endTime)
                 latestSessions = sessions.map { session ->
-                    if (session.id == active.id) session.copy(endEpochMillis = lastSetTime) else session
+                    if (session.id == active.id) session.copy(endEpochMillis = endTime) else session
                 }
                 refreshLandingSummary(exercises, allSets, latestSessions, usageCounts)
                 _activeSessionSets.value = emptyList()
