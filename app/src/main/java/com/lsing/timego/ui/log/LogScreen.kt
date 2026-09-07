@@ -1,4 +1,4 @@
-﻿package com.lsing.timego.ui.log
+package com.lsing.timego.ui.log
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -523,12 +524,14 @@ private fun LoggingContent(
             eyebrow = "SESSION",
             title = "End workout?",
             dismissButton = {
-                TextButton(onClick = { showEndSessionConfirmation = false }) { Text("Keep logging") }
+                val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
+                TextButton(onClick = dismiss) { Text("Keep logging") }
             },
             confirmButton = {
+                val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
                 Button(
                     onClick = {
-                        showEndSessionConfirmation = false
+                        dismiss()
                         onEndSession()
                     },
                 ) { Text("End session") }
@@ -740,7 +743,7 @@ private fun ExerciseRowHeader(
 ) {
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
+        animationSpec = androidx.compose.animation.core.tween(280, easing = androidx.compose.animation.core.EaseInOut),
         label = "chevronRotation",
     )
     val starScale by animateFloatAsState(
@@ -793,12 +796,36 @@ private fun ExerciseRowHeader(
 @Composable
 private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Composable () -> Unit) {
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    var cardHeight by remember { mutableStateOf(0) }
+    var cardWidth by remember { mutableStateOf(0) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val viewportHeightPx = with(density) { (configuration.screenHeightDp.dp - 140.dp).toPx() }
+
     LaunchedEffect(expanded) {
         if (expanded) {
-            kotlinx.coroutines.delay(120)
-            bringIntoViewRequester.bringIntoView()
+            kotlinx.coroutines.delay(100)
+            val h = cardHeight.toFloat()
+            val extraPadding = ((viewportHeightPx - h) / 2f).coerceAtLeast(0f)
+            bringIntoViewRequester.bringIntoView(
+                androidx.compose.ui.geometry.Rect(
+                    left = 0f,
+                    top = -extraPadding,
+                    right = cardWidth.toFloat().coerceAtLeast(1f),
+                    bottom = h + extraPadding,
+                ),
+            )
             kotlinx.coroutines.delay(200)
-            bringIntoViewRequester.bringIntoView()
+            val finalH = cardHeight.toFloat()
+            val finalPadding = ((viewportHeightPx - finalH) / 2f).coerceAtLeast(0f)
+            bringIntoViewRequester.bringIntoView(
+                androidx.compose.ui.geometry.Rect(
+                    left = 0f,
+                    top = -finalPadding,
+                    right = cardWidth.toFloat().coerceAtLeast(1f),
+                    bottom = finalH + finalPadding,
+                ),
+            )
         }
     }
     val accent = MaterialTheme.colorScheme.primary
@@ -808,6 +835,10 @@ private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Compos
         modifier = Modifier
             .fillMaxWidth()
             .bringIntoViewRequester(bringIntoViewRequester)
+            .onSizeChanged {
+                cardWidth = it.width
+                cardHeight = it.height
+            }
             .padding(start = Spacing.Large, end = Spacing.Small)
             .then(if (expanded) Modifier.background(MaterialTheme.colorScheme.surfaceContainer) else Modifier),
     ) {

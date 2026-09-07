@@ -32,10 +32,11 @@ fun PeriodBreakdownDialog(periodLabel: String, days: List<DayTrainingStats>, onD
         eyebrow = "BREAKDOWN",
         title = periodLabel,
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            val dismiss = LocalTimeGoDialogDismiss.current
+            TextButton(onClick = dismiss) { Text("Close") }
         },
     ) {
-        Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+        Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             if (days.isEmpty()) {
                 Text(
                     "No sessions logged in this period.",

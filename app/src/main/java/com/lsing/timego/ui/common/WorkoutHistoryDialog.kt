@@ -1,4 +1,4 @@
-﻿package com.lsing.timego.ui.common
+package com.lsing.timego.ui.common
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -171,10 +171,11 @@ fun WorkoutHistoryDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            val dismiss = LocalTimeGoDialogDismiss.current
+            TextButton(onClick = dismiss) { Text("Close") }
         },
     ) {
-        Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+        Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             if (entries.isEmpty() && groupedEntries.isEmpty()) {
                 Text(
                     "No sets logged.",

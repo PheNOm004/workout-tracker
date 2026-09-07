@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -429,79 +430,89 @@ fun ExerciseSections(
             }
             val catChevronRotation by animateFloatAsState(
                 targetValue = if (expanded) 90f else 0f,
-                animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
+                animationSpec = androidx.compose.animation.core.tween(280, easing = androidx.compose.animation.core.EaseInOut),
                 label = "catChevronRotation",
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .bringIntoViewRequester(catBringIntoView)
-                    .padding(top = Spacing.Large, bottom = Spacing.ExtraSmall)
-                    .clickable { expanded = !expanded },
+                    .bringIntoViewRequester(catBringIntoView),
             ) {
-                val visual = categoryVisual(category)
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
-                    tint = visual.accent,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .padding(start = 8.dp, end = 4.dp)
-                        .graphicsLayer { rotationZ = catChevronRotation },
-                )
-                Text(
-                    formatEnumLabel(category.name),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            AnimatedExpand(expanded) {
-                val byMuscleGroup = remember(inCategory) {
-                    inCategory.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }.toSortedMap()
+                        .fillMaxWidth()
+                        .padding(top = Spacing.Large, bottom = Spacing.ExtraSmall)
+                        .clickable { expanded = !expanded },
+                ) {
+                    val visual = categoryVisual(category)
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = if (expanded) "Collapse" else "Expand",
+                        tint = visual.accent,
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 4.dp)
+                            .graphicsLayer { rotationZ = catChevronRotation },
+                    )
+                    Text(
+                        formatEnumLabel(category.name),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
                 }
-                byMuscleGroup.forEach { (group, groupExercises) ->
-                    key(group) {
-                        val groupKey = "${category.name}:$group"
-                        val groupExpanded = groupKey in expandedGroupKeys
-                        val groupBringIntoView = remember { BringIntoViewRequester() }
-                        LaunchedEffect(groupExpanded) {
-                            if (groupExpanded) {
-                                kotlinx.coroutines.delay(120)
-                                groupBringIntoView.bringIntoView()
-                                kotlinx.coroutines.delay(220)
-                                groupBringIntoView.bringIntoView()
+                AnimatedExpand(expanded) {
+                    val byMuscleGroup = remember(inCategory) {
+                        inCategory.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }.toSortedMap()
+                    }
+                    byMuscleGroup.forEach { (group, groupExercises) ->
+                        key(group) {
+                            val groupKey = "${category.name}:$group"
+                            val groupExpanded = groupKey in expandedGroupKeys
+                            val groupBringIntoView = remember { BringIntoViewRequester() }
+                            LaunchedEffect(groupExpanded) {
+                                if (groupExpanded) {
+                                    kotlinx.coroutines.delay(120)
+                                    groupBringIntoView.bringIntoView()
+                                    kotlinx.coroutines.delay(220)
+                                    groupBringIntoView.bringIntoView()
+                                }
                             }
-                        }
-                        val subChevronRotation by animateFloatAsState(
-                            targetValue = if (groupExpanded) 90f else 0f,
-                            animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
-                            label = "subChevronRotation",
-                        )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .bringIntoViewRequester(groupBringIntoView)
-                                .padding(top = Spacing.Small)
-                                .clickable {
-                                    expandedGroupKeys = toggleExpandedExerciseGroupKeys(expandedGroupKeys, groupKey)
-                                },
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = if (groupExpanded) "Collapse" else "Expand",
+                            val subChevronRotation by animateFloatAsState(
+                                targetValue = if (groupExpanded) 90f else 0f,
+                                animationSpec = androidx.compose.animation.core.tween(280, easing = androidx.compose.animation.core.EaseInOut),
+                                label = "subChevronRotation",
+                            )
+                            Column(
                                 modifier = Modifier
-                                    .padding(start = 32.dp, end = 4.dp)
-                                    .graphicsLayer { rotationZ = subChevronRotation },
-                            )
-                            Text(
-                                formatEnumLabel(group),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        AnimatedExpand(groupExpanded) {
-                            groupExercises.forEach { exercise -> itemContent(exercise) }
+                                    .fillMaxWidth()
+                                    .bringIntoViewRequester(groupBringIntoView),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = Spacing.Small)
+                                        .clickable {
+                                            expandedGroupKeys = toggleExpandedExerciseGroupKeys(expandedGroupKeys, groupKey)
+                                        },
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                        contentDescription = if (groupExpanded) "Collapse" else "Expand",
+                                        modifier = Modifier
+                                            .padding(start = 32.dp, end = 4.dp)
+                                            .graphicsLayer { rotationZ = subChevronRotation },
+                                    )
+                                    Text(
+                                        formatEnumLabel(group),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                AnimatedExpand(groupExpanded) {
+                                    groupExercises.forEach { exercise -> itemContent(exercise) }
+                                }
+                            }
                         }
                     }
                 }

@@ -1,4 +1,4 @@
-﻿package com.lsing.timego.ui.log
+package com.lsing.timego.ui.log
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.MuscleGroup
+import com.lsing.timego.ui.common.LocalTimeGoDialogDismiss
 import com.lsing.timego.ui.common.TimeGoDialog
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.theme.Spacing
@@ -35,17 +36,19 @@ fun AddExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String, muscleGroups:
         eyebrow = "EXERCISE",
         title = "Add Custom Exercise",
         confirmButton = {
+            val dismiss = LocalTimeGoDialogDismiss.current
             TextButton(onClick = {
                 if (name.isNotBlank() && selectedGroups.value.isNotEmpty()) {
                     onAdd(name, selectedGroups.value.toList(), category.name)
-                    onDismiss()
+                    dismiss()
                 }
             }) {
                 Text("Add")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            val dismiss = LocalTimeGoDialogDismiss.current
+            TextButton(onClick = dismiss) { Text("Cancel") }
         },
     ) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {

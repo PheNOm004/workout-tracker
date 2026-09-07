@@ -1,4 +1,4 @@
-﻿package com.lsing.timego.ui.routines
+package com.lsing.timego.ui.routines
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -84,7 +84,11 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             eyebrow = "DATABASE",
             title = if (result.isError) "Backup problem" else "Backup complete",
             confirmButton = {
-                TextButton(onClick = viewModel::clearBackupResult) { Text("OK") }
+                val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
+                TextButton(onClick = {
+                    dismiss()
+                    viewModel.clearBackupResult()
+                }) { Text("OK") }
             },
         ) {
             Text(result.message, style = MaterialTheme.typography.bodyMedium)
@@ -136,15 +140,17 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             eyebrow = "HISTORY",
             title = "Delete this session?",
             confirmButton = {
+                val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
                 TextButton(onClick = {
                     viewModel.deleteSession(sessionId)
-                    pendingDeleteSessionId = null
+                    dismiss()
                 }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDeleteSessionId = null }) {
+                val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
+                TextButton(onClick = dismiss) {
                     Text("Cancel")
                 }
             },
@@ -337,10 +343,11 @@ private fun SessionHistoryDialog(
         title = "Session history",
         subtitle = if (sessions.isNotEmpty()) "${sessions.size} session${if (sessions.size == 1) "" else "s"} recorded" else null,
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
+            TextButton(onClick = dismiss) { Text("Close") }
         },
     ) {
-        Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+        Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             if (sessions.isEmpty()) {
                 Text(
                     "No sessions recorded.",
