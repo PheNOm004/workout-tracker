@@ -44,6 +44,7 @@ import com.lsing.timego.domain.repRangeAtWeight
 import com.lsing.timego.domain.routineLastCompletedDates
 import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.sessionWorkingSetHistory
+import com.lsing.timego.domain.familiarAlternativesFor
 import com.lsing.timego.domain.suggestedExerciseFor
 import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.buildDayHistoryEntries
@@ -84,6 +85,12 @@ data class LandingSummary(
     val lastSession: LastSessionSummary?,
     val recommendedMuscleGroups: List<String>,
     val suggestedExercise: Exercise?,
+    /** At least one more familiar alternative exists beyond [suggestedExercise], so the session-local
+     *  "Choose another" action (Coach Memory Phase 1) has somewhere to go. */
+    val canChooseAnother: Boolean = false,
+    /** The user has rotated through every eligible familiar alternative this recommendation epoch and
+     *  none remain; the landing card should point them at the freeform picker instead of looping. */
+    val noAlternativesLeft: Boolean = false,
 )
 
 /** One-shot visual acknowledgement emitted only after the repository has saved a set. */
@@ -113,6 +120,16 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private var latestSessions: List<com.lsing.timego.data.WorkoutSession> = emptyList()
     private var exerciseUsageCounts: Map<Long, Int> = emptyMap()
     private var hasAutoSelectedTodaysRoutine = false
+
+    /** Exercise ids that appear in any saved routine, for ranking "Choose another" candidates. */
+    private var routineMemberExerciseIds: Set<Long> = emptySet()
+    /** Session-local state for Coach Memory Phase 1's "Choose another": ids the user has clicked past
+     *  this recommendation epoch, the last id shown, and the epoch key (the recommended muscle-group
+     *  set). Deliberately not persisted -- the feature promises nothing durable, so process death may
+     *  clear it. Resets when the recommendation epoch changes or a session starts. */
+    private val _suggestionExclusions = MutableStateFlow<Set<Long>>(emptySet())
+    private var lastShownSuggestionId: Long? = null
+    private var suggestionEpoch: Set<String> = emptySet()
 
     private val _displayedExercises = MutableStateFlow<List<Exercise>>(emptyList())
     val displayedExercises: StateFlow<List<Exercise>> = _displayedExercises.asStateFlow()
@@ -252,6 +269,12 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                                         selectRoutine(it.id)
                                     }
                                 }
+                            }
+                        }
+                        launch {
+                            repository.routineExercises.collect { members ->
+                                routineMemberExerciseIds = members.mapTo(mutableSetOf()) { it.exerciseId }
+                                refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
                             }
                         }
                         // Collected, not read once: calisthenics sets compute stored weightKg as
@@ -406,23 +429,61 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
             val recommendedSeeds = recommendSynergisticMuscleGroups(allGroups, lastTrained, LocalDate.now())
             val recommended = expandMuscleGroupRegions(recommendedSeeds).toList()
-            val suggestedExercise = suggestedExerciseFor(
-                targetGroups = recommended.toSet(),
+            val recommendedGroups = recommended.toSet()
+
+            // Coach Memory Phase 1: reset the session-local "Choose another" state whenever the
+            // recommendation epoch changes, so exclusions never leak across a new day's focus.
+            if (recommendedGroups != suggestionEpoch) {
+                suggestionEpoch = recommendedGroups
+                _suggestionExclusions.value = emptySet()
+                lastShownSuggestionId = null
+            }
+            val exclusions = _suggestionExclusions.value
+
+            val baseSuggestion = suggestedExerciseFor(
+                targetGroups = recommendedGroups,
                 exercises = exercises,
                 lean = trainingLean,
                 usageCounts = usageCounts,
             )
+            val alternatives = familiarAlternativesFor(
+                targetGroups = recommendedGroups,
+                exercises = exercises,
+                lean = trainingLean,
+                usageCounts = usageCounts,
+                loggedExerciseIds = allSets.mapTo(mutableSetOf()) { it.exerciseId },
+                routineExerciseIds = routineMemberExerciseIds,
+                excludedIds = exclusions,
+                rejectedId = null,
+                lastShownId = lastShownSuggestionId,
+            )
+            val suggestedExercise = if (exclusions.isEmpty()) baseSuggestion else alternatives.firstOrNull()
 
             LandingSummary(
                 lastSession = summary,
                 recommendedMuscleGroups = recommended,
                 suggestedExercise = suggestedExercise,
+                canChooseAnother = alternatives.any { it.id != suggestedExercise?.id },
+                noAlternativesLeft = exclusions.isNotEmpty() && suggestedExercise == null,
             )
         }
         _landingSummary.value = landingSummary
     }
 
+    /** Coach Memory Phase 1: rotate the landing recommendation to a different familiar exercise for
+     *  this session only. Deterministic, non-learning, stores nothing durable. */
+    fun chooseAnotherSuggestion() {
+        val current = _landingSummary.value.suggestedExercise?.id ?: return
+        lastShownSuggestionId = current
+        _suggestionExclusions.value = _suggestionExclusions.value + current
+        viewModelScope.launch { refreshLandingSummary(allExercises, latestSetLogs, latestSessions) }
+    }
+
     fun startSession(routineId: Long?) {
+        // Coach Memory Phase 1: the pre-session "Choose another" rotation does not carry into a
+        // workout; a fresh session starts with a clean recommendation.
+        _suggestionExclusions.value = emptySet()
+        lastShownSuggestionId = null
         viewModelScope.launch {
             val session = repository.startSession(routineId)
             selectRoutine(routineId)
