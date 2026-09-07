@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.TIMEGO_BACKUP_MIME_TYPE
 import com.lsing.timego.data.Exercise
+import com.lsing.timego.ui.common.RoutineCardSkeleton
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.formatEnumLabel
@@ -58,6 +59,7 @@ private val SESSION_HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d,
 
 @Composable
 fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
+    val isHydrated by viewModel.isHydrated.collectAsStateWithLifecycle()
     val routines by viewModel.routines.collectAsStateWithLifecycle()
     val routineExercisesById by viewModel.routineExercisesById.collectAsStateWithLifecycle()
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
@@ -198,7 +200,14 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                 },
             )
         }
-        if (routines.isEmpty()) {
+        if (!isHydrated) {
+            item {
+                RoutineCardSkeleton()
+            }
+            item {
+                RoutineCardSkeleton()
+            }
+        } else if (routines.isEmpty()) {
             item {
                 Text(
                     "No routines yet. Create one to plan which days you train.",

@@ -69,6 +69,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     private val _backupResult = MutableStateFlow<BackupResult?>(null)
     val backupResult: StateFlow<BackupResult?> = _backupResult.asStateFlow()
 
+    private val _isHydrated = MutableStateFlow(false)
+    val isHydrated: StateFlow<Boolean> = _isHydrated.asStateFlow()
+
     init {
         viewModelScope.launch {
             // RoutinesViewModel is activity-scoped, so it survives after its tab leaves
@@ -107,6 +110,7 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
                                     .filter { it.endEpochMillis != null }
                                     .sortedByDescending { it.endEpochMillis }
                                     .map { SessionHistoryEntry(it.id, it.date, countsBySession[it.id] ?: 0) }
+                                _isHydrated.value = true
                             }.collect {}
                         }
                         launch {

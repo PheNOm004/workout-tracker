@@ -22,6 +22,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -90,27 +97,102 @@ fun TimeGoNavHost() {
             )
         },
     ) { innerPadding ->
-        AnimatedContent(
-            targetState = selectedRoute,
+        RetainedNavContent(
+            selectedRoute = selectedRoute,
             modifier = Modifier.padding(innerPadding),
-            transitionSpec = {
-                // Slide direction follows tab order (Log -> Progress -> Routines) so switching
-                // feels spatial -- moving right through the row slides left-to-right, and back
-                // reverses it -- rather than every switch sliding the same way regardless of
-                // which tab you came from.
-                val forward = destinations.indexOfRoute(targetState) >= destinations.indexOfRoute(initialState)
-                val enter = slideInHorizontally(TimeGoMotion.navigationInOffset) { width -> if (forward) width / 3 else -width / 3 } +
-                    fadeIn(TimeGoMotion.contentEnter)
-                val exit = slideOutHorizontally(TimeGoMotion.navigationOutOffset) { width -> if (forward) -width / 3 else width / 3 } +
-                    fadeOut(TimeGoMotion.contentExit)
-                enter togetherWith exit
-            },
-            label = "tabContent",
-        ) { route ->
-            when (route) {
-                "log" -> com.lsing.timego.ui.log.LogScreen()
-                "progress" -> com.lsing.timego.ui.progress.ProgressScreen()
-                "routines" -> com.lsing.timego.ui.routines.RoutinesScreen()
+        )
+    }
+}
+
+@Composable
+private fun RetainedNavContent(
+    selectedRoute: String,
+    modifier: Modifier = Modifier,
+) {
+    // Lazily mount tabs so initial app startup is instant (only LogScreen constructed initially),
+    // and keep visited tabs alive in the composition tree to avoid cold reconstruction jank.
+    var visitedRoutes by rememberSaveable { mutableStateOf(setOf("log")) }
+    LaunchedEffect(selectedRoute) {
+        if (!visitedRoutes.contains(selectedRoute)) {
+            visitedRoutes = visitedRoutes + selectedRoute
+        }
+    }
+
+    var activeRoute by remember { mutableStateOf(selectedRoute) }
+    var previousRoute by remember { mutableStateOf<String?>(null) }
+    var forward by remember { mutableStateOf(true) }
+
+    val transitionProgress = remember { Animatable(1f) }
+
+    LaunchedEffect(selectedRoute) {
+        if (selectedRoute != activeRoute) {
+            val fromIndex = destinations.indexOfRoute(activeRoute).coerceAtLeast(0)
+            val toIndex = destinations.indexOfRoute(selectedRoute).coerceAtLeast(0)
+            forward = toIndex >= fromIndex
+            previousRoute = activeRoute
+            activeRoute = selectedRoute
+            transitionProgress.snapTo(0f)
+            transitionProgress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 260, easing = EaseInOut),
+            )
+            previousRoute = null
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        destinations.forEach { dest ->
+            val route = dest.route
+            if (visitedRoutes.contains(route)) {
+                val isTarget = (route == activeRoute)
+                val isPrevious = (route == previousRoute)
+                val isAnimating = (previousRoute != null)
+
+                val progress = transitionProgress.value
+                val (alpha, offsetFraction) = when {
+                    isTarget && isAnimating -> {
+                        val startOffset = if (forward) 0.33f else -0.33f
+                        Pair(progress, (1f - progress) * startOffset)
+                    }
+                    isPrevious && isAnimating -> {
+                        val endOffset = if (forward) -0.33f else 0.33f
+                        Pair(1f - progress, progress * endOffset)
+                    }
+                    isTarget -> Pair(1f, 0f)
+                    else -> Pair(0f, 0f)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(if (isTarget) 1f else 0f)
+                        .graphicsLayer {
+                            this.alpha = alpha
+                            this.translationX = offsetFraction * size.width
+                        }
+                        .then(
+                            if (!isTarget) {
+                                Modifier
+                                    .pointerInput(Unit) {
+                                        awaitPointerEventScope {
+                                            while (true) {
+                                                val event = awaitPointerEvent()
+                                                event.changes.forEach { it.consume() }
+                                            }
+                                        }
+                                    }
+                                    .clearAndSetSemantics { }
+                            } else {
+                                Modifier
+                            }
+                        ),
+                ) {
+                    when (route) {
+                        "log" -> com.lsing.timego.ui.log.LogScreen()
+                        "progress" -> com.lsing.timego.ui.progress.ProgressScreen()
+                        "routines" -> com.lsing.timego.ui.routines.RoutinesScreen()
+                    }
+                }
             }
         }
     }

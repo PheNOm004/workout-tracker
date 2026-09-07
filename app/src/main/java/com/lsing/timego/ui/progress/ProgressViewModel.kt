@@ -128,6 +128,9 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _selectedSegment = MutableStateFlow(ProgressSegment.TRAINING)
     val selectedSegment: StateFlow<ProgressSegment> = _selectedSegment.asStateFlow()
 
+    private val _isHydrated = MutableStateFlow(false)
+    val isHydrated: StateFlow<Boolean> = _isHydrated.asStateFlow()
+
     init {
         viewModelScope.launch {
             // This ViewModel is activity-scoped by the custom root-tab host. Use an always-
@@ -194,6 +197,7 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                                     )
                                     refreshStrengthCurve()
                                     refreshSelectedHistory()
+                                    _isHydrated.value = true
                                 }
                             }
                         }

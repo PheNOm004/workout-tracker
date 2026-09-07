@@ -77,6 +77,9 @@ import com.lsing.timego.ui.theme.NightCoralShade
 import com.lsing.timego.ui.theme.NightMint
 import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.ui.theme.Spacing
+import com.lsing.timego.ui.common.ConsistencyHeatmapSkeleton
+import com.lsing.timego.ui.common.ExercisePerformanceSkeleton
+import com.lsing.timego.ui.common.MuscleDistributionSkeleton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -87,6 +90,7 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
+    val isHydrated by viewModel.isHydrated.collectAsStateWithLifecycle()
     val selectedSegment by viewModel.selectedSegment.collectAsStateWithLifecycle()
     val volumeRatios by viewModel.volumeRatios.collectAsStateWithLifecycle()
     val records by viewModel.records.collectAsStateWithLifecycle()
@@ -178,9 +182,20 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 }
 
         if (segment == ProgressSegment.TRAINING) {
-            // ==================== TRAINING SEGMENT ====================
-            item {
-                SectionHeader("Consistency", topPadding = Spacing.ExtraSmall)
+            if (!isHydrated) {
+                item {
+                    ConsistencyHeatmapSkeleton()
+                }
+                item {
+                    MuscleDistributionSkeleton()
+                }
+                item {
+                    ExercisePerformanceSkeleton()
+                }
+            } else {
+                // ==================== TRAINING SEGMENT ====================
+                item {
+                    SectionHeader("Consistency", topPadding = Spacing.ExtraSmall)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -402,6 +417,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                         }
                     }
                 }
+            }
             }
             item {
                 Spacer(modifier = Modifier.height(76.dp))
