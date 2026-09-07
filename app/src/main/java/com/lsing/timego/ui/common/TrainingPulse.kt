@@ -18,7 +18,12 @@ import androidx.compose.ui.unit.dp
 import com.lsing.timego.ui.theme.TimeGoMotion
 import kotlinx.coroutines.delay
 
-/** A quiet coral edge that marks the active exercise and briefly expands when a set is saved. */
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.EaseInOut
+import androidx.compose.foundation.layout.fillMaxSize
+
+/** A quiet coral edge that marks the active exercise and briefly expands with a soft celebratory glow when a set is saved. */
 @Composable
 fun TrainingPulse(
     active: Boolean,
@@ -30,7 +35,7 @@ fun TrainingPulse(
     LaunchedEffect(pulseId) {
         if (pulseId > 0L) {
             isBursting = true
-            delay(180)
+            delay(240)
             isBursting = false
         }
     }
@@ -39,8 +44,21 @@ fun TrainingPulse(
         animationSpec = TimeGoMotion.pulseWidth,
         label = "training pulse width",
     )
+    val glowAlpha by animateFloatAsState(
+        targetValue = if (isBursting) 0.14f else 0f,
+        animationSpec = tween(durationMillis = 240, easing = EaseInOut),
+        label = "training pulse glow",
+    )
+
     Box(modifier = modifier) {
         content()
+        if (glowAlpha > 0f) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha)),
+            )
+        }
         Box(
             modifier = Modifier
                 .align(Alignment.CenterStart)

@@ -45,6 +45,18 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.EaseInOut
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.Brush
+import com.lsing.timego.ui.common.tactilePress
+import com.lsing.timego.ui.theme.NightDeckHigh
+import com.lsing.timego.ui.theme.NightEdgeHairline
+import com.lsing.timego.ui.theme.NightSheenTop
 import com.lsing.timego.ui.theme.TimeGoMotion
 
 private data class TimeGoDestination(val route: String, val label: String, val icon: ImageVector)
@@ -109,81 +121,130 @@ private fun TimeGoBottomDock(
     selectedRoute: String,
     onSelectRoute: (String) -> Unit,
 ) {
+    val selectedIndex = destinations.indexOfRoute(selectedRoute).coerceAtLeast(0)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         Surface(
-            shape = RoundedCornerShape(32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+            shape = RoundedCornerShape(22.dp),
+            color = NightDeckHigh,
             tonalElevation = 6.dp,
             shadowElevation = 8.dp,
             modifier = Modifier
                 .border(
                     width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
-                    shape = RoundedCornerShape(32.dp),
+                    color = NightEdgeHairline,
+                    shape = RoundedCornerShape(22.dp),
                 ),
         ) {
-            Row(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
+                    .background(
+                        Brush.verticalGradient(
+                            0f to NightSheenTop,
+                            0.35f to androidx.compose.ui.graphics.Color.Transparent,
+                        ),
+                    ),
             ) {
-                destinations.forEach { destination ->
-                    val isSelected = selectedRoute == destination.route
-                    val scale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.04f else 1f,
-                        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
-                        label = "navScale",
-                    )
-                    val containerColor by animateColorAsState(
-                        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.Color.Transparent,
-                        label = "navBg",
-                    )
-                    val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        label = "navColor",
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp, vertical = 6.dp),
+                ) {
+                    val tabWidth = maxWidth / destinations.size
+                    val indicatorOffset by animateDpAsState(
+                        targetValue = tabWidth * selectedIndex,
+                        animationSpec = tween(durationMillis = 300, easing = EaseInOut),
+                        label = "navIndicatorOffset",
                     )
 
+                    // Sliding active highlight capsule behind selected tab
                     Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .scale(scale)
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(containerColor)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = { onSelectRoute(destination.route) },
-                            )
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center,
+                            .offset(x = indicatorOffset)
+                            .width(tabWidth)
+                            .height(52.dp)
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
+                    )
+
+                    // Sliding top precision notch on active tab
+                    Box(
+                        modifier = Modifier
+                            .offset(x = indicatorOffset)
+                            .width(tabWidth)
+                            .padding(top = 1.dp),
+                        contentAlignment = Alignment.TopCenter,
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Icon(
-                                imageVector = destination.icon,
-                                contentDescription = destination.label,
-                                tint = contentColor,
-                                modifier = Modifier.size(22.dp),
+                        Box(
+                            modifier = Modifier
+                                .width(26.dp)
+                                .height(2.5.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.primary),
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        destinations.forEach { destination ->
+                            val isSelected = selectedRoute == destination.route
+                            val contentColor by animateColorAsState(
+                                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                label = "navColor",
                             )
-                            Text(
-                                text = destination.label,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal,
-                                ),
-                                color = contentColor,
-                                modifier = Modifier.padding(top = 2.dp),
+                            val iconScale by animateFloatAsState(
+                                targetValue = if (isSelected) 1.08f else 1.0f,
+                                animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
+                                label = "navIconScale",
                             )
+
+                            val interactionSource = remember { MutableInteractionSource() }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(52.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .tactilePress(interactionSource, pressedScale = 0.92f)
+                                    .clickable(
+                                        interactionSource = interactionSource,
+                                        indication = null,
+                                        onClick = { onSelectRoute(destination.route) },
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = destination.icon,
+                                        contentDescription = destination.label,
+                                        tint = contentColor,
+                                        modifier = Modifier
+                                            .size(22.dp)
+                                            .scale(iconScale),
+                                    )
+                                    Text(
+                                        text = destination.label,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Medium,
+                                        ),
+                                        color = contentColor,
+                                        modifier = Modifier.padding(top = 2.dp),
+                                    )
+                                }
+                            }
                         }
                     }
                 }

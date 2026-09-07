@@ -104,6 +104,7 @@ import com.lsing.timego.ui.common.toFiniteDoubleOrNull
 import com.lsing.timego.ui.common.toPositiveFiniteDoubleOrNull
 import com.lsing.timego.ui.common.toPositiveIntOrNull
 import com.lsing.timego.ui.common.TrainingPulse
+import com.lsing.timego.ui.common.tactilePress
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
 import com.lsing.timego.ui.common.categoryVisual
 import com.lsing.timego.ui.common.formatEnumLabel
@@ -1061,8 +1062,11 @@ private fun StrengthLogRow(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                     )
+                    val logInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Button(
                         enabled = canLog,
+                        interactionSource = logInteractionSource,
+                        modifier = Modifier.tactilePress(logInteractionSource, pressedScale = 0.94f),
                         onClick = {
                             if (isBodyweight) {
                                 if (reps != null && enteredWeight != null && totalBodyweightLoad != null) {
@@ -1081,7 +1085,7 @@ private fun StrengthLogRow(
                             }
                         }
                     ) {
-                        Text("Log set")
+                        Text("Log set", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                     }
                 }
             }
