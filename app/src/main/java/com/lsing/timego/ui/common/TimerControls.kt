@@ -65,6 +65,12 @@ import com.lsing.timego.ui.theme.NightMint
  *  identical phases are structurally equal so an unchanged second costs no recomposition. */
 private const val POLL_INTERVAL_MILLIS = 250L
 
+private enum class TimerControlsState {
+    IDLE,
+    COUNTDOWN,
+    RUNNING,
+}
+
 /** The start / counting-down / running control strip shared by the cardio and hold logging rows.
  *  Both previously carried their own near-identical copy of this state machine, which meant the
  *  same timer bug had to be fixed twice. [formatElapsed] is the only genuine difference between
@@ -100,7 +106,12 @@ fun TimerControls(
         }
     }
 
-    val isActive = phase != null
+    val controlsState = when (phase) {
+        null -> TimerControlsState.IDLE
+        is HoldTimerPhase.CountingDown -> TimerControlsState.COUNTDOWN
+        is HoldTimerPhase.Running -> TimerControlsState.RUNNING
+    }
+    val isActive = controlsState != TimerControlsState.IDLE
     val infiniteTransition = rememberInfiniteTransition(label = "timerPulse")
     val beaconAlpha by infiniteTransition.animateFloat(
         initialValue = 0.35f,
@@ -125,7 +136,7 @@ fun TimerControls(
             ),
     ) {
         AnimatedContent(
-            targetState = phase,
+            targetState = controlsState,
             transitionSpec = {
                 val enter = fadeIn(TimeGoMotion.fadeEnter) + slideInHorizontally(TimeGoMotion.navigationInOffset) { it / 4 }
                 val exit = fadeOut(TimeGoMotion.fadeExit) + slideOutHorizontally(TimeGoMotion.navigationOutOffset) { -it / 4 }
@@ -133,13 +144,13 @@ fun TimerControls(
             },
             label = "timerPhaseTransition",
             modifier = Modifier.padding(Spacing.Medium),
-        ) { current ->
+        ) { state ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                when (current) {
-                    null -> {
+                when (state) {
+                    TimerControlsState.IDLE -> {
                         val startInteractionSource = remember { MutableInteractionSource() }
                         Button(
                             interactionSource = startInteractionSource,
@@ -161,7 +172,8 @@ fun TimerControls(
                             Text("Enter manually", color = NightMint)
                         }
                     }
-                    is HoldTimerPhase.CountingDown -> {
+                    TimerControlsState.COUNTDOWN -> {
+                        val countdownPhase = phase as? HoldTimerPhase.CountingDown
                         Box(
                             modifier = Modifier
                                 .size(10.dp)
@@ -180,7 +192,7 @@ fun TimerControls(
                                 color = NightMint.copy(alpha = 0.75f),
                             )
                             Text(
-                                "Starting in ${current.secondsRemaining}s...",
+                                "Starting in ${countdownPhase?.secondsRemaining ?: 0}s...",
                                 style = LedgerFigureValue.copy(fontSize = 18.sp, color = NightMint),
                             )
                         }
@@ -193,7 +205,8 @@ fun TimerControls(
                             Text("Cancel")
                         }
                     }
-                    is HoldTimerPhase.Running -> {
+                    TimerControlsState.RUNNING -> {
+                        val runningPhase = phase as? HoldTimerPhase.Running
                         Box(
                             modifier = Modifier
                                 .size(10.dp)
@@ -212,7 +225,7 @@ fun TimerControls(
                                 color = NightMint.copy(alpha = 0.75f),
                             )
                             Text(
-                                formatElapsed(current.elapsedSeconds),
+                                formatElapsed(runningPhase?.elapsedSeconds ?: 0),
                                 style = LedgerFigureValue.copy(
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
@@ -229,7 +242,7 @@ fun TimerControls(
                                 contentColor = Color(0xFF0A1810),
                             ),
                             onClick = {
-                                onStop(current.elapsedSeconds)
+                                onStop(runningPhase?.elapsedSeconds ?: 0)
                                 startedAtEpochMillis = null
                             },
                         ) {
