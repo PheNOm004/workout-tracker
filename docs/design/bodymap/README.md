@@ -80,3 +80,14 @@ Removed oblique assignment from ten serratus rib-slip components without alterin
 Anatomical identity remains explicit in the SVG; these untracked shapes are rendered neutrally.
 Added a regression check for their assignment and Android neutral-hit probes. 300 JVM tests
 and five targeted emulator tests passed; refreshed render captures reflect this correction.
+
+## Installed update — 2026-09-08
+
+User explicitly requested install and wrapup. Final JVM/lint/debug/release gate passed.
+The exact tested debug APK (`498eecfb1daad4f7af00e6b45ea158fdb952a1c234b69f0f5aa3b28175d5f728`) was installed in place on the primary S23.
+A complete database/WAL/SHM/settings snapshot and installed APK were saved under
+`C:/Users/lsing/Documents/TimeGo-backups/20260908-014910-bodymap`. SQLite integrity passed.
+Post-install schema, counts, per-table content digests, settings hashes, and original install
+time all matched the backup. Last update time: 2026-09-08 01:49:27. No automated phone launch
+or UI inspection; user visual acceptance remains pending. The original-art restore backup is
+unchanged.
