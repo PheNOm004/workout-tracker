@@ -305,6 +305,14 @@ private fun LogLandingContent(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = Spacing.ExtraSmall),
                                 )
+                                summary.recommendationNote?.let { note ->
+                                    Text(
+                                        note,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(top = 2.dp),
+                                    )
+                                }
                                 if (!isSessionActive && summary.canChooseAnother) {
                                     TextButton(
                                         onClick = onChooseAnother,
