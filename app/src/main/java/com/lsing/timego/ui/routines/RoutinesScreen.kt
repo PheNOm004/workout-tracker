@@ -1,4 +1,4 @@
-package com.lsing.timego.ui.routines
+﻿package com.lsing.timego.ui.routines
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,7 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.AlertDialog
+import com.lsing.timego.ui.common.TimeGoDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -79,14 +79,16 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     }
 
     backupResult?.let { result ->
-        AlertDialog(
+        TimeGoDialog(
             onDismissRequest = viewModel::clearBackupResult,
-            title = { Text(if (result.isError) "Backup problem" else "Backup") },
-            text = { Text(result.message) },
+            eyebrow = "DATABASE",
+            title = if (result.isError) "Backup problem" else "Backup complete",
             confirmButton = {
                 TextButton(onClick = viewModel::clearBackupResult) { Text("OK") }
             },
-        )
+        ) {
+            Text(result.message, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 
     if (showRoutineForm) {
@@ -129,10 +131,10 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     }
 
     pendingDeleteSessionId?.let { sessionId ->
-        AlertDialog(
+        TimeGoDialog(
             onDismissRequest = { pendingDeleteSessionId = null },
-            title = { Text("Delete this session?") },
-            text = { Text("This permanently removes the session and every set logged in it. This can't be undone.") },
+            eyebrow = "HISTORY",
+            title = "Delete this session?",
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteSession(sessionId)
@@ -146,7 +148,13 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                     Text("Cancel")
                 }
             },
-        )
+        ) {
+            Text(
+                "This permanently removes the session and every set logged in it. This can't be undone.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 
     LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
@@ -323,11 +331,23 @@ private fun SessionHistoryDialog(
     onDismiss: () -> Unit,
     onDeleteRequest: (Long) -> Unit,
 ) {
-    AlertDialog(
+    TimeGoDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Session history") },
-        text = {
-            Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+        eyebrow = "ROUTINES",
+        title = "Session history",
+        subtitle = if (sessions.isNotEmpty()) "${sessions.size} session${if (sessions.size == 1) "" else "s"} recorded" else null,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+    ) {
+        Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+            if (sessions.isEmpty()) {
+                Text(
+                    "No sessions recorded.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
                 sessions.forEach { entry ->
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.weight(1f).padding(vertical = Spacing.ExtraSmall)) {
@@ -345,9 +365,6 @@ private fun SessionHistoryDialog(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
-        },
-    )
+        }
+    }
 }

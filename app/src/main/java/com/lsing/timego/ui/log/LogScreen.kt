@@ -1,4 +1,4 @@
-package com.lsing.timego.ui.log
+﻿package com.lsing.timego.ui.log
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
@@ -52,7 +52,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.AlertDialog
+import com.lsing.timego.ui.common.TimeGoDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -518,10 +518,10 @@ private fun LoggingContent(
     }
 
     if (showEndSessionConfirmation) {
-        AlertDialog(
+        TimeGoDialog(
             onDismissRequest = { showEndSessionConfirmation = false },
-            title = { Text("End workout?") },
-            text = { Text("Your logged sets are saved. End this session when you are finished adding sets.") },
+            eyebrow = "SESSION",
+            title = "End workout?",
             dismissButton = {
                 TextButton(onClick = { showEndSessionConfirmation = false }) { Text("Keep logging") }
             },
@@ -533,7 +533,13 @@ private fun LoggingContent(
                     },
                 ) { Text("End session") }
             },
-        )
+        ) {
+            Text(
+                "Your logged sets are saved. End this session when you are finished adding sets.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 
     Scaffold(
@@ -926,7 +932,7 @@ private fun StrengthLogRow(
                 val setsSummary = currentSessionSets.mapIndexed { idx, s ->
                     val w = if (isBodyweight && s.addedWeightKg != null) formatCalisthenicsWeight(s.addedWeightKg) else "${s.weightKg}kg"
                     "#${idx + 1}: $w x ${s.reps}"
-                }.joinToString("  •  ")
+                }.joinToString("  â€¢  ")
                 Text(
                     "Today: $setsSummary",
                     style = LedgerFigureValue.copy(fontSize = 12.sp),

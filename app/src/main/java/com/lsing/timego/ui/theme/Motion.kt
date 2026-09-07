@@ -1,60 +1,63 @@
 package com.lsing.timego.ui.theme
 
+import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 
-/** Shared motion vocabulary for the Engine-Room Gauge Panel. Every spec below is a spring, not a
- *  fixed-duration tween: the panel's motion signature is mechanical inertia -- a needle, a
- *  toggle, or a screen settles into place with a little weight and a light overshoot, never a
- *  hard cut. `dialSweep` carries the most weight (a real needle read) and is the slowest; UI
- *  chrome transitions are quicker but never snap. */
+/** Shared motion vocabulary for the Engine-Room Gauge Panel.
+ *  Screen chrome, tabs, and expansions use symmetric EaseInOut easing both ways (enter and exit)
+ *  for a smooth mechanical glide matching the heatmap scrolling, while needle readings preserve
+ *  instrument inertia via [dialSweep]. */
 object TimeGoMotion {
-    val expandEnter: FiniteAnimationSpec<IntSize> = spring(
-        dampingRatio = 0.86f,
-        stiffness = Spring.StiffnessMediumLow,
+    val expandEnter: FiniteAnimationSpec<IntSize> = tween(
+        durationMillis = 280,
+        easing = EaseInOut,
     )
-    val expandExit: FiniteAnimationSpec<IntSize> = spring(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMedium,
+    val expandExit: FiniteAnimationSpec<IntSize> = tween(
+        durationMillis = 280,
+        easing = EaseInOut,
     )
-    val fadeEnter: FiniteAnimationSpec<Float> = spring(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMediumLow,
+    val fadeEnter: FiniteAnimationSpec<Float> = tween(
+        durationMillis = 240,
+        easing = EaseInOut,
     )
-    val fadeExit: FiniteAnimationSpec<Float> = spring(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMedium,
+    val fadeExit: FiniteAnimationSpec<Float> = tween(
+        durationMillis = 240,
+        easing = EaseInOut,
     )
-    val contentEnter: FiniteAnimationSpec<Float> = spring(
-        dampingRatio = 0.9f,
-        stiffness = Spring.StiffnessMediumLow,
+    val contentEnter: FiniteAnimationSpec<Float> = tween(
+        durationMillis = 280,
+        easing = EaseInOut,
     )
-    val contentExit: FiniteAnimationSpec<Float> = spring(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMedium,
+    val contentExit: FiniteAnimationSpec<Float> = tween(
+        durationMillis = 280,
+        easing = EaseInOut,
     )
-    val navigationIn: FiniteAnimationSpec<Int> = spring(
-        dampingRatio = 0.88f,
-        stiffness = Spring.StiffnessMediumLow,
+    val navigationIn: FiniteAnimationSpec<Int> = tween(
+        durationMillis = 300,
+        easing = EaseInOut,
     )
-    val navigationOut: FiniteAnimationSpec<Int> = spring(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMedium,
+    val navigationOut: FiniteAnimationSpec<Int> = tween(
+        durationMillis = 300,
+        easing = EaseInOut,
     )
-    val navigationInOffset: FiniteAnimationSpec<IntOffset> = spring(
-        dampingRatio = 0.88f,
-        stiffness = Spring.StiffnessMediumLow,
+    val navigationInOffset: FiniteAnimationSpec<IntOffset> = tween(
+        durationMillis = 300,
+        easing = EaseInOut,
     )
-    val navigationOutOffset: FiniteAnimationSpec<IntOffset> = spring(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMedium,
+    val navigationOutOffset: FiniteAnimationSpec<IntOffset> = tween(
+        durationMillis = 300,
+        easing = EaseInOut,
     )
-    val pulseWidth: FiniteAnimationSpec<androidx.compose.ui.unit.Dp> = spring(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMedium,
+    val pulseWidth: FiniteAnimationSpec<Dp> = tween(
+        durationMillis = 300,
+        easing = EaseInOut,
     )
 
     /** A gauge needle sweeping to a new reading: real inertia, a light overshoot past the target

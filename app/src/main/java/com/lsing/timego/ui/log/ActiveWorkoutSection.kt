@@ -3,9 +3,11 @@ package com.lsing.timego.ui.log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -53,6 +55,7 @@ import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.NightMint
 import com.lsing.timego.ui.theme.Spacing
+import com.lsing.timego.ui.theme.TimeGoMotion
 
 /**
  * Pinned Active Workout Section that displays the list of exercises and completed sets
@@ -68,8 +71,8 @@ fun ActiveWorkoutSection(
 ) {
     androidx.compose.animation.AnimatedVisibility(
         visible = activeSetsByExercise.isNotEmpty(),
-        enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
-        exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut(),
+        enter = androidx.compose.animation.expandVertically(TimeGoMotion.expandEnter) + androidx.compose.animation.fadeIn(TimeGoMotion.fadeEnter),
+        exit = androidx.compose.animation.shrinkVertically(TimeGoMotion.expandExit) + androidx.compose.animation.fadeOut(TimeGoMotion.fadeExit),
     ) {
         val totalSets = activeSetsByExercise.values.sumOf { it.size }
 
@@ -92,8 +95,8 @@ fun ActiveWorkoutSection(
                 AnimatedContent(
                     targetState = totalSets,
                     transitionSpec = {
-                        val enter = slideInVertically { height -> height / 2 } + fadeIn()
-                        val exit = slideOutVertically { height -> -height / 2 } + fadeOut()
+                        val enter = slideInVertically(TimeGoMotion.navigationInOffset) { height -> height / 2 } + fadeIn(TimeGoMotion.fadeEnter)
+                        val exit = slideOutVertically(TimeGoMotion.navigationOutOffset) { height -> -height / 2 } + fadeOut(TimeGoMotion.fadeExit)
                         enter togetherWith exit
                     },
                     label = "totalSetsCounter",
@@ -112,15 +115,12 @@ fun ActiveWorkoutSection(
                 val selected = exerciseId == selectedExerciseId
                 val rowColor by animateColorAsState(
                     targetValue = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface,
-                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    animationSpec = tween(durationMillis = 280, easing = EaseInOut),
                     label = "activeExerciseRowColor",
                 )
                 val rowScale by animateFloatAsState(
                     targetValue = if (selected) 1.015f else 1f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium,
-                    ),
+                    animationSpec = tween(durationMillis = 280, easing = EaseInOut),
                     label = "activeExerciseRowScale",
                 )
 
@@ -161,8 +161,8 @@ fun ActiveWorkoutSection(
                         AnimatedContent(
                             targetState = sets.size,
                             transitionSpec = {
-                                val enter = slideInVertically { height -> height / 2 } + fadeIn()
-                                val exit = slideOutVertically { height -> -height / 2 } + fadeOut()
+                                val enter = slideInVertically(TimeGoMotion.navigationInOffset) { height -> height / 2 } + fadeIn(TimeGoMotion.fadeEnter)
+                                val exit = slideOutVertically(TimeGoMotion.navigationOutOffset) { height -> -height / 2 } + fadeOut(TimeGoMotion.fadeExit)
                                 enter togetherWith exit
                             },
                             label = "exerciseSetCount",

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,39 +27,38 @@ private val BREAKDOWN_DATE_FORMATTER = DateTimeFormatter.ofPattern("EEE, MMM d")
  *  that had a session, same absence-not-zero convention the heatmap and [WorkoutHistoryDialog] use. */
 @Composable
 fun PeriodBreakdownDialog(periodLabel: String, days: List<DayTrainingStats>, onDismiss: () -> Unit) {
-    AlertDialog(
+    TimeGoDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Column {
-                Text("Breakdown")
-                Text(periodLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        eyebrow = "BREAKDOWN",
+        title = periodLabel,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
         },
-        text = {
-            Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                if (days.isEmpty()) {
-                    Text("No sessions logged in this period.")
-                } else {
-                    days.forEach { day ->
-                        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                            Text(day.date.format(BREAKDOWN_DATE_FORMATTER), style = MaterialTheme.typography.bodyMedium)
-                            Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
-                                Text(
-                                    "${day.workouts} workout${if (day.workouts == 1) "" else "s"} · " +
-                                        "${formatHistoryDuration(day.durationMinutes)} · " +
-                                        "${day.volumeKg.toInt()} kg · " +
-                                        "${day.sets} set${if (day.sets == 1) "" else "s"}",
-                                    style = LedgerFigureValue.copy(fontSize = 13.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+    ) {
+        Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+            if (days.isEmpty()) {
+                Text(
+                    "No sessions logged in this period.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                days.forEach { day ->
+                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                        Text(day.date.format(BREAKDOWN_DATE_FORMATTER), style = MaterialTheme.typography.bodyMedium)
+                        Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
+                            Text(
+                                "${day.workouts} workout${if (day.workouts == 1) "" else "s"} · " +
+                                    "${formatHistoryDuration(day.durationMinutes)} · " +
+                                    "${day.volumeKg.toInt()} kg · " +
+                                    "${day.sets} set${if (day.sets == 1) "" else "s"}",
+                                style = LedgerFigureValue.copy(fontSize = 13.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
-        },
-    )
+        }
+    }
 }

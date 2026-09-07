@@ -1,4 +1,4 @@
-package com.lsing.timego.ui.common
+﻿package com.lsing.timego.ui.common
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -33,6 +33,7 @@ import com.lsing.timego.domain.primaryMuscleGroups
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.NightEyebrow
 import com.lsing.timego.ui.theme.Spacing
+import com.lsing.timego.ui.theme.TimeGoMotion
 import kotlin.math.roundToInt
 
 /** [setDescriptions] holds one entry per set of this exercise (e.g. "60.0kg x 8"), grouped
@@ -124,10 +125,10 @@ fun buildGroupedDayHistory(
     }.sortedByDescending { it.totalSets }
 }
 
-/** One row per exercise (not per set) -- shared between the Progress screen's tap-a-heatmap-day
- *  dialog (title = "Workout on <date>") and the logging landing page's last-session detail
- *  (title = "Last session"). [title] is caller-supplied rather than assuming a date, since the
- *  landing page's "last session" isn't itself date-keyed the way the heatmap's tap target is. */
+/** Shared by the Progress screen's tap-a-heatmap-day history and the logging landing page's
+ *  tap-the-summary-card history. When [label] is non-null it appears as a subtitle below the date
+ *  (e.g. the routine name that was run that day). Duration appears on its own line when present.
+ *  Uses the signature [TimeGoDialog] hardware plate with top brass bezel sheen and NightDeckHigh plate. */
 @Composable
 fun WorkoutHistoryDialog(
     title: String,
@@ -137,10 +138,9 @@ fun WorkoutHistoryDialog(
     durationMinutes: Double? = null,
     groupedEntries: List<WorkoutHistoryGroup> = emptyList(),
 ) {
-    AlertDialog(
+    TimeGoDialog(
         onDismissRequest = onDismiss,
-        shape = MaterialTheme.shapes.extraLarge,
-        title = {
+        headerContent = {
             Column {
                 Text(
                     "SESSION",
@@ -170,68 +170,51 @@ fun WorkoutHistoryDialog(
                 }
             }
         },
-        text = {
-            Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                if (entries.isEmpty() && groupedEntries.isEmpty()) {
-                    Text(
-                        "No sets logged.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else if (groupedEntries.isNotEmpty()) {
-                    groupedEntries.forEachIndexed { groupIndex, group ->
-                        if (groupIndex > 0) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant,
-                                modifier = Modifier.padding(vertical = Spacing.Small),
-                            )
-                        }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = if (groupIndex == 0) 0.dp else Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
-                        ) {
-                            Text(
-                                group.regionLabel.uppercase(),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Text(
-                                "${group.totalSets} set${if (group.totalSets == 1) "" else "s"}",
-                                style = LedgerFigureValue.copy(fontSize = 12.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        group.entries.forEachIndexed { index, entry ->
-                            if (index > 0) {
-                                HorizontalDivider(
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                    modifier = Modifier.padding(vertical = 4.dp),
-                                )
-                            }
-                            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                Text(
-                                    entry.exerciseName,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                                Text(
-                                    entry.setDescriptions.joinToString("   "),
-                                    style = LedgerFigureValue.copy(fontSize = 13.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = 2.dp),
-                                )
-                            }
-                        }
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+    ) {
+        Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+            if (entries.isEmpty() && groupedEntries.isEmpty()) {
+                Text(
+                    "No sets logged.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (groupedEntries.isNotEmpty()) {
+                groupedEntries.forEachIndexed { groupIndex, group ->
+                    if (groupIndex > 0) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            modifier = Modifier.padding(vertical = Spacing.Small),
+                        )
                     }
-                } else {
-                    entries.forEachIndexed { index, entry ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = if (groupIndex == 0) 0.dp else Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
+                    ) {
+                        Text(
+                            group.regionLabel.uppercase(),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            "${group.totalSets} set${if (group.totalSets == 1) "" else "s"}",
+                            style = LedgerFigureValue.copy(fontSize = 12.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    group.entries.forEachIndexed { index, entry ->
                         if (index > 0) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.padding(vertical = 4.dp),
+                            )
                         }
-                        Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.Small)) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                             Text(
                                 entry.exerciseName,
                                 style = MaterialTheme.typography.titleSmall,
@@ -246,12 +229,28 @@ fun WorkoutHistoryDialog(
                         }
                     }
                 }
+            } else {
+                entries.forEachIndexed { index, entry ->
+                    if (index > 0) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.Small)) {
+                        Text(
+                            entry.exerciseName,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            entry.setDescriptions.joinToString("   "),
+                            style = LedgerFigureValue.copy(fontSize = 13.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+                }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
-        },
-    )
+        }
+    }
 }
 
 @Composable
@@ -265,8 +264,8 @@ fun StatTile(label: String, value: String, modifier: Modifier = Modifier, captio
             AnimatedContent(
                 targetState = value,
                 transitionSpec = {
-                    val enter = slideInVertically { height -> height / 2 } + fadeIn()
-                    val exit = slideOutVertically { height -> -height / 2 } + fadeOut()
+                    val enter = slideInVertically(TimeGoMotion.navigationInOffset) { height -> height / 2 } + fadeIn(TimeGoMotion.fadeEnter)
+                    val exit = slideOutVertically(TimeGoMotion.navigationOutOffset) { height -> -height / 2 } + fadeOut(TimeGoMotion.fadeExit)
                     enter togetherWith exit
                 },
                 label = "statTileValueTransition",

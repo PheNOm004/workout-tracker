@@ -1,4 +1,7 @@
-package com.lsing.timego.ui.routines
+﻿package com.lsing.timego.ui.routines
+
+import com.lsing.timego.ui.theme.NightDeckHigh
+import com.lsing.timego.ui.theme.NightEyebrow
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -51,13 +54,24 @@ fun RoutineFormDialog(
     val selectedDays = remember { mutableStateOf(setOf<String>()) }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Surface(modifier = Modifier.fillMaxSize(), color = NightDeckHigh) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth().padding(Spacing.Large),
                 ) {
-                    Text("New Routine", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "ROUTINES",
+                            style = NightEyebrow,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            "New Routine",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Filled.Close, contentDescription = "Close")
                     }

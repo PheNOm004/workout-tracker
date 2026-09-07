@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import com.lsing.timego.ui.theme.TimeGoMotion
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -75,8 +76,8 @@ fun TimerControls(
         AnimatedContent(
             targetState = phase,
             transitionSpec = {
-                val enter = fadeIn() + slideInHorizontally { it / 4 }
-                val exit = fadeOut() + slideOutHorizontally { -it / 4 }
+                val enter = fadeIn(TimeGoMotion.fadeEnter) + slideInHorizontally(TimeGoMotion.navigationInOffset) { it / 4 }
+                val exit = fadeOut(TimeGoMotion.fadeExit) + slideOutHorizontally(TimeGoMotion.navigationOutOffset) { -it / 4 }
                 enter togetherWith exit
             },
             label = "timerPhaseTransition",
