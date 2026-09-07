@@ -26,6 +26,10 @@ import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.domain.formatCalisthenicsWeight
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
+import com.lsing.timego.data.MuscleGroup
+import com.lsing.timego.domain.primaryMuscleGroups
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.NightEyebrow
 import com.lsing.timego.ui.theme.Spacing
@@ -35,6 +39,13 @@ import kotlin.math.roundToInt
  *  together under a single [exerciseName] row rather than repeating the name once per set --
  *  see [buildDayHistoryEntries]. */
 data class DayHistoryEntry(val exerciseName: String, val setDescriptions: List<String>)
+
+/** Group of logged exercises belonging to the same body region, sorted by training volume. */
+data class WorkoutHistoryGroup(
+    val regionLabel: String,
+    val totalSets: Int,
+    val entries: List<DayHistoryEntry>,
+)
 
 internal fun formatHistoryDuration(durationMinutes: Double?): String {
     val totalSeconds = ((durationMinutes ?: 0.0).coerceAtLeast(0.0) * 60).roundToInt()
@@ -73,6 +84,46 @@ fun buildDayHistoryEntries(setLogs: List<SetLog>, exercisesById: Map<Long, Exerc
         .groupBy({ it.first }, { it.second })
         .map { (name, descriptions) -> DayHistoryEntry(name, descriptions) }
 
+/**
+ * Builds evidence-based grouped workout history entries organized by anatomical display region
+ * (Legs, Shoulders, Back, Chest, Arms, Core, Cardio). Regions are ordered descending by total set volume.
+ */
+fun buildGroupedDayHistory(
+    setLogs: List<SetLog>,
+    exercisesById: Map<Long, Exercise>,
+): List<WorkoutHistoryGroup> {
+    if (setLogs.isEmpty()) return emptyList()
+
+    val hasBackMuscles = setLogs.any { log ->
+        val ex = exercisesById[log.exerciseId] ?: return@any false
+        val pGroups = primaryMuscleGroups(ex).ifEmpty { ex.muscleGroups.toSet() }
+        pGroups.any { it in setOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.LOWER_BACK.name, MuscleGroup.TRAPS.name) }
+    }
+
+    val dayEntries = buildDayHistoryEntries(setLogs, exercisesById)
+    val exercisesByName = exercisesById.values.associateBy { it.name }
+    val entriesByRegion = linkedMapOf<String, MutableList<DayHistoryEntry>>()
+
+    for (entry in dayEntries) {
+        val exercise = exercisesByName[entry.exerciseName]
+        val regionLabel = if (exercise == null) {
+            "Other"
+        } else {
+            exerciseDisplayRegion(exercise, hasBackMuscles)
+        }
+        entriesByRegion.getOrPut(regionLabel) { mutableListOf() }.add(entry)
+    }
+
+    return entriesByRegion.map { (region, entries) ->
+        val totalSets = entries.sumOf { it.setDescriptions.size }
+        WorkoutHistoryGroup(
+            regionLabel = region,
+            totalSets = totalSets,
+            entries = entries,
+        )
+    }.sortedByDescending { it.totalSets }
+}
+
 /** One row per exercise (not per set) -- shared between the Progress screen's tap-a-heatmap-day
  *  dialog (title = "Workout on <date>") and the logging landing page's last-session detail
  *  (title = "Last session"). [title] is caller-supplied rather than assuming a date, since the
@@ -84,6 +135,7 @@ fun WorkoutHistoryDialog(
     onDismiss: () -> Unit,
     label: String? = null,
     durationMinutes: Double? = null,
+    groupedEntries: List<WorkoutHistoryGroup> = emptyList(),
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -120,12 +172,60 @@ fun WorkoutHistoryDialog(
         },
         text = {
             Column(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                if (entries.isEmpty()) {
+                if (entries.isEmpty() && groupedEntries.isEmpty()) {
                     Text(
                         "No sets logged.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                } else if (groupedEntries.isNotEmpty()) {
+                    groupedEntries.forEachIndexed { groupIndex, group ->
+                        if (groupIndex > 0) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.padding(vertical = Spacing.Small),
+                            )
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = if (groupIndex == 0) 0.dp else Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
+                        ) {
+                            Text(
+                                group.regionLabel.uppercase(),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                "${group.totalSets} set${if (group.totalSets == 1) "" else "s"}",
+                                style = LedgerFigureValue.copy(fontSize = 12.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        group.entries.forEachIndexed { index, entry ->
+                            if (index > 0) {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                )
+                            }
+                            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text(
+                                    entry.exerciseName,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    entry.setDescriptions.joinToString("   "),
+                                    style = LedgerFigureValue.copy(fontSize = 13.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 2.dp),
+                                )
+                            }
+                        }
+                    }
                 } else {
                     entries.forEachIndexed { index, entry ->
                         if (index > 0) {

@@ -53,7 +53,9 @@ import com.lsing.timego.domain.sessionWorkingSetHistory
 import com.lsing.timego.domain.familiarAlternativesFor
 import com.lsing.timego.domain.suggestedExerciseFor
 import com.lsing.timego.ui.common.DayHistoryEntry
+import com.lsing.timego.ui.common.WorkoutHistoryGroup
 import com.lsing.timego.ui.common.buildDayHistoryEntries
+import com.lsing.timego.ui.common.buildGroupedDayHistory
 import com.lsing.timego.ui.common.sessionDayLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -81,6 +83,7 @@ data class LastSessionSummary(
     val label: String,
     val durationMinutes: Long,
     val detail: List<DayHistoryEntry>,
+    val groupedDetail: List<WorkoutHistoryGroup> = emptyList(),
 )
 
 /** Last-session summary + recommended muscle groups -- kept fresh independently of
@@ -449,13 +452,15 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 val primaryMuscleGroups = muscleGroupsWorkedInSession(session.id, sets, exercises)
                 val muscleIntensities = muscleGroupIntensityForSession(session.id, sets, exercisesById)
                 val detail = buildDayHistoryEntries(sets, exercisesById)
+                val groupedDetail = buildGroupedDayHistory(sets, exercisesById)
                 LastSessionSummary(
                     sets = sets.size,
                     muscleGroups = muscleGroups,
                     muscleIntensities = muscleIntensities,
-                    label = sessionDayLabel(primaryMuscleGroups, isCardioOnlySession(sets, exercisesById)),
+                    label = sessionDayLabel(sets, exercisesById),
                     durationMinutes = (session.endEpochMillis ?: session.startEpochMillis).minus(session.startEpochMillis) / 60_000,
                     detail = detail,
+                    groupedDetail = groupedDetail,
                 )
             }
 

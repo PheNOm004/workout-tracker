@@ -48,6 +48,7 @@ import com.lsing.timego.data.SetLog
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.categoryVisual
+import com.lsing.timego.ui.common.exerciseDisplayRegion
 import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.NightMint
@@ -145,12 +146,18 @@ fun ActiveWorkoutSection(
                             tint = visual.accent,
                             modifier = Modifier.size(18.dp).padding(end = 4.dp),
                         )
-                        Text(
-                            text = exercise.name,
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f),
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = exercise.name,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = exerciseDisplayRegion(exercise),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                         AnimatedContent(
                             targetState = sets.size,
                             transitionSpec = {

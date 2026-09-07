@@ -47,7 +47,7 @@ private val DISPLAY_REGION_GROUPS = listOf(
     setOf(MuscleGroup.ABS.name, MuscleGroup.OBLIQUES.name),
 )
 
-private fun isTrainingSet(log: SetLog, exercise: Exercise): Boolean =
+fun isTrainingSet(log: SetLog, exercise: Exercise): Boolean =
     !log.isWarmup && exercise.category != ExerciseCategory.WARMUP.name && exercise.category != ExerciseCategory.CARDIO.name
 
 fun primaryMuscleGroups(exercise: Exercise): Set<String> =

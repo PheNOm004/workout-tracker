@@ -201,6 +201,7 @@ private fun LogLandingContent(
         WorkoutHistoryDialog(
             title = "Last session",
             entries = summary.lastSession.detail,
+            groupedEntries = summary.lastSession.groupedDetail,
             onDismiss = { showLastSessionDetail = false },
             label = summary.lastSession.label,
             durationMinutes = summary.lastSession.durationMinutes.toDouble(),

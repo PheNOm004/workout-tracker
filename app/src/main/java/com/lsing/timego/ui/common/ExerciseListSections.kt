@@ -36,7 +36,11 @@ import androidx.compose.ui.unit.dp
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.MuscleGroup
+import com.lsing.timego.data.SetLog
 import com.lsing.timego.domain.ProgressTimeframe
+import com.lsing.timego.domain.isCardioOnlySession
+import com.lsing.timego.domain.isTrainingSet
+import com.lsing.timego.domain.primaryMuscleGroups
 import com.lsing.timego.ui.theme.Spacing
 
 /** Title-Case display label for an ExerciseCategory or MuscleGroup enum name, e.g. "FULL_BODY" ->
@@ -53,13 +57,13 @@ fun timeframeLabel(timeframe: ProgressTimeframe): String = when (timeframe) {
     ProgressTimeframe.YEAR -> "last 12 months"
 }
 
-private enum class SessionBodyRegion {
+enum class SessionBodyRegion {
     UPPER_BODY,
     LOWER_BODY,
     CORE,
 }
 
-private enum class SessionDisplayRegion(
+enum class SessionDisplayRegion(
     val label: String,
     val bodyRegion: SessionBodyRegion,
 ) {
@@ -71,15 +75,15 @@ private enum class SessionDisplayRegion(
     CORE("Core", SessionBodyRegion.CORE),
 }
 
-private fun sessionDisplayRegion(group: String): SessionDisplayRegion? = when (group) {
+fun sessionDisplayRegion(group: String, hasBackMuscles: Boolean = false): SessionDisplayRegion? = when (group) {
     MuscleGroup.CHEST.name -> SessionDisplayRegion.CHEST
     MuscleGroup.LATS.name,
     MuscleGroup.UPPER_BACK.name,
     MuscleGroup.LOWER_BACK.name,
     MuscleGroup.TRAPS.name -> SessionDisplayRegion.BACK
+    MuscleGroup.REAR_DELTS.name -> if (hasBackMuscles) SessionDisplayRegion.BACK else SessionDisplayRegion.SHOULDERS
     MuscleGroup.FRONT_DELTS.name,
-    MuscleGroup.SIDE_DELTS.name,
-    MuscleGroup.REAR_DELTS.name -> SessionDisplayRegion.SHOULDERS
+    MuscleGroup.SIDE_DELTS.name -> SessionDisplayRegion.SHOULDERS
     MuscleGroup.BICEPS.name,
     MuscleGroup.TRICEPS.name,
     MuscleGroup.FOREARMS.name -> SessionDisplayRegion.ARMS
@@ -91,6 +95,13 @@ private fun sessionDisplayRegion(group: String): SessionDisplayRegion? = when (g
     MuscleGroup.ABS.name,
     MuscleGroup.OBLIQUES.name -> SessionDisplayRegion.CORE
     else -> null
+}
+
+fun exerciseDisplayRegion(exercise: Exercise, hasBackMuscles: Boolean = false): String {
+    if (exercise.category == ExerciseCategory.CARDIO.name) return "Cardio"
+    val pGroups = primaryMuscleGroups(exercise).ifEmpty { exercise.muscleGroups.toSet() }
+    val region = pGroups.mapNotNull { sessionDisplayRegion(it, hasBackMuscles) }.firstOrNull()
+    return region?.label ?: exercise.muscleGroups.firstOrNull()?.let(::formatEnumLabel) ?: "Other"
 }
 
 private fun joinDisplayLabels(labels: List<String>): String = when (labels.size) {
@@ -110,8 +121,11 @@ fun formatMuscleGroupList(groups: Collection<String>): String {
     if (distinctGroups.isEmpty()) return ""
     if (MuscleGroup.FULL_BODY.name in distinctGroups) return "Full Body"
 
+    val hasBackMuscles = distinctGroups.any {
+        it in setOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.LOWER_BACK.name, MuscleGroup.TRAPS.name)
+    }
     val regions = distinctGroups
-        .mapNotNull(::sessionDisplayRegion)
+        .mapNotNull { sessionDisplayRegion(it, hasBackMuscles) }
         .distinct()
         .sortedBy { it.ordinal }
     val bodyRegions = regions.map { it.bodyRegion }.toSet()
@@ -137,6 +151,118 @@ fun sessionDayLabel(muscleGroups: Set<String>, isCardioOnly: Boolean): String {
     val listLabel = formatMuscleGroupList(muscleGroups)
     if (listLabel.isNotEmpty()) return listLabel
     return "Light Session"
+}
+
+/**
+ * Volume-weighted, evidence-based session day label derived from logged sets.
+ * Prioritizes dominant trained muscle regions (by set volume), filters out trace finishers/accessories
+ * (e.g. 2 sets of hanging at the end of a leg workout), and identifies standard split archetypes
+ * (Push, Pull, Legs, Upper Body, Full Body, Shoulders & Arms, etc.).
+ */
+fun sessionDayLabel(
+    sets: List<SetLog>,
+    exercisesById: Map<Long, Exercise>,
+    isCardioOnly: Boolean = isCardioOnlySession(sets, exercisesById),
+): String {
+    if (isCardioOnly) return "Cardio"
+
+    val trainingSets = sets.filter { log ->
+        val ex = exercisesById[log.exerciseId] ?: return@filter false
+        isTrainingSet(log, ex)
+    }
+    if (trainingSets.isEmpty()) return "Light Session"
+
+    // Check if session contains any explicit back muscles
+    val hasBackMuscles = trainingSets.any { log ->
+        val ex = exercisesById[log.exerciseId] ?: return@any false
+        val pGroups = primaryMuscleGroups(ex).ifEmpty { ex.muscleGroups.toSet() }
+        pGroups.any { it in setOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.LOWER_BACK.name, MuscleGroup.TRAPS.name) }
+    }
+
+    val regionCounts = mutableMapOf<SessionDisplayRegion, Int>()
+    var chestSets = 0
+    var backSets = 0
+    var shoulderSets = 0
+    var armSets = 0
+    var legSets = 0
+    var coreSets = 0
+    var tricepSets = 0
+    var bicepSets = 0
+
+    for (log in trainingSets) {
+        val ex = exercisesById[log.exerciseId] ?: continue
+        val pGroups = primaryMuscleGroups(ex).ifEmpty { ex.muscleGroups.toSet() }
+        val regions = pGroups.mapNotNull { sessionDisplayRegion(it, hasBackMuscles) }.distinct()
+        for (region in regions) {
+            regionCounts[region] = (regionCounts[region] ?: 0) + 1
+            when (region) {
+                SessionDisplayRegion.CHEST -> chestSets++
+                SessionDisplayRegion.BACK -> backSets++
+                SessionDisplayRegion.SHOULDERS -> shoulderSets++
+                SessionDisplayRegion.ARMS -> {
+                    armSets++
+                    if (MuscleGroup.TRICEPS.name in pGroups) tricepSets++
+                    if (MuscleGroup.BICEPS.name in pGroups) bicepSets++
+                }
+                SessionDisplayRegion.LEGS -> legSets++
+                SessionDisplayRegion.CORE -> coreSets++
+            }
+        }
+    }
+
+    val totalSetVolume = regionCounts.values.sum()
+    if (totalSetVolume == 0) return "Light Session"
+
+    // Filter out minor trace accessories if workout has substantial volume
+    // E.g., 2 sets of hanging/curls at the end of a 16-set leg workout shouldn't turn the day into "Legs & Arms"
+    val significantRegions = if (totalSetVolume >= 8) {
+        regionCounts.filter { (_, count) ->
+            count >= 3 || (count.toDouble() / totalSetVolume) >= 0.18
+        }.ifEmpty { regionCounts }
+    } else {
+        regionCounts
+    }
+
+    val upperSets = chestSets + backSets + shoulderSets + armSets
+    val lowerSets = legSets
+
+    // 1. Full Body: Significant upper and lower body work
+    if (legSets >= 4 && (chestSets + backSets) >= 4 && (lowerSets.toDouble() / totalSetVolume) >= 0.28 && (upperSets.toDouble() / totalSetVolume) >= 0.28) {
+        return "Full Body"
+    }
+
+    // 2. Pure Push: Chest, Front/Side Shoulders, Triceps with no Back and no Legs
+    val isPushDominant = (chestSets + shoulderSets + tricepSets) >= (totalSetVolume * 0.8) && backSets == 0 && legSets == 0
+    if (isPushDominant) {
+        if (chestSets >= 3 && shoulderSets >= 3) return "Push"
+        if (chestSets >= 3 && tricepSets >= 3) return "Chest & Arms"
+        if (shoulderSets >= 3 && tricepSets >= 3) return "Shoulders & Arms"
+        if (chestSets >= 3) return "Chest"
+        if (shoulderSets >= 3) return "Shoulders"
+    }
+
+    // 3. Pure Pull: Back and Biceps with no Chest and no Legs
+    val isPullDominant = (backSets + bicepSets) >= (totalSetVolume * 0.8) && chestSets == 0 && legSets == 0
+    if (isPullDominant && backSets >= 3) {
+        return if (bicepSets >= 3) "Back & Arms" else "Back"
+    }
+
+    // 4. Pure Legs:
+    if (legSets >= (totalSetVolume * 0.75)) {
+        return if (coreSets >= 3) "Legs & Core" else "Legs"
+    }
+
+    // 5. Upper Body: Balanced Chest + Back (+ Arms/Shoulders), no Legs
+    if (legSets == 0 && chestSets >= 3 && backSets >= 3) {
+        return if (shoulderSets == 0 && armSets == 0) "Chest & Back" else "Upper Body"
+    }
+
+    // Sort active regions by set volume descending
+    val sortedActiveRegions = significantRegions.entries
+        .sortedByDescending { it.value }
+        .map { it.key }
+
+    return joinDisplayLabels(sortedActiveRegions.map { it.label })
 }
 
 /** Strips hyphens/spaces and lowercases so a search for "pull up" or "pullup" matches an exercise
@@ -177,7 +303,7 @@ fun exerciseMatchesFilter(exercise: Exercise, filter: MuscleFilterOption, favori
         MuscleFilterOption.FAVORITES -> exercise.id in favoriteIds
         MuscleFilterOption.CARDIO -> exercise.category == ExerciseCategory.CARDIO.name
         MuscleFilterOption.CHEST -> exercise.muscleGroups.any { sessionDisplayRegion(it) == SessionDisplayRegion.CHEST }
-        MuscleFilterOption.BACK -> exercise.muscleGroups.any { sessionDisplayRegion(it) == SessionDisplayRegion.BACK }
+        MuscleFilterOption.BACK -> exercise.muscleGroups.any { sessionDisplayRegion(it) == SessionDisplayRegion.BACK || it == MuscleGroup.REAR_DELTS.name }
         MuscleFilterOption.SHOULDERS -> exercise.muscleGroups.any { sessionDisplayRegion(it) == SessionDisplayRegion.SHOULDERS }
         MuscleFilterOption.ARMS -> exercise.muscleGroups.any { sessionDisplayRegion(it) == SessionDisplayRegion.ARMS }
         MuscleFilterOption.LEGS -> exercise.muscleGroups.any { sessionDisplayRegion(it) == SessionDisplayRegion.LEGS }
