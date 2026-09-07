@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -138,6 +139,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 routines = routines,
                 isSessionActive = false,
                 onStartOrContinue = viewModel::startSession,
+                onChooseAnother = viewModel::chooseAnotherSuggestion,
                 routineLastCompleted = routineLastCompleted,
                 balanceTimeframe = landingBalanceTimeframe,
                 muscleBalance = landingMuscleBalance,
@@ -160,6 +162,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                             routines = routines,
                             isSessionActive = true,
                             onStartOrContinue = { peekingLanding = false },
+                            onChooseAnother = {},
                             routineLastCompleted = routineLastCompleted,
                             balanceTimeframe = landingBalanceTimeframe,
                             muscleBalance = landingMuscleBalance,
@@ -186,6 +189,7 @@ private fun LogLandingContent(
     routines: List<com.lsing.timego.data.Routine>,
     isSessionActive: Boolean,
     onStartOrContinue: (routineId: Long?) -> Unit,
+    onChooseAnother: () -> Unit,
     routineLastCompleted: Map<Long, LocalDate>,
     balanceTimeframe: ProgressTimeframe,
     muscleBalance: Map<String, Float>,
@@ -297,6 +301,23 @@ private fun LogLandingContent(
                             summary.suggestedExercise?.let { exercise ->
                                 Text(
                                     "Try: ${exercise.name}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = Spacing.ExtraSmall),
+                                )
+                                if (!isSessionActive && summary.canChooseAnother) {
+                                    TextButton(
+                                        onClick = onChooseAnother,
+                                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = Spacing.ExtraSmall),
+                                        modifier = Modifier.heightIn(min = 48.dp),
+                                    ) {
+                                        Text("Choose another", style = MaterialTheme.typography.labelLarge)
+                                    }
+                                }
+                            }
+                            if (!isSessionActive && summary.noAlternativesLeft) {
+                                Text(
+                                    "No other familiar matches found. Start freeform and pick any exercise.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = Spacing.ExtraSmall),
