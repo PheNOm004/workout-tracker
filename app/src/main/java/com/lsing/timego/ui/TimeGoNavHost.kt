@@ -1,15 +1,9 @@
 package com.lsing.timego.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,17 +12,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.animation.core.Animatable
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.zIndex
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -49,9 +37,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -59,7 +52,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
-import androidx.compose.ui.graphics.Brush
 import com.lsing.timego.ui.common.tactilePress
 import com.lsing.timego.ui.theme.NightDeckHigh
 import com.lsing.timego.ui.theme.NightEdgeHairline
@@ -109,89 +101,44 @@ private fun RetainedNavContent(
     selectedRoute: String,
     modifier: Modifier = Modifier,
 ) {
-    // Lazily mount tabs so initial app startup is instant (only LogScreen constructed initially),
-    // and keep visited tabs alive in the composition tree to avoid cold reconstruction jank.
-    var visitedRoutes by rememberSaveable { mutableStateOf(setOf("log")) }
-    LaunchedEffect(selectedRoute) {
-        if (!visitedRoutes.contains(selectedRoute)) {
-            visitedRoutes = visitedRoutes + selectedRoute
-        }
-    }
-
-    var activeRoute by remember { mutableStateOf(selectedRoute) }
-    var previousRoute by remember { mutableStateOf<String?>(null) }
-    var forward by remember { mutableStateOf(true) }
-
-    val transitionProgress = remember { Animatable(1f) }
-
-    LaunchedEffect(selectedRoute) {
-        if (selectedRoute != activeRoute) {
-            val fromIndex = destinations.indexOfRoute(activeRoute).coerceAtLeast(0)
-            val toIndex = destinations.indexOfRoute(selectedRoute).coerceAtLeast(0)
-            forward = toIndex >= fromIndex
-            previousRoute = activeRoute
-            activeRoute = selectedRoute
-            transitionProgress.snapTo(0f)
-            transitionProgress.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 260, easing = EaseInOut),
-            )
-            previousRoute = null
-        }
-    }
-
     Box(modifier = modifier.fillMaxSize()) {
         destinations.forEach { dest ->
             val route = dest.route
-            if (visitedRoutes.contains(route)) {
-                val isTarget = (route == activeRoute)
-                val isPrevious = (route == previousRoute)
-                val isAnimating = (previousRoute != null)
+            val isSelected = (route == selectedRoute)
+            val alpha by animateFloatAsState(
+                targetValue = if (isSelected) 1f else 0f,
+                animationSpec = tween(durationMillis = 140, easing = EaseInOut),
+                label = "navTabAlpha_${route}",
+            )
 
-                val progress = transitionProgress.value
-                val (alpha, offsetFraction) = when {
-                    isTarget && isAnimating -> {
-                        val startOffset = if (forward) 0.33f else -0.33f
-                        Pair(progress, (1f - progress) * startOffset)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(if (isSelected) 1f else 0f)
+                    .graphicsLayer {
+                        this.alpha = alpha
                     }
-                    isPrevious && isAnimating -> {
-                        val endOffset = if (forward) -0.33f else 0.33f
-                        Pair(1f - progress, progress * endOffset)
-                    }
-                    isTarget -> Pair(1f, 0f)
-                    else -> Pair(0f, 0f)
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .zIndex(if (isTarget) 1f else 0f)
-                        .graphicsLayer {
-                            this.alpha = alpha
-                            this.translationX = offsetFraction * size.width
-                        }
-                        .then(
-                            if (!isTarget) {
-                                Modifier
-                                    .pointerInput(Unit) {
-                                        awaitPointerEventScope {
-                                            while (true) {
-                                                val event = awaitPointerEvent()
-                                                event.changes.forEach { it.consume() }
-                                            }
+                    .then(
+                        if (!isSelected) {
+                            Modifier
+                                .pointerInput(Unit) {
+                                    awaitPointerEventScope {
+                                        while (true) {
+                                            val event = awaitPointerEvent()
+                                            event.changes.forEach { it.consume() }
                                         }
                                     }
-                                    .clearAndSetSemantics { }
-                            } else {
-                                Modifier
-                            }
-                        ),
-                ) {
-                    when (route) {
-                        "log" -> com.lsing.timego.ui.log.LogScreen()
-                        "progress" -> com.lsing.timego.ui.progress.ProgressScreen()
-                        "routines" -> com.lsing.timego.ui.routines.RoutinesScreen()
-                    }
+                                }
+                                .clearAndSetSemantics { }
+                        } else {
+                            Modifier
+                        }
+                    ),
+            ) {
+                when (route) {
+                    "log" -> com.lsing.timego.ui.log.LogScreen()
+                    "progress" -> com.lsing.timego.ui.progress.ProgressScreen()
+                    "routines" -> com.lsing.timego.ui.routines.RoutinesScreen()
                 }
             }
         }
@@ -241,7 +188,7 @@ private fun TimeGoBottomDock(
                     val tabWidth = maxWidth / destinations.size
                     val indicatorOffset by animateDpAsState(
                         targetValue = tabWidth * selectedIndex,
-                        animationSpec = tween(durationMillis = 300, easing = EaseInOut),
+                        animationSpec = tween(durationMillis = 180, easing = EaseInOut),
                         label = "navIndicatorOffset",
                     )
 

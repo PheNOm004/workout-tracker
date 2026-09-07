@@ -138,6 +138,11 @@ private fun hexToColor(hex: String): Color {
     return Color(r, g, b)
 }
 
+private val CACHED_FRONT_SHAPES by lazy { buildShapes(FRONT_BODY_PATHS, FRONT_BODY_VIEWBOX) }
+private val CACHED_BACK_SHAPES by lazy { buildShapes(BACK_BODY_PATHS, BACK_BODY_VIEWBOX) }
+private val CACHED_FRONT_REGIONS by lazy { buildGroupRegions(CACHED_FRONT_SHAPES, FRONT_BODY_VIEWBOX) }
+private val CACHED_BACK_REGIONS by lazy { buildGroupRegions(CACHED_BACK_SHAPES, BACK_BODY_VIEWBOX) }
+
 /** Front + back anatomy diagram traced from a real muscle-atlas reference (see
  *  docs/superpowers/specs), each of ~176 shapes classified by its position into a [MuscleGroup]
  *  zone (or left neutral for the outline/face/hand/foot detail shapes that aren't a tracked
@@ -162,10 +167,10 @@ fun MuscleBodyDiagram(
     val outlineColor = MaterialTheme.colorScheme.onSurfaceVariant
     val detailColor = MaterialTheme.colorScheme.surfaceVariant
 
-    val frontShapes = remember { buildShapes(FRONT_BODY_PATHS, FRONT_BODY_VIEWBOX) }
-    val backShapes = remember { buildShapes(BACK_BODY_PATHS, BACK_BODY_VIEWBOX) }
-    val frontRegions = remember(frontShapes) { buildGroupRegions(frontShapes, FRONT_BODY_VIEWBOX) }
-    val backRegions = remember(backShapes) { buildGroupRegions(backShapes, BACK_BODY_VIEWBOX) }
+    val frontShapes = CACHED_FRONT_SHAPES
+    val backShapes = CACHED_BACK_SHAPES
+    val frontRegions = CACHED_FRONT_REGIONS
+    val backRegions = CACHED_BACK_REGIONS
     var pressedGroup by remember { mutableStateOf<MuscleGroup?>(null) }
     val frontAspect = (FRONT_BODY_VIEWBOX[2] - FRONT_BODY_VIEWBOX[0]) / (FRONT_BODY_VIEWBOX[3] - FRONT_BODY_VIEWBOX[1])
     val backAspect = (BACK_BODY_VIEWBOX[2] - BACK_BODY_VIEWBOX[0]) / (BACK_BODY_VIEWBOX[3] - BACK_BODY_VIEWBOX[1])
