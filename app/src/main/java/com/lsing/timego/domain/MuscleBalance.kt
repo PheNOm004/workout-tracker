@@ -30,12 +30,11 @@ private val ANATOMICAL_MUSCLE_GROUPS = MuscleGroup.entries
 
 private val DISPLAY_REGION_GROUPS = listOf(
     setOf(MuscleGroup.CHEST.name),
-    setOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.LOWER_BACK.name),
+    setOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.LOWER_BACK.name, MuscleGroup.TRAPS.name),
     setOf(
         MuscleGroup.FRONT_DELTS.name,
         MuscleGroup.SIDE_DELTS.name,
         MuscleGroup.REAR_DELTS.name,
-        MuscleGroup.TRAPS.name,
     ),
     setOf(MuscleGroup.BICEPS.name, MuscleGroup.TRICEPS.name, MuscleGroup.FOREARMS.name),
     setOf(
@@ -181,7 +180,7 @@ fun synergisticPartnersFor(primaryGroup: String): Set<String> {
             MuscleGroup.LATS.name,
             MuscleGroup.UPPER_BACK.name,
         )
-    } else if (primaryGroup == MuscleGroup.LATS.name || primaryGroup == MuscleGroup.UPPER_BACK.name || primaryGroup == MuscleGroup.LOWER_BACK.name) {
+    } else if (primaryGroup == MuscleGroup.LATS.name || primaryGroup == MuscleGroup.UPPER_BACK.name || primaryGroup == MuscleGroup.LOWER_BACK.name || primaryGroup == MuscleGroup.TRAPS.name) {
         // Biomechanically optimal: Back + Biceps (classic Pull), Back + Legs (Posterior chain / Deadlift day), or Back + Chest (Arnold)
         partners += setOf(
             MuscleGroup.BICEPS.name,
@@ -191,6 +190,9 @@ fun synergisticPartnersFor(primaryGroup: String): Set<String> {
             MuscleGroup.TRAPS.name,
             MuscleGroup.REAR_DELTS.name,
             MuscleGroup.CHEST.name,
+            MuscleGroup.LATS.name,
+            MuscleGroup.UPPER_BACK.name,
+            MuscleGroup.LOWER_BACK.name,
         )
         // Ensure push delts (Front/Side) and triceps do not contaminate Back day
         partners.remove(MuscleGroup.FRONT_DELTS.name)
@@ -243,7 +245,11 @@ fun recommendSynergisticMuscleGroups(
     val eligiblePartners = partners.intersect(allGroups.toSet())
     val rankedPartners = ranked.filter { it in eligiblePartners && it != primary }
 
-    val secondary = if (primary == MuscleGroup.LATS.name || primary == MuscleGroup.UPPER_BACK.name || primary == MuscleGroup.LOWER_BACK.name) {
+    val isBackPrimary = primary == MuscleGroup.LATS.name ||
+        primary == MuscleGroup.UPPER_BACK.name ||
+        primary == MuscleGroup.LOWER_BACK.name ||
+        primary == MuscleGroup.TRAPS.name
+    val secondary = if (isBackPrimary) {
         // For Back: prioritize Biceps and Posterior Chain (Hamstrings/Glutes) over delts/chest
         val preferredBackPartners = listOf(
             MuscleGroup.BICEPS.name,
@@ -271,7 +277,7 @@ fun workoutTargetGroups(recommendedSeeds: Collection<String>): Set<String> {
             MuscleGroup.CHEST.name -> {
                 targets += setOf(MuscleGroup.CHEST.name)
             }
-            MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.LOWER_BACK.name -> {
+            MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.LOWER_BACK.name, MuscleGroup.TRAPS.name -> {
                 targets += setOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.LOWER_BACK.name, MuscleGroup.TRAPS.name, MuscleGroup.REAR_DELTS.name)
             }
             MuscleGroup.FRONT_DELTS.name, MuscleGroup.SIDE_DELTS.name -> {

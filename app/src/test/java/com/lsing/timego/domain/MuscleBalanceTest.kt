@@ -240,7 +240,7 @@ class MuscleBalanceTest {
     @Test
     fun `expandMuscleGroupRegions expands back and arms recommendations`() {
         assertEquals(
-            setOf("LATS", "UPPER_BACK", "LOWER_BACK", "BICEPS", "TRICEPS", "FOREARMS"),
+            setOf("LATS", "UPPER_BACK", "LOWER_BACK", "TRAPS", "BICEPS", "TRICEPS", "FOREARMS"),
             expandMuscleGroupRegions(setOf("UPPER_BACK", "BICEPS")),
         )
     }
@@ -388,5 +388,21 @@ class MuscleBalanceTest {
 
         assertEquals("ABS", result[0])
         assertEquals(true, result[1] == "QUADS" || result[1] == "HAMSTRINGS")
+    }
+
+    @Test
+    fun `recommendSynergisticMuscleGroups treats Traps as Back and prioritizes Biceps or Posterior Chain`() {
+        val today = LocalDate.of(2026, 8, 10)
+        val lastTrained = mapOf(
+            "TRAPS" to LocalDate.of(2026, 7, 1),      // very stale
+            "BICEPS" to LocalDate.of(2026, 8, 5),     // 5 days ago
+            "FRONT_DELTS" to LocalDate.of(2026, 8, 1),
+        )
+        val allGroups = listOf("TRAPS", "BICEPS", "FRONT_DELTS")
+
+        val result = recommendSynergisticMuscleGroups(allGroups, lastTrained, today)
+
+        assertEquals("TRAPS", result[0])
+        assertEquals("BICEPS", result[1])
     }
 }

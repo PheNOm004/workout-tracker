@@ -75,11 +75,11 @@ private fun sessionDisplayRegion(group: String): SessionDisplayRegion? = when (g
     MuscleGroup.CHEST.name -> SessionDisplayRegion.CHEST
     MuscleGroup.LATS.name,
     MuscleGroup.UPPER_BACK.name,
-    MuscleGroup.LOWER_BACK.name -> SessionDisplayRegion.BACK
+    MuscleGroup.LOWER_BACK.name,
+    MuscleGroup.TRAPS.name -> SessionDisplayRegion.BACK
     MuscleGroup.FRONT_DELTS.name,
     MuscleGroup.SIDE_DELTS.name,
-    MuscleGroup.REAR_DELTS.name,
-    MuscleGroup.TRAPS.name -> SessionDisplayRegion.SHOULDERS
+    MuscleGroup.REAR_DELTS.name -> SessionDisplayRegion.SHOULDERS
     MuscleGroup.BICEPS.name,
     MuscleGroup.TRICEPS.name,
     MuscleGroup.FOREARMS.name -> SessionDisplayRegion.ARMS
