@@ -76,4 +76,56 @@ class RoutineScheduleTest {
     fun `formatDaysSince reports Never logged for null`() {
         assertEquals("Never logged", formatDaysSince(null, today = LocalDate.of(2026, 8, 20)))
     }
+
+    @Test
+    fun `flexibleRoutines returns only routines with empty daysOfWeek`() {
+        val flexPush = Routine(id = 1, name = "Push", daysOfWeek = emptyList())
+        val scheduledLegs = Routine(id = 2, name = "Legs", daysOfWeek = listOf("MONDAY"))
+        val flexPull = Routine(id = 3, name = "Pull", daysOfWeek = emptyList())
+
+        val result = flexibleRoutines(listOf(flexPush, scheduledLegs, flexPull))
+
+        assertEquals(listOf(flexPush, flexPull), result)
+    }
+
+    @Test
+    fun `nextFlexibleRoutineInRotation prioritizes unlogged routines first`() {
+        val push = Routine(id = 1, name = "Push", daysOfWeek = emptyList())
+        val pull = Routine(id = 2, name = "Pull", daysOfWeek = emptyList())
+        val legs = Routine(id = 3, name = "Legs", daysOfWeek = emptyList())
+
+        // Pull was completed yesterday, Legs was completed 3 days ago, Push never completed
+        val history = mapOf(
+            2L to LocalDate.of(2026, 8, 19),
+            3L to LocalDate.of(2026, 8, 17),
+        )
+
+        val next = nextFlexibleRoutineInRotation(listOf(push, pull, legs), history)
+
+        assertEquals(push, next)
+    }
+
+    @Test
+    fun `nextFlexibleRoutineInRotation selects least-recently completed routine`() {
+        val push = Routine(id = 1, name = "Push", daysOfWeek = emptyList())
+        val pull = Routine(id = 2, name = "Pull", daysOfWeek = emptyList())
+        val legs = Routine(id = 3, name = "Legs", daysOfWeek = emptyList())
+
+        // Push completed yesterday, Pull completed 5 days ago, Legs completed 2 days ago
+        val history = mapOf(
+            1L to LocalDate.of(2026, 8, 19),
+            2L to LocalDate.of(2026, 8, 15),
+            3L to LocalDate.of(2026, 8, 18),
+        )
+
+        val next = nextFlexibleRoutineInRotation(listOf(push, pull, legs), history)
+
+        assertEquals(pull, next)
+    }
+
+    @Test
+    fun `nextFlexibleRoutineInRotation returns null when list is empty`() {
+        val next = nextFlexibleRoutineInRotation(emptyList(), emptyMap())
+        assertEquals(null, next)
+    }
 }

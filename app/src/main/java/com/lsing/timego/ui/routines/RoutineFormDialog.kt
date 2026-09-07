@@ -1,15 +1,21 @@
 package com.lsing.timego.ui.routines
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -75,22 +81,67 @@ fun RoutineFormDialog(
                 label = { Text("Routine name") },
                 modifier = Modifier.fillMaxWidth(),
             )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = Spacing.Large, bottom = Spacing.ExtraSmall),
+            ) {
+                Text(
+                    "Schedule (Optional)",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                if (selectedDays.value.isNotEmpty()) {
+                    TextButton(
+                        onClick = { selectedDays.value = emptySet() },
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                    ) {
+                        Text("Reset to Flexible", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
             Text(
-                "Days",
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall),
+                text = if (selectedDays.value.isEmpty()) {
+                    "Flexible · Available any day without a fixed weekly schedule."
+                } else {
+                    "Scheduled for ${selectedDays.value.size} day${if (selectedDays.value.size > 1) "s" else ""}. You can still start it anytime."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = Spacing.Small),
             )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
             ) {
+                val isFlexible = selectedDays.value.isEmpty()
+                FilterChip(
+                    selected = isFlexible,
+                    onClick = { selectedDays.value = emptySet() },
+                    label = { Text("Flexible (Any day)") },
+                    leadingIcon = if (isFlexible) {
+                        {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    } else null,
+                    modifier = Modifier.padding(end = 6.dp),
+                )
                 DayOfWeek.entries.forEach { day ->
                     val checked = day.name in selectedDays.value
                     FilterChip(
                         selected = checked,
                         onClick = {
-                            selectedDays.value = if (checked) selectedDays.value - day.name else selectedDays.value + day.name
+                            selectedDays.value = if (checked) {
+                                selectedDays.value - day.name
+                            } else {
+                                selectedDays.value + day.name
+                            }
                         },
                         label = { Text(day.name.take(3).lowercase().replaceFirstChar(Char::uppercase)) },
                         modifier = Modifier.padding(end = 4.dp),

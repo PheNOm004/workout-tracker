@@ -9,6 +9,18 @@ import java.time.temporal.ChronoUnit
 fun routinesForToday(routines: List<Routine>, today: DayOfWeek): List<Routine> =
     routines.filter { today.name in it.daysOfWeek }
 
+/** Routines that have no specific days assigned and can be followed flexibly on any day. */
+fun flexibleRoutines(routines: List<Routine>): List<Routine> =
+    routines.filter { it.daysOfWeek.isEmpty() }
+
+/** Selects the next flexible routine in rotation based on least-recently completed date.
+ *  Routines that have never been completed are prioritized first. */
+fun nextFlexibleRoutineInRotation(
+    flexibleRoutines: List<Routine>,
+    routineLastCompleted: Map<Long, LocalDate>,
+): Routine? =
+    flexibleRoutines.minByOrNull { routineLastCompleted[it.id]?.toEpochDay() ?: Long.MIN_VALUE }
+
 /** Latest date of a *closed* session per routine id. A routine's still-active session doesn't
  *  count as "completed" yet (endEpochMillis == null is excluded), matching the same closed-
  *  session convention used elsewhere (e.g. WorkoutRepository.deleteSession,

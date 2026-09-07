@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Settings
@@ -270,12 +271,36 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                     }
                 }
                 if (routine.daysOfWeek.isEmpty()) {
-                    Text(
-                        "No days set",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(Spacing.Medium, 0.dp, Spacing.Medium, Spacing.Medium),
-                    )
+                    FlowRow(modifier = Modifier.padding(Spacing.Small, 0.dp, Spacing.Small, Spacing.Small)) {
+                        AssistChip(
+                            onClick = {},
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Filled.AllInclusive,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            },
+                            label = { Text("Flexible · Any day") },
+                            colors = AssistChipDefaults.assistChipColors(
+                                labelColor = MaterialTheme.colorScheme.primary,
+                            ),
+                            border = AssistChipDefaults.assistChipBorder(
+                                enabled = true,
+                                borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                            ),
+                            modifier = Modifier.padding(Spacing.ExtraSmall),
+                        )
+                    }
+                } else if (routine.daysOfWeek.size >= 7) {
+                    FlowRow(modifier = Modifier.padding(Spacing.Small, 0.dp, Spacing.Small, Spacing.Small)) {
+                        AssistChip(
+                            onClick = {},
+                            label = { Text("Every day (Mon–Sun)") },
+                            modifier = Modifier.padding(Spacing.ExtraSmall),
+                        )
+                    }
                 } else {
                     FlowRow(modifier = Modifier.padding(Spacing.Small, 0.dp, Spacing.Small, Spacing.Small)) {
                         routine.daysOfWeek.forEach { day ->

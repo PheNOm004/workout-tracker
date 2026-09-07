@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -38,6 +39,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Star
@@ -92,6 +94,8 @@ import com.lsing.timego.domain.diagramGroupsForRecommendationCrop
 import com.lsing.timego.domain.estimatedCalorieBurn
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.domain.formatDaysSince
+import com.lsing.timego.domain.flexibleRoutines
+import com.lsing.timego.domain.nextFlexibleRoutineInRotation
 import com.lsing.timego.domain.orderedMuscleDistributionForChart
 import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.toggleExpandedExerciseIds
@@ -216,6 +220,19 @@ private fun LogLandingContent(
     val todaysScheduledRoutine = remember(routines) {
         routinesForToday(routines, LocalDate.now().dayOfWeek).firstOrNull()
     }
+    val flexibleRoutinesList = remember(routines) {
+        flexibleRoutines(routines)
+    }
+    val defaultSuggestedFlexibleRoutine = remember(flexibleRoutinesList, routineLastCompleted) {
+        nextFlexibleRoutineInRotation(flexibleRoutinesList, routineLastCompleted)
+    }
+    var userSelectedFlexibleRoutineId by remember(flexibleRoutinesList) {
+        mutableStateOf<Long?>(null)
+    }
+    val activeFlexibleRoutine = remember(flexibleRoutinesList, defaultSuggestedFlexibleRoutine, userSelectedFlexibleRoutineId) {
+        userSelectedFlexibleRoutineId?.let { id -> flexibleRoutinesList.firstOrNull { it.id == id } }
+            ?: defaultSuggestedFlexibleRoutine
+    }
 
     Column(
         modifier = Modifier
@@ -282,6 +299,80 @@ private fun LogLandingContent(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text("Start ${todaysScheduledRoutine.name}")
+                        }
+                    }
+                }
+            } else if (activeFlexibleRoutine != null) {
+                SurfaceCard(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
+                    hero = true,
+                    riveted = true,
+                ) {
+                    Column(modifier = Modifier.padding(Spacing.Medium)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                if (flexibleRoutinesList.size > 1) "Flexible · Next in Rotation" else "Flexible Routine",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Icon(
+                                Icons.Filled.AllInclusive,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        Text(
+                            activeFlexibleRoutine.name,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(top = 2.dp, bottom = Spacing.ExtraSmall),
+                        )
+                        val lastTrainedStr = formatDaysSince(routineLastCompleted[activeFlexibleRoutine.id], LocalDate.now())
+                        Text(
+                            "Last completed: $lastTrainedStr",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = if (flexibleRoutinesList.size > 1) Spacing.Small else Spacing.Medium),
+                        )
+                        if (flexibleRoutinesList.size > 1) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(bottom = Spacing.Medium),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
+                            ) {
+                                flexibleRoutinesList.forEach { flexRoutine ->
+                                    FilterChip(
+                                        selected = flexRoutine.id == activeFlexibleRoutine.id,
+                                        onClick = { userSelectedFlexibleRoutineId = flexRoutine.id },
+                                        label = { Text(flexRoutine.name) },
+                                    )
+                                }
+                            }
+                        }
+                        Button(
+                            onClick = { onStartOrContinue(activeFlexibleRoutine.id) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Start ${activeFlexibleRoutine.name}")
+                        }
+                        TextButton(
+                            onClick = { onStartOrContinue(null) },
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(top = 2.dp),
+                        ) {
+                            Text(
+                                "Or start freeform workout",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
