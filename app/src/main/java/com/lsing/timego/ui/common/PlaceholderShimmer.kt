@@ -11,10 +11,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +39,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -153,26 +159,31 @@ fun ConsistencyHeatmapSkeleton(modifier: Modifier = Modifier) {
                     }
                 }
 
-                // 7-row by 16-col mock heatmap dot matrix
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    repeat(7) { row ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            repeat(16) { col ->
-                                val cellAlpha = 0.35f + ((row * 3 + col * 5) % 5) * 0.13f
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(11.dp)
-                                        .clip(RoundedCornerShape(2.dp))
-                                        .background(brush)
-                                        .border(0.5.dp, NightEdgeHairline.copy(alpha = cellAlpha), RoundedCornerShape(2.dp)),
-                                )
+                // 18-week by 7-row mock heatmap dot matrix matching HeatmapGrid exactly
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val availableWidthPx = constraints.maxWidth
+                    val density = LocalDensity.current
+                    val spacing = 3.dp
+                    val spacingPx = with(density) { spacing.roundToPx() }
+                    val dotPx = (availableWidthPx - spacingPx * 17) / 18
+                    val dotSize = with(density) { dotPx.toDp() }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
+                    ) {
+                        repeat(18) { col ->
+                            Column(verticalArrangement = Arrangement.spacedBy(spacing)) {
+                                repeat(7) { row ->
+                                    val cellAlpha = 0.35f + ((row * 3 + col * 5) % 5) * 0.13f
+                                    Box(
+                                        modifier = Modifier
+                                            .size(dotSize)
+                                            .clip(CircleShape)
+                                            .background(brush)
+                                            .border(0.75.dp, NightEdgeHairline.copy(alpha = cellAlpha), CircleShape),
+                                    )
+                                }
                             }
                         }
                     }
@@ -194,9 +205,9 @@ fun ConsistencyHeatmapSkeleton(modifier: Modifier = Modifier) {
                         Box(
                             modifier = Modifier
                                 .size(9.dp)
-                                .clip(RoundedCornerShape(2.dp))
+                                .clip(CircleShape)
                                 .background(brush)
-                                .border(0.5.dp, NightEdgeHairline, RoundedCornerShape(2.dp)),
+                                .border(0.75.dp, NightEdgeHairline, CircleShape),
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                     }
@@ -213,12 +224,17 @@ fun ConsistencyHeatmapSkeleton(modifier: Modifier = Modifier) {
 
 /**
  * Muscle Distribution Skeleton:
- * Shows filter chips, an anatomical silhouette wireframe blueprint,
- * and 4 distinct gauge stat tiles.
+ * Shows filter chips, an authentic anatomical silhouette wireframe blueprint,
+ * and 4 symmetric gauge stat tiles in a clean 2x2 grid.
  */
 @Composable
 fun MuscleDistributionSkeleton(modifier: Modifier = Modifier) {
     val brush = rememberShimmerBrush()
+    val frontShapes = remember { buildShapes(FRONT_BODY_PATHS, FRONT_BODY_VIEWBOX) }
+    val backShapes = remember { buildShapes(BACK_BODY_PATHS, BACK_BODY_VIEWBOX) }
+    val frontAspect = (FRONT_BODY_VIEWBOX[2] - FRONT_BODY_VIEWBOX[0]) / (FRONT_BODY_VIEWBOX[3] - FRONT_BODY_VIEWBOX[1])
+    val backAspect = (BACK_BODY_VIEWBOX[2] - BACK_BODY_VIEWBOX[0]) / (BACK_BODY_VIEWBOX[3] - BACK_BODY_VIEWBOX[1])
+
     Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader("Muscle Distribution", topPadding = Spacing.Small)
         Row(
@@ -247,63 +263,80 @@ fun MuscleDistributionSkeleton(modifier: Modifier = Modifier) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                // Two wireframe silhouettes (Front and Back)
+                // Two wireframe silhouettes (Front and Back) matching the real muscle diagram
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().fillMaxHeight(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    repeat(2) { index ->
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            "ANTERIOR",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 9.sp,
+                                letterSpacing = 1.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Canvas(
+                            modifier = Modifier
+                                .fillMaxHeight(0.85f)
+                                .aspectRatio(frontAspect),
                         ) {
-                            Text(
-                                if (index == 0) "ANTERIOR" else "POSTERIOR",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 9.sp,
-                                    letterSpacing = 1.sp,
-                                    fontWeight = FontWeight.Bold,
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            // Head
-                            Box(
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clip(CircleShape)
-                                    .background(brush)
-                                    .border(1.dp, NightEdgeHairline, CircleShape),
-                            )
-                            // Torso / Chest
-                            Box(
-                                modifier = Modifier
-                                    .width(52.dp)
-                                    .height(34.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(brush)
-                                    .border(1.dp, NightEdgeHairline, RoundedCornerShape(4.dp)),
-                            )
-                            // Core / Abs
-                            Box(
-                                modifier = Modifier
-                                    .width(42.dp)
-                                    .height(24.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(brush)
-                                    .border(1.dp, NightEdgeHairline, RoundedCornerShape(4.dp)),
-                            )
-                            // Legs
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                repeat(2) {
-                                    Box(
-                                        modifier = Modifier
-                                            .width(18.dp)
-                                            .height(52.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(brush)
-                                            .border(1.dp, NightEdgeHairline, RoundedCornerShape(4.dp)),
+                            val scaleFactor = size.height / (FRONT_BODY_VIEWBOX[3] - FRONT_BODY_VIEWBOX[1])
+                            scale(scaleFactor, scaleFactor, pivot = Offset.Zero) {
+                                frontShapes.forEach { shape ->
+                                    drawPath(
+                                        path = shape.path,
+                                        brush = brush,
+                                    )
+                                    drawPath(
+                                        path = shape.path,
+                                        color = NightEdgeHairline.copy(alpha = 0.6f),
+                                        style = Stroke(width = 1f),
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            "POSTERIOR",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 9.sp,
+                                letterSpacing = 1.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Canvas(
+                            modifier = Modifier
+                                .fillMaxHeight(0.85f)
+                                .aspectRatio(backAspect),
+                        ) {
+                            val scaleFactor = size.height / (BACK_BODY_VIEWBOX[3] - BACK_BODY_VIEWBOX[1])
+                            scale(scaleFactor, scaleFactor, pivot = Offset.Zero) {
+                                backShapes.forEach { shape ->
+                                    drawPath(
+                                        path = shape.path,
+                                        brush = brush,
+                                    )
+                                    drawPath(
+                                        path = shape.path,
+                                        color = NightEdgeHairline.copy(alpha = 0.6f),
+                                        style = Stroke(width = 1f),
                                     )
                                 }
                             }
@@ -313,30 +346,54 @@ fun MuscleDistributionSkeleton(modifier: Modifier = Modifier) {
             }
         }
 
-        // 4 StatTile skeleton cards (Workouts, Duration, Volume, Sets)
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
+        // 4 StatTile skeleton cards in a perfectly balanced 2x2 grid
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall),
+            verticalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
         ) {
-            val statLabels = listOf("Workouts", "Duration", "Volume", "Sets")
-            statLabels.forEach { label ->
-                SurfaceCard(
-                    modifier = Modifier
-                        .weight(1f, fill = true)
-                        .padding(vertical = 4.dp),
-                    cornerRadius = 4.dp,
-                ) {
-                    Column(modifier = Modifier.padding(Spacing.Medium)) {
-                        Text(
-                            label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        ShimmerLine(width = 54.dp, height = 22.dp, cornerRadius = 4.dp)
-                    }
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
+            ) {
+                StatTileSkeleton(label = "Workouts", modifier = Modifier.weight(1f), brush = brush)
+                StatTileSkeleton(label = "Duration", modifier = Modifier.weight(1f), brush = brush)
             }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
+            ) {
+                StatTileSkeleton(label = "Volume", modifier = Modifier.weight(1f), brush = brush)
+                StatTileSkeleton(label = "Sets", modifier = Modifier.weight(1f), brush = brush)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatTileSkeleton(
+    label: String,
+    modifier: Modifier = Modifier,
+    brush: Brush,
+) {
+    SurfaceCard(
+        modifier = modifier,
+        cornerRadius = 4.dp,
+    ) {
+        Column(modifier = Modifier.padding(Spacing.Medium)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .width(54.dp)
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(brush)
+                    .border(0.5.dp, NightEdgeHairline, RoundedCornerShape(4.dp)),
+            )
         }
     }
 }

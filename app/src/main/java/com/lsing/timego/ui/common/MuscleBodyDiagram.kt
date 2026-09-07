@@ -60,14 +60,14 @@ import com.lsing.timego.domain.parsePathVertices
 import com.lsing.timego.domain.recolorByLightness
 import com.lsing.timego.ui.theme.Spacing
 
-private data class BuiltMuscleShape(
+internal data class BuiltMuscleShape(
     val path: Path,
     val muscleGroup: MuscleGroup?,
     val isOutline: Boolean,
     val lightness: Float,
 )
 
-private fun buildShapes(specs: List<MusclePathSpec>, viewBox: FloatArray): List<BuiltMuscleShape> {
+internal fun buildShapes(specs: List<MusclePathSpec>, viewBox: FloatArray): List<BuiltMuscleShape> {
     val (x0, y0) = viewBox[0] to viewBox[1]
     return specs.map { spec ->
         val vertices = parsePathVertices(spec.pathData)

@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Checkbox
@@ -53,6 +54,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import com.lsing.timego.ui.theme.NightEdgeHairline
 import com.lsing.timego.ui.common.TimeGoDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -789,11 +792,12 @@ private fun ExerciseRowHeader(
     }
 }
 
-/** Replaces the elevated-card-with-permanent-accent-bar treatment: a plain surface with a
- *  hairline bottom rule (ledger row divider) and the brand accent (the red margin rule) shown
- *  only on the active row, not permanently on every row -- restraint is the point of the
- *  direction. Category no longer carries its own color (see categoryVisual); the rule's accent
- *  is always the theme's one committed brand color. */
+/**
+ * Modern Engine-Room Gauge Panel card for active exercise logging:
+ * Mounted console plate (SurfaceCard, 10.dp rounded corners, NightDeckLow, hairline border)
+ * when collapsed, elevating to an active glowing instrument panel (NightDeckHigh, hero brass
+ * sheen) when expanded, with TrainingPulse on set log.
+ */
 @Composable
 private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Composable () -> Unit) {
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
@@ -829,10 +833,10 @@ private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Compos
             )
         }
     }
-    val accent = MaterialTheme.colorScheme.primary
-    TrainingPulse(
-        active = expanded,
-        pulseId = pulseId,
+
+    SurfaceCard(
+        hero = expanded,
+        cornerRadius = 10.dp,
         modifier = Modifier
             .fillMaxWidth()
             .bringIntoViewRequester(bringIntoViewRequester)
@@ -840,15 +844,15 @@ private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Compos
                 cardWidth = it.width
                 cardHeight = it.height
             }
-            .padding(start = Spacing.Large, end = Spacing.Small)
-            .then(if (expanded) Modifier.background(MaterialTheme.colorScheme.surfaceContainer) else Modifier),
+            .padding(vertical = 4.dp),
     ) {
-        Column {
-            content()
-            HorizontalDivider(
-                color = if (expanded) accent else MaterialTheme.colorScheme.outlineVariant,
-                thickness = if (expanded) 2.dp else 1.dp,
-            )
+        TrainingPulse(
+            active = expanded,
+            pulseId = pulseId,
+        ) {
+            Column {
+                content()
+            }
         }
     }
 }
@@ -944,6 +948,11 @@ private fun StrengthLogRow(
             onToggleFavorite,
         ) { onToggle() }
         AnimatedExpand(expanded) {
+            HorizontalDivider(
+                color = NightEdgeHairline.copy(alpha = 0.5f),
+                thickness = 0.5.dp,
+                modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
+            )
             if (suggestion != null) {
                 Text(
                     suggestion.note,
@@ -964,7 +973,7 @@ private fun StrengthLogRow(
                 val setsSummary = currentSessionSets.mapIndexed { idx, s ->
                     val w = if (isBodyweight && s.addedWeightKg != null) formatCalisthenicsWeight(s.addedWeightKg) else "${s.weightKg}kg"
                     "#${idx + 1}: $w x ${s.reps}"
-                }.joinToString("  â€¢  ")
+                }.joinToString("  •  ")
                 Text(
                     "Today: $setsSummary",
                     style = LedgerFigureValue.copy(fontSize = 12.sp),
@@ -997,6 +1006,13 @@ private fun StrengthLogRow(
                         isError = weightText.isNotBlank() && (enteredWeight == null || (isBodyweight && totalBodyweightLoad == null)),
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = NightEdgeHairline,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
+                        ),
                         modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                     )
                     OutlinedTextField(
@@ -1006,6 +1022,13 @@ private fun StrengthLogRow(
                         isError = repsText.isNotBlank() && reps == null,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = NightEdgeHairline,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
+                        ),
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1060,11 +1083,19 @@ private fun StrengthLogRow(
                         singleLine = true,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = NightEdgeHairline,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
+                        ),
                         modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                     )
                     val logInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Button(
                         enabled = canLog,
+                        shape = RoundedCornerShape(8.dp),
                         interactionSource = logInteractionSource,
                         modifier = Modifier.tactilePress(logInteractionSource, pressedScale = 0.94f),
                         onClick = {
@@ -1118,6 +1149,11 @@ private fun CardioLogRow(
     ExerciseCard(expanded, pulseId) {
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded, isFavorite, onToggleFavorite, onToggle)
         AnimatedExpand(expanded) {
+            HorizontalDivider(
+                color = NightEdgeHairline.copy(alpha = 0.5f),
+                thickness = 0.5.dp,
+                modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
+            )
             if (duration != null) {
                 val pace = distance?.let { averagePaceMinPerKm(duration, it) }
                 val calories = bodyWeightKg?.let { estimatedCalorieBurn(met, it, duration) }
@@ -1141,6 +1177,13 @@ private fun CardioLogRow(
                 isError = !validDistance,
                 textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                shape = RoundedCornerShape(8.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = NightEdgeHairline,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
+                ),
                 modifier = Modifier.padding(horizontal = Spacing.Medium),
             )
             if (!useTimer) {
@@ -1155,10 +1198,21 @@ private fun CardioLogRow(
                         isError = durationText.isNotBlank() && duration == null,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = NightEdgeHairline,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
+                        ),
                         modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                     )
+                    val cardioLogInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Button(
                         enabled = duration != null && validDistance,
+                        shape = RoundedCornerShape(8.dp),
+                        interactionSource = cardioLogInteractionSource,
+                        modifier = Modifier.tactilePress(cardioLogInteractionSource, pressedScale = 0.94f),
                         onClick = {
                             if (duration != null && validDistance) {
                                 onLog(duration, distance)
@@ -1167,12 +1221,13 @@ private fun CardioLogRow(
                             }
                         }
                     ) {
-                        Text("Log")
+                        Text("Log", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                     }
                 }
                 OutlinedButton(
                     onClick = { useTimer = true },
-                    modifier = Modifier.padding(horizontal = Spacing.Medium),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.padding(horizontal = Spacing.Medium).padding(bottom = Spacing.Small),
                 ) { Text("Use timer") }
             } else {
                 TimerControls(
@@ -1225,6 +1280,11 @@ private fun HoldLogRow(
             onToggleFavorite,
         ) { onToggle() }
         AnimatedExpand(expanded) {
+            HorizontalDivider(
+                color = NightEdgeHairline.copy(alpha = 0.5f),
+                thickness = 0.5.dp,
+                modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
+            )
             if (suggestion != null) {
                 Text(
                     suggestion.note,
@@ -1253,10 +1313,21 @@ private fun HoldLogRow(
                         isError = manualDurationText.isNotBlank() && manualDuration == null,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = NightEdgeHairline,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
+                        ),
                         modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                     )
+                    val holdLogInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Button(
                         enabled = manualDuration != null,
+                        shape = RoundedCornerShape(8.dp),
+                        interactionSource = holdLogInteractionSource,
+                        modifier = Modifier.tactilePress(holdLogInteractionSource, pressedScale = 0.94f),
                         onClick = {
                             if (manualDuration != null) {
                                 onLog(manualDuration, suggestion?.targetDurationSeconds ?: manualDuration, isWarmup, targetProvenanceFor(suggestion != null))
@@ -1264,7 +1335,7 @@ private fun HoldLogRow(
                                 isWarmup = false
                             }
                         }
-                    ) { Text("Log") }
+                    ) { Text("Log set", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) }
                 }
                 TextButton(
                     onClick = { useTimer = true },
