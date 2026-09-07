@@ -502,7 +502,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 rejectedId = null,
                 lastShownId = lastShownSuggestionId,
             )
-            val suggestedExercise = if (exclusions.isEmpty()) baseSuggestion else alternatives.firstOrNull()
+            val suggestedExercise = alternatives.firstOrNull() ?: baseSuggestion
             val recommendationNote = if (suggestedExercise != null) {
                 val leanTitle = dominantLean.name.lowercase().replaceFirstChar { it.uppercase() }
                 "Tailored to your $leanTitle preference"

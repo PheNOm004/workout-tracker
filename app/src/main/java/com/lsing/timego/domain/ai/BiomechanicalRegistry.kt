@@ -1,4 +1,4 @@
-﻿package com.lsing.timego.domain.ai
+package com.lsing.timego.domain.ai
 
 import java.util.Locale
 
@@ -283,9 +283,54 @@ object BiomechanicalRegistry {
                 chain = KinematicChain.CKC,
                 tier = 3,
                 masteryRepCeiling = 15,
-                nextProgressionKey = seedKey("Front Lever Hold"),
+                nextProgressionKey = seedKey("Tuck Front Lever"),
                 regressionKey = seedKey("Australian Pull-Up"),
                 crossModalityKey = seedKey("Barbell Row")
+            )
+        )
+        register(
+            "Tuck Front Lever",
+            BiomechanicalProfile(
+                pattern = MovementPattern.HORIZONTAL_PULL,
+                chain = KinematicChain.CKC,
+                tier = 5,
+                masteryRepCeiling = 15,
+                nextProgressionKey = seedKey("Advanced Tuck Front Lever"),
+                regressionKey = seedKey("Barbell Inverted Row"),
+                crossModalityKey = seedKey("Barbell Row")
+            )
+        )
+        register(
+            "Advanced Tuck Front Lever",
+            BiomechanicalProfile(
+                pattern = MovementPattern.HORIZONTAL_PULL,
+                chain = KinematicChain.CKC,
+                tier = 6,
+                masteryRepCeiling = 12,
+                nextProgressionKey = seedKey("Straddle Front Lever"),
+                regressionKey = seedKey("Tuck Front Lever"),
+                crossModalityKey = seedKey("Pendlay Row")
+            )
+        )
+        register(
+            "Straddle Front Lever",
+            BiomechanicalProfile(
+                pattern = MovementPattern.HORIZONTAL_PULL,
+                chain = KinematicChain.CKC,
+                tier = 7,
+                masteryRepCeiling = 10,
+                nextProgressionKey = seedKey("Front Lever Hold"),
+                regressionKey = seedKey("Advanced Tuck Front Lever")
+            )
+        )
+        register(
+            "Front Lever Hold",
+            BiomechanicalProfile(
+                pattern = MovementPattern.HORIZONTAL_PULL,
+                chain = KinematicChain.CKC,
+                tier = 8,
+                masteryRepCeiling = 10,
+                regressionKey = seedKey("Straddle Front Lever")
             )
         )
         register(
