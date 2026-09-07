@@ -22,6 +22,9 @@ import com.lsing.timego.domain.OverloadSuggestion
 import com.lsing.timego.domain.RepRange
 import com.lsing.timego.domain.RuleBasedHoldSuggester
 import com.lsing.timego.domain.RuleBasedOverloadSuggester
+import com.lsing.timego.domain.ai.AdaptiveOverloadSuggester
+import com.lsing.timego.domain.ai.CategoryPreferenceLearner
+import com.lsing.timego.domain.ai.ProgressionRecommender
 import com.lsing.timego.domain.SessionAutoCloseDecision
 import com.lsing.timego.domain.SetPerformance
 import com.lsing.timego.domain.checkSessionAutoClose
@@ -112,7 +115,9 @@ private data class LandingInputs(
 class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
     private val settingsRepository = SettingsRepository(application)
-    private val suggester = RuleBasedOverloadSuggester()
+    private val suggester: com.lsing.timego.domain.OverloadSuggester = AdaptiveOverloadSuggester()
+    private val preferenceLearner = CategoryPreferenceLearner()
+    private val progressionRecommender = ProgressionRecommender(preferenceLearner)
     private val holdSuggester = RuleBasedHoldSuggester()
 
     private var allExercises: List<Exercise> = emptyList()
@@ -346,7 +351,18 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                     val repRange = repRangeFor(exerciseSets, sessionHistory)
                     val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
                     val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
-                    suggester.suggestNext(historyPerf, currentPerf, weightIncrementFor(exercise), repRange)?.let { map[exercise.id] = it }
+                    val baseSuggestion = suggester.suggestNext(historyPerf, currentPerf, weightIncrementFor(exercise), repRange)
+                    if (baseSuggestion != null) {
+                        val upgrade = progressionRecommender.evaluateProgression(exercise, historyPerf)
+                        val finalSuggestion = if (upgrade != null) {
+                            val upgradeTarget = exerciseList.firstOrNull { it.catalogueKey == upgrade.recommendedCatalogueKey }?.name
+                                ?: upgrade.recommendedCatalogueKey
+                            baseSuggestion.copy(note = "${baseSuggestion.note} • Ready for next level: $upgradeTarget")
+                        } else {
+                            baseSuggestion
+                        }
+                        map[exercise.id] = finalSuggestion
+                    }
                 }
             }
             map to holdMap
@@ -516,6 +532,12 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         targetProvenance: TargetProvenance = TargetProvenance.UNKNOWN,
     ) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
+        val exercise = allExercises.firstOrNull { it.id == exerciseId }
+        if (exercise != null) {
+            try {
+                preferenceLearner.recordInteraction(ExerciseCategory.valueOf(exercise.category))
+            } catch (_: IllegalArgumentException) {}
+        }
         viewModelScope.launch {
             repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name)
             emitSetLoggedPulse(exerciseId)
@@ -524,6 +546,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logCardioSet(exerciseId: Long, durationMinutes: Double, distanceKm: Double?) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
+        preferenceLearner.recordInteraction(ExerciseCategory.CARDIO)
         viewModelScope.launch {
             repository.logCardioSet(sessionId, exerciseId, durationMinutes, distanceKm)
             emitSetLoggedPulse(exerciseId)
