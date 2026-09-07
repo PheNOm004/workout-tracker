@@ -8,7 +8,8 @@
 .externalNativeBuild
 .cxx
 /.worktrees
-/.superpowers
+/.superpowers/
+/.claude/
 
 # Personal workout records stay local: never commit Room database copies, WAL files, or exports.
 *.db
