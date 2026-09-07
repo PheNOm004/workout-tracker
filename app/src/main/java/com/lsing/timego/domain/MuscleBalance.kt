@@ -16,6 +16,14 @@ import java.time.temporal.ChronoUnit
  *  the field's own documented default. */
 private const val PRIMARY_MOVER_THRESHOLD = 70
 
+/** Minimum recovery time (48 hours) recommended by sports science for muscle protein synthesis
+ *  and neuromuscular recovery before re-training the same prime mover. */
+const val MIN_RECOVERY_DAYS = 2
+
+/** Threshold for secondary movers / synergists (EMG weight >= 40) that incur meaningful fatigue
+ *  during compound movements (e.g. Triceps on Bench Press, Hamstrings on Deadlift). */
+const val SYNERGIST_RECOVERY_THRESHOLD = 40
+
 private val ANATOMICAL_MUSCLE_GROUPS = MuscleGroup.entries
     .filterNot { it == MuscleGroup.FULL_BODY }
     .map { it.name }
@@ -67,6 +75,32 @@ fun lastTrainedDatesByMuscleGroup(
     return result
 }
 
+/** Tracks the most recent date each muscle group was loaded as either a primary mover or a
+ *  heavy synergist (EMG weight >= [threshold]). Used by the recommendation engine to monitor
+ *  collateral synergist fatigue (e.g. Triceps loaded during heavy bench press) so secondary movers
+ *  aren't programmed as fresh primary targets the following day. */
+fun lastWorkedDatesByMuscleGroup(
+    setLogs: List<SetLog>,
+    exercisesById: Map<Long, Exercise>,
+    sessionDateById: Map<Long, LocalDate>,
+    threshold: Int = SYNERGIST_RECOVERY_THRESHOLD,
+): Map<String, LocalDate> {
+    val result = mutableMapOf<String, LocalDate>()
+    for (log in setLogs) {
+        val exercise = exercisesById[log.exerciseId] ?: continue
+        if (!isTrainingSet(log, exercise)) continue
+        val date = sessionDateById[log.sessionId] ?: continue
+        val groups = exercise.muscleGroups.filter { (exercise.muscleWeights[it] ?: 100) >= threshold }.flatMap { group ->
+            if (group == MuscleGroup.FULL_BODY.name) ANATOMICAL_MUSCLE_GROUPS else listOf(group)
+        }
+        for (group in groups) {
+            val current = result[group]
+            if (current == null || date.isAfter(current)) result[group] = date
+        }
+    }
+    return result
+}
+
 fun untrainedMuscleGroups(
     allGroups: List<String>,
     lastTrainedByGroup: Map<String, LocalDate>,
@@ -77,18 +111,25 @@ fun untrainedMuscleGroups(
     last == null || ChronoUnit.DAYS.between(last, today) >= thresholdDays
 }
 
-/** Same neglect signal as [untrainedMuscleGroups] but returns every group ranked by staleness
- *  (most-neglected first) instead of a threshold-filtered flag list -- backs the logging landing
- *  page's "recommended muscle group" pick (top of this list = best candidate for balanced
- *  growth). Never-trained groups (absent from [lastTrainedByGroup]) sort first, ahead of any
- *  trained-but-stale group, since "never" is more neglected than any finite number of days. */
+/** Evidence-based staleness ranking with a 48-hour recovery guardrail.
+ *  1. Never-trained groups rank first (infinite staleness).
+ *  2. Fully rested groups (days >= [minRecoveryDays]) rank next, sorted by staleness (most neglected first).
+ *  3. Groups in active recovery (days < [minRecoveryDays], e.g. trained today or yesterday) are heavily
+ *     demoted so fully recovered groups always take priority. If all groups are recovering, the one
+ *     with the longest rest is favored. */
 fun rankUntrainedMuscleGroups(
     allGroups: List<String>,
     lastTrainedByGroup: Map<String, LocalDate>,
     today: LocalDate,
+    minRecoveryDays: Int = MIN_RECOVERY_DAYS,
 ): List<String> = allGroups.sortedByDescending { group ->
     val last = lastTrainedByGroup[group] ?: return@sortedByDescending Long.MAX_VALUE
-    ChronoUnit.DAYS.between(last, today)
+    val days = ChronoUnit.DAYS.between(last, today)
+    if (days >= minRecoveryDays) {
+        days
+    } else {
+        days - 10_000L
+    }
 }
 
 /** Synergistic movement clusters and biomechanical pairing rules. */
@@ -130,50 +171,139 @@ fun synergisticPartnersFor(primaryGroup: String): Set<String> {
     SYNERGISTIC_MUSCLE_CLUSTERS.forEach { cluster ->
         if (primaryGroup in cluster) partners += cluster
     }
-    // Antagonist Upper pairings & functional splits
+    // Evidence-based movement archetypes (PPL, Arnold Split, Posterior Chain, Legs & Core)
     if (primaryGroup == MuscleGroup.CHEST.name) {
-        partners += setOf(MuscleGroup.TRICEPS.name, MuscleGroup.FRONT_DELTS.name, MuscleGroup.LATS.name)
+        // Push day: Triceps, Front/Side Delts; Arnold Split: Chest + Back antagonist
+        partners += setOf(
+            MuscleGroup.TRICEPS.name,
+            MuscleGroup.FRONT_DELTS.name,
+            MuscleGroup.SIDE_DELTS.name,
+            MuscleGroup.LATS.name,
+            MuscleGroup.UPPER_BACK.name,
+        )
     } else if (primaryGroup == MuscleGroup.LATS.name || primaryGroup == MuscleGroup.UPPER_BACK.name || primaryGroup == MuscleGroup.LOWER_BACK.name) {
-        // Biomechanically optimal: Back + Biceps (classic Pull) or Back + Legs (Posterior chain / Deadlift day)
-        partners += setOf(MuscleGroup.BICEPS.name, MuscleGroup.HAMSTRINGS.name, MuscleGroup.GLUTES.name, MuscleGroup.FOREARMS.name)
-        // Ensure push delts (Front/Side) and rear delts do not expand Back into a "Shoulders" recommendation
+        // Biomechanically optimal: Back + Biceps (classic Pull), Back + Legs (Posterior chain / Deadlift day), or Back + Chest (Arnold)
+        partners += setOf(
+            MuscleGroup.BICEPS.name,
+            MuscleGroup.HAMSTRINGS.name,
+            MuscleGroup.GLUTES.name,
+            MuscleGroup.FOREARMS.name,
+            MuscleGroup.TRAPS.name,
+            MuscleGroup.REAR_DELTS.name,
+            MuscleGroup.CHEST.name,
+        )
+        // Ensure push delts (Front/Side) and triceps do not contaminate Back day
         partners.remove(MuscleGroup.FRONT_DELTS.name)
         partners.remove(MuscleGroup.SIDE_DELTS.name)
-        partners.remove(MuscleGroup.REAR_DELTS.name)
+        partners.remove(MuscleGroup.TRICEPS.name)
+    } else if (primaryGroup == MuscleGroup.FRONT_DELTS.name) {
+        // Push day / Overhead pressing
+        partners += setOf(MuscleGroup.CHEST.name, MuscleGroup.SIDE_DELTS.name, MuscleGroup.TRICEPS.name)
+    } else if (primaryGroup == MuscleGroup.SIDE_DELTS.name) {
+        // Push day or Arnold Shoulders & Arms
+        partners += setOf(MuscleGroup.FRONT_DELTS.name, MuscleGroup.TRICEPS.name, MuscleGroup.BICEPS.name, MuscleGroup.REAR_DELTS.name)
+    } else if (primaryGroup == MuscleGroup.REAR_DELTS.name) {
+        // Pull day or Arnold Shoulders & Arms
+        partners += setOf(MuscleGroup.UPPER_BACK.name, MuscleGroup.LATS.name, MuscleGroup.TRAPS.name, MuscleGroup.BICEPS.name, MuscleGroup.SIDE_DELTS.name)
     } else if (primaryGroup == MuscleGroup.BICEPS.name) {
-        partners += setOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.TRICEPS.name)
+        // Pull day (Back + Biceps) or Arnold Arms day (Biceps + Triceps)
+        partners += setOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.TRICEPS.name, MuscleGroup.FOREARMS.name)
     } else if (primaryGroup == MuscleGroup.TRICEPS.name) {
-        partners += setOf(MuscleGroup.CHEST.name, MuscleGroup.BICEPS.name)
+        // Push day (Chest + Triceps) or Arnold Arms day (Triceps + Biceps)
+        partners += setOf(MuscleGroup.CHEST.name, MuscleGroup.BICEPS.name, MuscleGroup.FRONT_DELTS.name)
+    } else if (primaryGroup == MuscleGroup.QUADS.name) {
+        // Complete Leg day or Legs & Core
+        partners += setOf(MuscleGroup.HAMSTRINGS.name, MuscleGroup.GLUTES.name, MuscleGroup.CALVES.name, MuscleGroup.ADDUCTORS.name, MuscleGroup.ABS.name)
     } else if (primaryGroup == MuscleGroup.HAMSTRINGS.name || primaryGroup == MuscleGroup.GLUTES.name) {
-        partners += setOf(MuscleGroup.QUADS.name, MuscleGroup.LATS.name, MuscleGroup.LOWER_BACK.name)
+        // Leg day, Posterior Chain / Deadlift day, or Legs & Core
+        partners += setOf(MuscleGroup.QUADS.name, MuscleGroup.LATS.name, MuscleGroup.LOWER_BACK.name, MuscleGroup.CALVES.name, MuscleGroup.ABS.name)
+    } else if (primaryGroup == MuscleGroup.ABS.name || primaryGroup == MuscleGroup.OBLIQUES.name) {
+        // Core always pairs with Legs (bracing) or Pull (hanging work/calisthenics)
+        partners += setOf(MuscleGroup.QUADS.name, MuscleGroup.HAMSTRINGS.name, MuscleGroup.GLUTES.name, MuscleGroup.LATS.name)
     }
     partners.remove(primaryGroup)
     return partners
 }
 
-/** Evidence-based recommendation algorithm that selects the most neglected muscle group as the
- *  primary focus, and pairs it with its most stale synergistic partner to ensure logical,
- *  effective workout programming (e.g. Back + Biceps, Back + Legs, Chest + Triceps/Delts, Quads + Hamstrings). */
+/** Evidence-based recommendation algorithm that selects the most neglected, recovered muscle group
+ *  as the primary focus, and pairs it with its most stale synergistic partner.
+ *  Uses [lastWorkedByGroup] to protect against collateral synergist fatigue (e.g. Triceps loaded
+ *  during heavy chest pressing). */
 fun recommendSynergisticMuscleGroups(
     allGroups: List<String>,
     lastTrainedByGroup: Map<String, LocalDate>,
     today: LocalDate,
+    lastWorkedByGroup: Map<String, LocalDate> = lastTrainedByGroup,
 ): List<String> {
-    val ranked = rankUntrainedMuscleGroups(allGroups, lastTrainedByGroup, today)
+    val ranked = rankUntrainedMuscleGroups(allGroups, lastWorkedByGroup, today)
     if (ranked.isEmpty()) return emptyList()
     val primary = ranked.first()
     val partners = synergisticPartnersFor(primary)
 
-    // For Back: explicitly prioritize Biceps and Posterior Chain (Hamstrings/Glutes)
+    val eligiblePartners = partners.intersect(allGroups.toSet())
+    val rankedPartners = ranked.filter { it in eligiblePartners && it != primary }
+
     val secondary = if (primary == MuscleGroup.LATS.name || primary == MuscleGroup.UPPER_BACK.name || primary == MuscleGroup.LOWER_BACK.name) {
-        listOf(MuscleGroup.BICEPS.name, MuscleGroup.HAMSTRINGS.name, MuscleGroup.GLUTES.name, MuscleGroup.FOREARMS.name)
-            .firstOrNull { it in partners && it in ranked }
-            ?: ranked.firstOrNull { it != primary && it in partners }
+        // For Back: prioritize Biceps and Posterior Chain (Hamstrings/Glutes) over delts/chest
+        val preferredBackPartners = listOf(
+            MuscleGroup.BICEPS.name,
+            MuscleGroup.HAMSTRINGS.name,
+            MuscleGroup.GLUTES.name,
+            MuscleGroup.FOREARMS.name,
+        )
+        preferredBackPartners.firstOrNull { it in rankedPartners }
+            ?: rankedPartners.firstOrNull()
     } else {
-        ranked.firstOrNull { it != primary && it in partners }
+        rankedPartners.firstOrNull()
     } ?: ranked.firstOrNull { it != primary }
 
     return if (secondary != null) listOf(primary, secondary) else listOf(primary)
+}
+
+/** Resolves precise exercise targeting groups for a recommended workout split, preserving kinetic
+ *  purity so that push muscles never leak into pull workouts (e.g. Triceps on Back + Biceps day)
+ *  and vice versa. */
+fun workoutTargetGroups(recommendedSeeds: Collection<String>): Set<String> {
+    val targets = mutableSetOf<String>()
+    for (seed in recommendedSeeds) {
+        targets += seed
+        when (seed) {
+            MuscleGroup.CHEST.name -> {
+                targets += setOf(MuscleGroup.CHEST.name)
+            }
+            MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.LOWER_BACK.name -> {
+                targets += setOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.LOWER_BACK.name, MuscleGroup.TRAPS.name, MuscleGroup.REAR_DELTS.name)
+            }
+            MuscleGroup.FRONT_DELTS.name, MuscleGroup.SIDE_DELTS.name -> {
+                targets += setOf(MuscleGroup.FRONT_DELTS.name, MuscleGroup.SIDE_DELTS.name)
+            }
+            MuscleGroup.REAR_DELTS.name -> {
+                targets += setOf(MuscleGroup.REAR_DELTS.name, MuscleGroup.UPPER_BACK.name)
+            }
+            MuscleGroup.BICEPS.name -> {
+                targets += setOf(MuscleGroup.BICEPS.name, MuscleGroup.FOREARMS.name)
+            }
+            MuscleGroup.TRICEPS.name -> {
+                targets += setOf(MuscleGroup.TRICEPS.name)
+            }
+            MuscleGroup.FOREARMS.name -> {
+                targets += setOf(MuscleGroup.FOREARMS.name, MuscleGroup.BICEPS.name)
+            }
+            MuscleGroup.QUADS.name -> {
+                targets += setOf(MuscleGroup.QUADS.name, MuscleGroup.ADDUCTORS.name)
+            }
+            MuscleGroup.HAMSTRINGS.name, MuscleGroup.GLUTES.name -> {
+                targets += setOf(MuscleGroup.HAMSTRINGS.name, MuscleGroup.GLUTES.name)
+            }
+            MuscleGroup.CALVES.name -> {
+                targets += setOf(MuscleGroup.CALVES.name)
+            }
+            MuscleGroup.ABS.name, MuscleGroup.OBLIQUES.name -> {
+                targets += setOf(MuscleGroup.ABS.name, MuscleGroup.OBLIQUES.name)
+            }
+        }
+    }
+    return targets
 }
 
 /** Which muscle groups a session actually trained, derived from its logged sets -- shared by the

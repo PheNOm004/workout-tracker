@@ -35,8 +35,10 @@ import com.lsing.timego.domain.exercisesRankedByFrequency
 import com.lsing.timego.domain.quickAddExercises
 import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
+import com.lsing.timego.domain.lastWorkedDatesByMuscleGroup
 import com.lsing.timego.domain.lastWorkingSetByExercise
 import com.lsing.timego.domain.latestWeightKg
+import com.lsing.timego.domain.workoutTargetGroups
 import com.lsing.timego.domain.muscleBalanceForTimeframe
 import com.lsing.timego.domain.muscleGroupsAffectedInSession
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
@@ -460,9 +462,11 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             val sessionDateById = sessions.associate { it.id to it.date }
             val exercisesById = exercises.associateBy { it.id }
             val lastTrained = lastTrainedDatesByMuscleGroup(allSets, exercisesById, sessionDateById)
+            val lastWorked = lastWorkedDatesByMuscleGroup(allSets, exercisesById, sessionDateById)
             val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
-            val recommendedSeeds = recommendSynergisticMuscleGroups(allGroups, lastTrained, LocalDate.now())
+            val recommendedSeeds = recommendSynergisticMuscleGroups(allGroups, lastTrained, LocalDate.now(), lastWorked)
             val recommended = expandMuscleGroupRegions(recommendedSeeds).toList()
+            val exerciseTargetGroups = workoutTargetGroups(recommendedSeeds)
             val recommendedGroups = recommended.toSet()
 
             // Coach Memory Phase 1: reset the session-local "Choose another" state whenever the
@@ -482,13 +486,13 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             val baseSuggestion = suggestedExerciseFor(
-                targetGroups = recommendedGroups,
+                targetGroups = exerciseTargetGroups,
                 exercises = exercises,
                 lean = effectiveLean,
                 usageCounts = usageCounts,
             )
             val alternatives = familiarAlternativesFor(
-                targetGroups = recommendedGroups,
+                targetGroups = exerciseTargetGroups,
                 exercises = exercises,
                 lean = effectiveLean,
                 usageCounts = usageCounts,
