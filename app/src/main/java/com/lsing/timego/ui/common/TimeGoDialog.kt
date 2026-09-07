@@ -45,6 +45,10 @@ import androidx.compose.ui.window.DialogProperties
 import com.lsing.timego.ui.theme.NightEyebrow
 import com.lsing.timego.ui.theme.Spacing
 
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
+
 /** Provides access to the animated dismiss handler for [TimeGoDialog]. */
 val LocalTimeGoDialogDismiss = compositionLocalOf<() -> Unit> { {} }
 
@@ -78,8 +82,10 @@ fun TimeGoDialog(
     ),
     content: @Composable () -> Unit,
 ) {
-    val transitionState = remember { MutableTransitionState(false) }.apply {
-        targetState = true
+    val transitionState = remember {
+        MutableTransitionState(false).apply {
+            targetState = true
+        }
     }
     var isDismissing by remember { mutableStateOf(false) }
 
@@ -90,8 +96,12 @@ fun TimeGoDialog(
         }
     }
 
-    LaunchedEffect(transitionState.isIdle, transitionState.currentState) {
-        if (isDismissing && transitionState.isIdle && !transitionState.currentState) {
+    LaunchedEffect(isDismissing) {
+        if (isDismissing) {
+            withTimeoutOrNull(350L) {
+                snapshotFlow { transitionState.isIdle && !transitionState.currentState }
+                    .first { it }
+            }
             onDismissRequest()
         }
     }
@@ -103,7 +113,13 @@ fun TimeGoDialog(
     )
 
     Dialog(
-        onDismissRequest = { animateAndDismiss() },
+        onDismissRequest = {
+            if (isDismissing) {
+                onDismissRequest()
+            } else {
+                animateAndDismiss()
+            }
+        },
         properties = properties,
     ) {
         CompositionLocalProvider(LocalTimeGoDialogDismiss provides animateAndDismiss) {

@@ -57,6 +57,10 @@ import java.util.Locale
  *  logged / before the app existed) renders the same neutral gray as a real 0% ratio.
  *  [onDateClick], when non-null, makes every past/today dot tappable (future dates never are,
  *  there's nothing to show) -- lets a caller show that day's detailed workout history. */
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.unit.sp
+
 @Composable
 fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Color, onDateClick: ((LocalDate) -> Unit)? = null) {
     var showFullYear by remember { mutableStateOf(false) }
@@ -75,35 +79,7 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
     val sizeGlide = tween<IntSize>(durationMillis = 480, easing = EaseInOut)
     val spacing = 3.dp
 
-    val density = LocalDensity.current
-    // Viewport width = screen width minus 40 dp padding (20 dp each side)
-    val viewportPx = with(density) { (LocalConfiguration.current.screenWidthDp.dp - 40.dp).toPx() }
-    val stepPx = with(density) {
-        ((LocalConfiguration.current.screenWidthDp.dp - 40.dp - spacing * 17) / 18 + spacing).toPx()
-    }
-    val todayLeftPx = todayWeekIndex * stepPx
-    // Entry/exit: today's column flush to the right edge — exactly where it sits in the 18-week view,
-    // so the layout swap is seamless. Rest: today's column centred.
-    val edgeOffset = (todayLeftPx - (viewportPx - stepPx)).toInt().coerceAtLeast(0)
-    val centeredOffset = (todayLeftPx - viewportPx / 2 + stepPx / 2).toInt().coerceAtLeast(0)
-
-    LaunchedEffect(showFullYear) {
-        if (showFullYear) {
-            scrollState.scrollTo(edgeOffset)
-            yearMounted = true
-            snapshotFlow { scrollState.maxValue }.first { it < Int.MAX_VALUE }
-            scrollState.scrollTo(edgeOffset)
-            scrollState.animateScrollTo(centeredOffset, animationSpec = glide)
-        } else if (yearMounted) {
-            scrollState.animateScrollTo(edgeOffset, animationSpec = glide)
-            yearMounted = false
-        }
-    }
-
-    val spacingPx = with(density) { spacing.toPx() }
-    val dotSize = with(density) { ((stepPx - spacingPx)).toDp() }
-
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(
                 if (showFullYear) "${today.year} (scrollable)" else "Last 18 weeks",
@@ -116,7 +92,33 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Box(modifier = Modifier.fillMaxWidth()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val availableWidthPx = constraints.maxWidth
+            val density = LocalDensity.current
+            val spacingPx = with(density) { spacing.roundToPx() }
+            val dotPx = (availableWidthPx - spacingPx * 17) / 18
+            val dotSize = with(density) { dotPx.toDp() }
+            val stepPx = dotPx + spacingPx
+
+            val todayLeftPx = todayWeekIndex * stepPx
+            // Entry/exit: today's column flush to the right edge — exactly where it sits in the 18-week view,
+            // so the layout swap is seamless. Rest: today's column centred.
+            val edgeOffset = (todayLeftPx - (availableWidthPx - stepPx)).coerceAtLeast(0)
+            val centeredOffset = (todayLeftPx - availableWidthPx / 2 + stepPx / 2).coerceAtLeast(0)
+
+            LaunchedEffect(showFullYear) {
+                if (showFullYear) {
+                    scrollState.scrollTo(edgeOffset)
+                    yearMounted = true
+                    snapshotFlow { scrollState.maxValue }.first { it < Int.MAX_VALUE }
+                    scrollState.scrollTo(edgeOffset)
+                    scrollState.animateScrollTo(centeredOffset, animationSpec = glide)
+                } else if (yearMounted) {
+                    scrollState.animateScrollTo(edgeOffset, animationSpec = glide)
+                    yearMounted = false
+                }
+            }
+
             if (yearMounted) {
                 Column(modifier = Modifier.horizontalScroll(scrollState)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
@@ -142,10 +144,11 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
                                         if (isMonthStart) {
                                             Text(
                                                 weekStart.month.getDisplayName(TextStyle.SHORT, displayLocale),
-                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f),
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
                                                 softWrap = false,
+                                                modifier = Modifier.wrapContentWidth(unbounded = true, align = Alignment.Start),
                                             )
                                         }
                                     }
