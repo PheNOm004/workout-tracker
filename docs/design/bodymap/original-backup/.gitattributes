@@ -1,0 +1,2 @@
+# Preserve exact original bytes so manifest hashes survive Windows checkouts.
+*.kt -text

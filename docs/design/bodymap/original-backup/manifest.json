@@ -1,0 +1,15 @@
+{
+  "source_commit": "6c56ab2fa4502c62cfd9a85c8cd191fef42e93b0",
+  "files": [
+    {
+      "path": "app/src/main/java/com/lsing/timego/ui/common/MuscleBodyArt.kt",
+      "backup": "MuscleBodyArt.kt",
+      "sha256": "f43092ca6bbd94e609b4305810646e6ed7f220e07ccc7eb6e5158fc65255f183"
+    },
+    {
+      "path": "app/src/main/java/com/lsing/timego/ui/common/MuscleBodyDiagram.kt",
+      "backup": "MuscleBodyDiagram.kt",
+      "sha256": "b47c9b348fab695a3c7c45f877edd252991de6d6e3348e772021542660866d85"
+    }
+  ]
+}

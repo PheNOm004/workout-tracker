@@ -41,7 +41,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -52,10 +51,12 @@ import androidx.compose.ui.window.Popup
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.domain.MuscleSetSummary
+import com.lsing.timego.domain.boundingBox
 import com.lsing.timego.domain.diagramGroupsForHeatmap
 import com.lsing.timego.domain.diagramZoneIntensity
 import com.lsing.timego.domain.heatColor
 import com.lsing.timego.domain.heatStopHexes
+import com.lsing.timego.domain.parsePathVertices
 import com.lsing.timego.domain.recolorByLightness
 import com.lsing.timego.ui.theme.Spacing
 
@@ -69,8 +70,11 @@ internal data class BuiltMuscleShape(
 internal fun buildShapes(specs: List<MusclePathSpec>, viewBox: FloatArray): List<BuiltMuscleShape> {
     val (x0, y0) = viewBox[0] to viewBox[1]
     return specs.map { spec ->
-        val path = PathParser().parsePathString(spec.pathData).toPath().apply {
-            translate(Offset(-x0, -y0))
+        val vertices = parsePathVertices(spec.pathData)
+        val path = Path().apply {
+            vertices.firstOrNull()?.let { (x, y) -> moveTo(x - x0, y - y0) }
+            vertices.drop(1).forEach { (x, y) -> lineTo(x - x0, y - y0) }
+            close()
         }
         BuiltMuscleShape(path, spec.muscleGroup, spec.isOutline, spec.lightness)
     }
@@ -80,23 +84,23 @@ internal fun buildShapes(specs: List<MusclePathSpec>, viewBox: FloatArray): List
  *  produces (origin subtracted) -- a long-press position is mapped back into this space by dividing
  *  by the canvas scale factor, then tested against each region. The outline and neutral detail
  *  shapes are skipped: they carry no muscle group. */
-internal fun buildGroupRegions(shapes: List<BuiltMuscleShape>, viewBox: FloatArray): Map<MuscleGroup, Region> {
+private fun buildGroupRegions(shapes: List<BuiltMuscleShape>, viewBox: FloatArray): Map<MuscleGroup, Region> {
     val clip = Region(
         0,
         0,
         (viewBox[2] - viewBox[0]).toInt() + 1,
         (viewBox[3] - viewBox[1]).toInt() + 1,
     )
-    val regions = mutableMapOf<MuscleGroup, Region>()
-    // Follow paint order: a neutral seam or an overlaid region must also occlude the hit target.
-    shapes.forEach { shape ->
-        val area = Region().apply { setPath(shape.path.asAndroidPath(), clip) }
-        regions.values.forEach { it.op(area, Region.Op.DIFFERENCE) }
-        if (!shape.isOutline && shape.muscleGroup != null) {
-            regions.getOrPut(shape.muscleGroup) { Region() }.op(area, Region.Op.UNION)
+    return shapes
+        .filter { !it.isOutline && it.muscleGroup != null }
+        .groupBy { it.muscleGroup!! }
+        .mapValues { (_, groupShapes) ->
+            Region().apply {
+                groupShapes.forEach { shape ->
+                    op(Region().apply { setPath(shape.path.asAndroidPath(), clip) }, Region.Op.UNION)
+                }
+            }
         }
-    }
-    return regions
 }
 
 private fun regionHitAt(regions: Map<MuscleGroup, Region>, position: Offset, scaleFactor: Float): MuscleGroup? {
@@ -139,16 +143,17 @@ private val CACHED_BACK_SHAPES by lazy { buildShapes(BACK_BODY_PATHS, BACK_BODY_
 private val CACHED_FRONT_REGIONS by lazy { buildGroupRegions(CACHED_FRONT_SHAPES, FRONT_BODY_VIEWBOX) }
 private val CACHED_BACK_REGIONS by lazy { buildGroupRegions(CACHED_BACK_SHAPES, BACK_BODY_VIEWBOX) }
 
-/** Front + back anatomy from the approved two-tone SVG in docs/design/bodymap, assigned to
- *  [MuscleGroup] zones (or left neutral for structural, tendon, head, hand and foot shapes that aren't a tracked
+/** Front + back anatomy diagram traced from a real muscle-atlas reference (see
+ *  docs/superpowers/specs), each of ~176 shapes classified by its position into a [MuscleGroup]
+ *  zone (or left neutral for the outline/face/hand/foot detail shapes that aren't a tracked
  *  group). [intensities] maps [MuscleGroup.name] to a 0f..1f normalized recent-volume value, same
  *  shape as [RadarChart]'s input -- a missing key or an explicit 0f both mean genuinely untrained
  *  (there's no other way to get exactly 0f once [intensities] is volume-normalized against the max
  *  group), so those shapes render in the same neutral color as the untracked detail shapes rather
  *  than the heat scale's low end -- otherwise every untrained muscle reads as "trained a little"
  *  green, which is misleading. Trained shapes come from [heatColor] (neutral/mint = low, coral = high) re-lit
- *  via [recolorByLightness] with the artwork's uniform lightness. Muscle definition comes from
- *  its separate shapes rather than baked-in shading. A gradient legend renders below the
+ *  per shape via [recolorByLightness] using that shape's own traced shading, so muscle definition
+ *  survives instead of flattening to one flat color per group. A gradient legend renders below the
  *  diagram so the scale is actually readable. */
 @Composable
 fun MuscleBodyDiagram(
@@ -374,19 +379,12 @@ fun CroppedMuscleDiagram(
 
 private fun cropAspect(specs: List<MusclePathSpec>): Float? {
     if (specs.isEmpty()) return null
-    val box = muscleCropBounds(specs) ?: return null
+    val vertexLists = specs.map { parsePathVertices(it.pathData) }
+    val box = boundingBox(vertexLists, padding = 20f) ?: return null
     return ((box[2] - box[0]) / (box[3] - box[1])).coerceAtLeast(0.05f)
 }
 
-internal fun muscleCropBounds(specs: List<MusclePathSpec>, padding: Float = 20f): FloatArray? {
-    if (specs.isEmpty()) return null
-    return floatArrayOf(
-        specs.minOf { it.bounds[0] } - padding,
-        specs.minOf { it.bounds[1] } - padding,
-        specs.maxOf { it.bounds[2] } + padding,
-        specs.maxOf { it.bounds[3] } + padding,
-    )
-}
+private data class CroppedMuscleShape(val path: Path, val lightness: Float, val muscleGroup: MuscleGroup?)
 
 @Composable
 private fun CroppedMuscleHalf(
@@ -397,12 +395,21 @@ private fun CroppedMuscleHalf(
     intensities: Map<String, Float>,
     modifier: Modifier = Modifier,
 ) {
-    val cropBox = remember(specs) { muscleCropBounds(specs) }
+    val vertexLists = remember(specs) { specs.map { parsePathVertices(it.pathData) } }
+    val cropBox = remember(vertexLists) { boundingBox(vertexLists, padding = 20f) }
 
     if (cropBox == null) return
 
     val shapes = remember(specs, cropBox) {
-        buildShapes(specs, cropBox)
+        val (x0, y0) = cropBox[0] to cropBox[1]
+        specs.indices.map { i ->
+            val path = Path().apply {
+                vertexLists[i].firstOrNull()?.let { (x, y) -> moveTo(x - x0, y - y0) }
+                vertexLists[i].drop(1).forEach { (x, y) -> lineTo(x - x0, y - y0) }
+                close()
+            }
+            CroppedMuscleShape(path, specs[i].lightness, specs[i].muscleGroup)
+        }
     }
     val aspect = ((cropBox[2] - cropBox[0]) / (cropBox[3] - cropBox[1])).coerceAtLeast(0.05f)
 
