@@ -113,7 +113,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun TimeGoTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     // Deliberately no dynamic (Material You / wallpaper-derived) color: TimeGo has its own

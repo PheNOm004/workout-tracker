@@ -13,6 +13,7 @@ import com.lsing.timego.ui.theme.TimeGoTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.decorView.setBackgroundColor(android.graphics.Color.parseColor("#0D1113"))
         enableEdgeToEdge()
         setContent {
             TimeGoTheme {

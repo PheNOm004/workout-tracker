@@ -2,8 +2,10 @@ package com.lsing.timego.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -101,25 +103,63 @@ private fun RetainedNavContent(
     selectedRoute: String,
     modifier: Modifier = Modifier,
 ) {
+    var activeRoute by remember { mutableStateOf(selectedRoute) }
+    var previousRoute by remember { mutableStateOf<String?>(null) }
+    var slideForward by remember { mutableStateOf(true) }
+    val slideProgress = remember { Animatable(1f) }
+
+    LaunchedEffect(selectedRoute) {
+        if (selectedRoute != activeRoute) {
+            val fromIndex = destinations.indexOfRoute(activeRoute).coerceAtLeast(0)
+            val toIndex = destinations.indexOfRoute(selectedRoute).coerceAtLeast(0)
+            slideForward = toIndex >= fromIndex
+            previousRoute = activeRoute
+            activeRoute = selectedRoute
+            slideProgress.snapTo(0f)
+            slideProgress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 260, easing = EaseInOut),
+            )
+            previousRoute = null
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         destinations.forEach { dest ->
             val route = dest.route
-            val isSelected = (route == selectedRoute)
-            val alpha by animateFloatAsState(
-                targetValue = if (isSelected) 1f else 0f,
-                animationSpec = tween(durationMillis = 140, easing = EaseInOut),
-                label = "navTabAlpha_${route}",
-            )
+            val isTarget = (route == activeRoute)
+            val isPrevious = (route == previousRoute)
+            val isVisible = isTarget || isPrevious
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .zIndex(if (isSelected) 1f else 0f)
+                    .zIndex(if (isTarget) 1f else 0f)
                     .graphicsLayer {
-                        this.alpha = alpha
+                        if (!isVisible) {
+                            alpha = 0f
+                            translationX = 10000f
+                        } else {
+                            val p = slideProgress.value
+                            val isAnimating = (previousRoute != null)
+                            val (alphaVal, offsetFraction) = when {
+                                isTarget && isAnimating -> {
+                                    val startOffset = if (slideForward) 0.35f else -0.35f
+                                    Pair(p, (1f - p) * startOffset)
+                                }
+                                isPrevious && isAnimating -> {
+                                    val endOffset = if (slideForward) -0.35f else 0.35f
+                                    Pair(1f - p, p * endOffset)
+                                }
+                                isTarget -> Pair(1f, 0f)
+                                else -> Pair(0f, 0f)
+                            }
+                            alpha = alphaVal
+                            translationX = offsetFraction * size.width
+                        }
                     }
                     .then(
-                        if (!isSelected) {
+                        if (!isTarget) {
                             Modifier
                                 .pointerInput(Unit) {
                                     awaitPointerEventScope {
@@ -188,7 +228,7 @@ private fun TimeGoBottomDock(
                     val tabWidth = maxWidth / destinations.size
                     val indicatorOffset by animateDpAsState(
                         targetValue = tabWidth * selectedIndex,
-                        animationSpec = tween(durationMillis = 180, easing = EaseInOut),
+                        animationSpec = tween(durationMillis = 260, easing = EaseInOut),
                         label = "navIndicatorOffset",
                     )
 
