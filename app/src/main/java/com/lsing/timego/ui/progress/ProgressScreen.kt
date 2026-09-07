@@ -138,6 +138,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             onDismiss = { viewModel.selectHistoryDate(null) },
             label = historyLabel,
             durationMinutes = historyDurationMinutes,
+            date = selectedHistoryDate,
         )
     }
     if (showPeriodBreakdown) {

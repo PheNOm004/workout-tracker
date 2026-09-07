@@ -6,35 +6,63 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EventAvailable
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
+import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.domain.formatCalisthenicsWeight
-import androidx.compose.foundation.layout.Row
-import androidx.compose.ui.Alignment
-import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.domain.primaryMuscleGroups
 import com.lsing.timego.ui.theme.LedgerFigureValue
+import com.lsing.timego.ui.theme.NightDeckHigh
 import com.lsing.timego.ui.theme.NightEyebrow
 import com.lsing.timego.ui.theme.Spacing
 import com.lsing.timego.ui.theme.TimeGoMotion
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 /** [setDescriptions] holds one entry per set of this exercise (e.g. "60.0kg x 8"), grouped
  *  together under a single [exerciseName] row rather than repeating the name once per set --
@@ -129,6 +157,7 @@ fun buildGroupedDayHistory(
  *  tap-the-summary-card history. When [label] is non-null it appears as a subtitle below the date
  *  (e.g. the routine name that was run that day). Duration appears on its own line when present.
  *  Uses the signature [TimeGoDialog] hardware plate with top brass bezel sheen and NightDeckHigh plate. */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun WorkoutHistoryDialog(
     title: String,
@@ -137,118 +166,285 @@ fun WorkoutHistoryDialog(
     label: String? = null,
     durationMinutes: Double? = null,
     groupedEntries: List<WorkoutHistoryGroup> = emptyList(),
+    date: LocalDate? = null,
 ) {
-    TimeGoDialog(
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        headerContent = {
-            Column {
-                Text(
-                    "SESSION",
-                    style = NightEyebrow,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
+        sheetState = sheetState,
+        containerColor = NightDeckHigh,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        dragHandle = {
+            BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            // Eyebrow
+            Text(
+                text = "WORKOUT SUMMARY",
+                style = NightEyebrow,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 2.dp),
+            )
+
+            // Formatted date (HeatP style: EEEE, MMM d, yyyy)
+            val formattedDateText = remember(title, date) {
+                date?.format(DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy"))
+                    ?: runCatching {
+                        val rawDate = if (title.startsWith("Workout on ")) title.removePrefix("Workout on ").trim() else title.trim()
+                        LocalDate.parse(rawDate).format(DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy"))
+                    }.getOrDefault(title)
+            }
+
+            Text(
+                text = formattedDateText,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
+
+            // Subtitle & Pills row (Routine name + Duration pill)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 14.dp),
+            ) {
                 if (label != null) {
                     Text(
-                        label,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp),
+                        text = label,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
                 }
                 if (durationMinutes != null) {
-                    Text(
-                        "Duration ${formatHistoryDuration(durationMinutes)}",
-                        style = LedgerFigureValue.copy(fontSize = 13.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Schedule,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = formatHistoryDuration(durationMinutes),
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
+                    }
                 }
             }
-        },
-        confirmButton = {
-            val dismiss = LocalTimeGoDialogDismiss.current
-            TextButton(onClick = dismiss) { Text("Close") }
-        },
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
+
+            // Body: Empty state or Groups
             if (entries.isEmpty() && groupedEntries.isEmpty()) {
-                Text(
-                    "No sets logged.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Filled.EventAvailable,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "No exercises logged",
+                            style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.Center,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "No sets recorded for this date.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
             } else if (groupedEntries.isNotEmpty()) {
                 groupedEntries.forEachIndexed { groupIndex, group ->
                     if (groupIndex > 0) {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                            modifier = Modifier.padding(vertical = Spacing.Small),
-                        )
+                        Spacer(modifier = Modifier.height(14.dp))
                     }
+                    // Section Header (HeatP style)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = if (groupIndex == 0) 0.dp else Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
+                            .padding(bottom = 8.dp),
                     ) {
+                        Icon(
+                            Icons.Filled.FitnessCenter,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            group.regionLabel.uppercase(),
+                            text = group.regionLabel.uppercase(),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f),
                         )
-                        Text(
-                            "${group.totalSets} set${if (group.totalSets == 1) "" else "s"}",
-                            style = LedgerFigureValue.copy(fontSize = 12.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    group.entries.forEachIndexed { index, entry ->
-                        if (index > 0) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                modifier = Modifier.padding(vertical = 4.dp),
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                        ) {
+                            Text(
+                                text = "${group.totalSets} set${if (group.totalSets == 1) "" else "s"}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             )
                         }
-                        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Text(
-                                entry.exerciseName,
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                entry.setDescriptions.joinToString("   "),
-                                style = LedgerFigureValue.copy(fontSize = 13.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 2.dp),
-                            )
+                    }
+
+                    // Exercise items card (HeatP style clean card)
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                        ) {
+                            group.entries.forEachIndexed { index, entry ->
+                                if (index > 0) {
+                                    HorizontalDivider(
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                        modifier = Modifier.padding(vertical = 8.dp),
+                                    )
+                                }
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        text = entry.exerciseName,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier.padding(top = 6.dp),
+                                    ) {
+                                        entry.setDescriptions.forEach { setDesc ->
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                            ) {
+                                                Text(
+                                                    text = setDesc,
+                                                    style = LedgerFigureValue.copy(fontSize = 12.sp),
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             } else {
-                entries.forEachIndexed { index, entry ->
-                    if (index > 0) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    }
-                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.Small)) {
-                        Text(
-                            entry.exerciseName,
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            entry.setDescriptions.joinToString("   "),
-                            style = LedgerFigureValue.copy(fontSize = 13.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        entries.forEachIndexed { index, entry ->
+                            if (index > 0) {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                )
+                            }
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = entry.exerciseName,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.padding(top = 6.dp),
+                                ) {
+                                    entry.setDescriptions.forEach { setDesc ->
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        ) {
+                                            Text(
+                                                text = setDesc,
+                                                style = LedgerFigureValue.copy(fontSize = 12.sp),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+            }
+
+            OutlinedButton(
+                onClick = {
+                    coroutineScope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 20.dp),
+            ) {
+                Text("Close")
             }
         }
     }
