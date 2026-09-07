@@ -45,7 +45,10 @@ set-summary content, and popup behavior are retained. Workout calculations and s
 
 All 18 anatomical groups have bilateral drawable coverage. FULL_BODY remains the existing
 catch-all expansion/fallback, not a new anatomical zone. Shoulder heads stay independent.
-Serratus-adjacent lateral torso components are grouped with OBLIQUES as in the existing app.
+Ten serratus rib-slip components are explicitly labeled `data-anatomy="SERRATUS_ANTERIOR"`
+and have `data-muscle="NEUTRAL"`: serratus is not a tracked exercise group, so these shapes
+remain visible but do not borrow oblique intensity or produce an oblique readout. Actual
+external-oblique regions remain assigned to OBLIQUES.
 Neck, patellae, sartorius/tendon details, and anterior shin structures with no matching tracked
 group remain neutral; calf bellies are assigned to CALVES. This is a stylized training diagram,
 not a medical atlas. References consulted for placement:
@@ -56,7 +59,7 @@ not a medical atlas. References consulted for placement:
 ## Verification — 2026-09-08
 
 - JVM tests, lintDebug, assembleDebug, assembleRelease, and assembleDebugAndroidTest passed.
-- Four geometry/coverage unit tests protect complete bilateral coverage, finite in-viewport
+- Five geometry/coverage unit tests protect complete bilateral coverage, finite in-viewport
   crop bounds, source lightness, and neutral anatomical extremities.
 - Five targeted Android tests passed on `heatp_lowmid`, serial `emulator-5556`: every group's
   visible hit region, non-overlapping targets, neutral occlusion, real long-press/release
@@ -70,3 +73,10 @@ not a medical atlas. References consulted for placement:
 See [original-backup/README.md](original-backup/README.md). The original renderer and art were
 saved directly from the pre-change Git version and checked against the manifest's SHA-256 hashes.
 The old path parser is retained in the app so the original renderer remains restorable.
+
+### Serratus correction — 2026-09-08
+
+Removed oblique assignment from ten serratus rib-slip components without altering their geometry.
+Anatomical identity remains explicit in the SVG; these untracked shapes are rendered neutrally.
+Added a regression check for their assignment and Android neutral-hit probes. 300 JVM tests
+and five targeted emulator tests passed; refreshed render captures reflect this correction.

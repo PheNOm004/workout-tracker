@@ -6,6 +6,21 @@ import org.junit.Test
 
 class MuscleBodyArtTest {
     @Test
+    fun `serratus rib slips are visible neutral anatomy not oblique training zones`() {
+        val serratus = FRONT_BODY_PATHS.filter {
+            val b = it.bounds
+            b[1] >= 270f && b[3] <= 342f &&
+                ((b[0] >= 380f && b[2] <= 430f) || (b[0] >= 513f && b[2] <= 558f))
+        }
+        assertEquals(10, serratus.size)
+        serratus.forEach {
+            assertNull(it.muscleGroup)
+            assertFalse(it.isOutline)
+        }
+        assertTrue(FRONT_BODY_PATHS.any { it.muscleGroup == MuscleGroup.OBLIQUES })
+    }
+
+    @Test
     fun `every anatomical group has drawable coverage on both sides of the body`() {
         val all = FRONT_BODY_PATHS + BACK_BODY_PATHS
         val expected = MuscleGroup.entries.toSet() - MuscleGroup.FULL_BODY

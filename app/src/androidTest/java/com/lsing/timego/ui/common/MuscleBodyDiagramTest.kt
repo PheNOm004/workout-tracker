@@ -45,7 +45,7 @@ class MuscleBodyDiagramTest {
                 }
             }
             // Probe head, palms, ankles, and central pelvis in source coordinates.
-            val samples = if (box === FRONT_BODY_VIEWBOX) listOf(471 to 80, 307 to 505, 406 to 878, 470 to 473)
+            val samples = if (box === FRONT_BODY_VIEWBOX) listOf(471 to 80, 307 to 505, 406 to 878, 470 to 473, 412 to 306, 529 to 306)
                 else listOf(1060 to 80, 900 to 505, 989 to 884)
             samples.forEach { (x, y) ->
                 assertTrue("Neutral point $x,$y is tracked", regions.values.none { it.contains(x - box[0].toInt(), y - box[1].toInt()) })
