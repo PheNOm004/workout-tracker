@@ -118,6 +118,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
 
     val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsStateWithLifecycle()
     val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsStateWithLifecycle()
+    val historyGroupedForSelectedDate by viewModel.historyGroupedForSelectedDate.collectAsStateWithLifecycle()
     val historyLabel by viewModel.historyLabel.collectAsStateWithLifecycle()
     val historyDurationMinutes by viewModel.historyDurationMinutes.collectAsStateWithLifecycle()
     val periodBreakdown by viewModel.periodBreakdown.collectAsStateWithLifecycle()
@@ -133,9 +134,11 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         WorkoutHistoryDialog(
             title = "Workout on ${selectedHistoryDate!!}",
             entries = historyForSelectedDate,
+            groupedEntries = historyGroupedForSelectedDate,
             onDismiss = { viewModel.selectHistoryDate(null) },
             label = historyLabel,
             durationMinutes = historyDurationMinutes,
+            date = selectedHistoryDate,
         )
     }
     if (showPeriodBreakdown) {

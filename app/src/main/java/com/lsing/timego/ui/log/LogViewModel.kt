@@ -22,6 +22,10 @@ import com.lsing.timego.domain.OverloadSuggestion
 import com.lsing.timego.domain.RepRange
 import com.lsing.timego.domain.RuleBasedHoldSuggester
 import com.lsing.timego.domain.RuleBasedOverloadSuggester
+import com.lsing.timego.domain.ai.AdaptiveOverloadSuggester
+import com.lsing.timego.domain.ai.CategoryPreferenceLearner
+import com.lsing.timego.domain.ai.ProgressionRecommender
+import com.lsing.timego.domain.ai.WeakLinkDiagnostician
 import com.lsing.timego.domain.SessionAutoCloseDecision
 import com.lsing.timego.domain.SetPerformance
 import com.lsing.timego.domain.checkSessionAutoClose
@@ -31,8 +35,10 @@ import com.lsing.timego.domain.exercisesRankedByFrequency
 import com.lsing.timego.domain.quickAddExercises
 import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
+import com.lsing.timego.domain.lastWorkedDatesByMuscleGroup
 import com.lsing.timego.domain.lastWorkingSetByExercise
 import com.lsing.timego.domain.latestWeightKg
+import com.lsing.timego.domain.workoutTargetGroups
 import com.lsing.timego.domain.muscleBalanceForTimeframe
 import com.lsing.timego.domain.muscleGroupsAffectedInSession
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
@@ -47,7 +53,9 @@ import com.lsing.timego.domain.sessionWorkingSetHistory
 import com.lsing.timego.domain.familiarAlternativesFor
 import com.lsing.timego.domain.suggestedExerciseFor
 import com.lsing.timego.ui.common.DayHistoryEntry
+import com.lsing.timego.ui.common.WorkoutHistoryGroup
 import com.lsing.timego.ui.common.buildDayHistoryEntries
+import com.lsing.timego.ui.common.buildGroupedDayHistory
 import com.lsing.timego.ui.common.sessionDayLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -75,6 +83,7 @@ data class LastSessionSummary(
     val label: String,
     val durationMinutes: Long,
     val detail: List<DayHistoryEntry>,
+    val groupedDetail: List<WorkoutHistoryGroup> = emptyList(),
 )
 
 /** Last-session summary + recommended muscle groups -- kept fresh independently of
@@ -91,6 +100,7 @@ data class LandingSummary(
     /** The user has rotated through every eligible familiar alternative this recommendation epoch and
      *  none remain; the landing card should point them at the freeform picker instead of looping. */
     val noAlternativesLeft: Boolean = false,
+    val recommendationNote: String? = null,
 )
 
 /** One-shot visual acknowledgement emitted only after the repository has saved a set. */
@@ -112,7 +122,10 @@ private data class LandingInputs(
 class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
     private val settingsRepository = SettingsRepository(application)
-    private val suggester = RuleBasedOverloadSuggester()
+    private val suggester: com.lsing.timego.domain.OverloadSuggester = AdaptiveOverloadSuggester()
+    private val preferenceLearner = CategoryPreferenceLearner()
+    private val progressionRecommender = ProgressionRecommender(preferenceLearner)
+    private val weakLinkDiagnostician = WeakLinkDiagnostician()
     private val holdSuggester = RuleBasedHoldSuggester()
 
     private var allExercises: List<Exercise> = emptyList()
@@ -346,7 +359,33 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                     val repRange = repRangeFor(exerciseSets, sessionHistory)
                     val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
                     val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
-                    suggester.suggestNext(historyPerf, currentPerf, weightIncrementFor(exercise), repRange)?.let { map[exercise.id] = it }
+                    val baseSuggestion = suggester.suggestNext(historyPerf, currentPerf, weightIncrementFor(exercise), repRange)
+                    if (baseSuggestion != null) {
+                        val finalNote = if (baseSuggestion.plateauStatus == com.lsing.timego.domain.PlateauStatus.PLATEAUING || baseSuggestion.plateauStatus == com.lsing.timego.domain.PlateauStatus.REGRESSING) {
+                            val bottleneck = weakLinkDiagnostician.diagnoseBottleneck(exercise, exerciseList, allSets)
+                            if (bottleneck != null) {
+                                val acc = if (preferenceLearner.getDominantLean() == ExerciseCategory.CALISTHENICS) {
+                                    bottleneck.calisthenicsAccessories.firstOrNull()?.name ?: bottleneck.strengthAccessories.firstOrNull()?.name
+                                } else {
+                                    bottleneck.strengthAccessories.firstOrNull()?.name ?: bottleneck.calisthenicsAccessories.firstOrNull()?.name
+                                }
+                                val accHint = if (acc != null) " • Bottleneck: ${bottleneck.weakLinkMuscle}. Try: $acc" else ""
+                                "${baseSuggestion.note}$accHint"
+                            } else {
+                                baseSuggestion.note
+                            }
+                        } else {
+                            val upgrade = progressionRecommender.evaluateProgression(exercise, historyPerf)
+                            if (upgrade != null) {
+                                val upgradeTarget = exerciseList.firstOrNull { it.catalogueKey == upgrade.recommendedCatalogueKey }?.name
+                                    ?: upgrade.recommendedCatalogueKey
+                                "${baseSuggestion.note} • Ready for next level: $upgradeTarget"
+                            } else {
+                                baseSuggestion.note
+                            }
+                        }
+                        map[exercise.id] = baseSuggestion.copy(note = finalNote)
+                    }
                 }
             }
             map to holdMap
@@ -413,22 +452,26 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 val primaryMuscleGroups = muscleGroupsWorkedInSession(session.id, sets, exercises)
                 val muscleIntensities = muscleGroupIntensityForSession(session.id, sets, exercisesById)
                 val detail = buildDayHistoryEntries(sets, exercisesById)
+                val groupedDetail = buildGroupedDayHistory(sets, exercisesById)
                 LastSessionSummary(
                     sets = sets.size,
                     muscleGroups = muscleGroups,
                     muscleIntensities = muscleIntensities,
-                    label = sessionDayLabel(primaryMuscleGroups, isCardioOnlySession(sets, exercisesById)),
+                    label = sessionDayLabel(sets, exercisesById),
                     durationMinutes = (session.endEpochMillis ?: session.startEpochMillis).minus(session.startEpochMillis) / 60_000,
                     detail = detail,
+                    groupedDetail = groupedDetail,
                 )
             }
 
             val sessionDateById = sessions.associate { it.id to it.date }
             val exercisesById = exercises.associateBy { it.id }
             val lastTrained = lastTrainedDatesByMuscleGroup(allSets, exercisesById, sessionDateById)
+            val lastWorked = lastWorkedDatesByMuscleGroup(allSets, exercisesById, sessionDateById)
             val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
-            val recommendedSeeds = recommendSynergisticMuscleGroups(allGroups, lastTrained, LocalDate.now())
+            val recommendedSeeds = recommendSynergisticMuscleGroups(allGroups, lastTrained, LocalDate.now(), lastWorked)
             val recommended = expandMuscleGroupRegions(recommendedSeeds).toList()
+            val exerciseTargetGroups = workoutTargetGroups(recommendedSeeds)
             val recommendedGroups = recommended.toSet()
 
             // Coach Memory Phase 1: reset the session-local "Choose another" state whenever the
@@ -440,16 +483,23 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             }
             val exclusions = _suggestionExclusions.value
 
+            val dominantLean = preferenceLearner.getDominantLean()
+            val effectiveLean = when (dominantLean) {
+                ExerciseCategory.CALISTHENICS -> TrainingLean.CALISTHENICS
+                ExerciseCategory.STRENGTH -> TrainingLean.STRENGTH
+                else -> trainingLean
+            }
+
             val baseSuggestion = suggestedExerciseFor(
-                targetGroups = recommendedGroups,
+                targetGroups = exerciseTargetGroups,
                 exercises = exercises,
-                lean = trainingLean,
+                lean = effectiveLean,
                 usageCounts = usageCounts,
             )
             val alternatives = familiarAlternativesFor(
-                targetGroups = recommendedGroups,
+                targetGroups = exerciseTargetGroups,
                 exercises = exercises,
-                lean = trainingLean,
+                lean = effectiveLean,
                 usageCounts = usageCounts,
                 loggedExerciseIds = allSets.mapTo(mutableSetOf()) { it.exerciseId },
                 routineExerciseIds = routineMemberExerciseIds,
@@ -457,7 +507,12 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 rejectedId = null,
                 lastShownId = lastShownSuggestionId,
             )
-            val suggestedExercise = if (exclusions.isEmpty()) baseSuggestion else alternatives.firstOrNull()
+            val suggestedExercise = alternatives.firstOrNull()
+                ?: if (baseSuggestion?.id !in exclusions) baseSuggestion else null
+            val recommendationNote = if (suggestedExercise != null) {
+                val leanTitle = dominantLean.name.lowercase().replaceFirstChar { it.uppercase() }
+                "Tailored to your $leanTitle preference"
+            } else null
 
             LandingSummary(
                 lastSession = summary,
@@ -465,6 +520,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 suggestedExercise = suggestedExercise,
                 canChooseAnother = alternatives.any { it.id != suggestedExercise?.id },
                 noAlternativesLeft = exclusions.isNotEmpty() && suggestedExercise == null,
+                recommendationNote = recommendationNote,
             )
         }
         _landingSummary.value = landingSummary
@@ -516,6 +572,12 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         targetProvenance: TargetProvenance = TargetProvenance.UNKNOWN,
     ) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
+        val exercise = allExercises.firstOrNull { it.id == exerciseId }
+        if (exercise != null) {
+            try {
+                preferenceLearner.recordInteraction(ExerciseCategory.valueOf(exercise.category))
+            } catch (_: IllegalArgumentException) {}
+        }
         viewModelScope.launch {
             repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name)
             emitSetLoggedPulse(exerciseId)
@@ -524,6 +586,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logCardioSet(exerciseId: Long, durationMinutes: Double, distanceKm: Double?) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
+        preferenceLearner.recordInteraction(ExerciseCategory.CARDIO)
         viewModelScope.launch {
             repository.logCardioSet(sessionId, exerciseId, durationMinutes, distanceKm)
             emitSetLoggedPulse(exerciseId)

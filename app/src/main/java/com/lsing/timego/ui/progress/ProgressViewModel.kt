@@ -26,7 +26,9 @@ import com.lsing.timego.domain.trainingStatsByDay
 import com.lsing.timego.domain.workoutVolumeRatios
 import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.ui.common.DayHistoryEntry
+import com.lsing.timego.ui.common.WorkoutHistoryGroup
 import com.lsing.timego.ui.common.buildDayHistoryEntries
+import com.lsing.timego.ui.common.buildGroupedDayHistory
 import com.lsing.timego.ui.common.sessionDayLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -92,6 +94,9 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
 
     private val _historyForSelectedDate = MutableStateFlow<List<DayHistoryEntry>>(emptyList())
     val historyForSelectedDate: StateFlow<List<DayHistoryEntry>> = _historyForSelectedDate.asStateFlow()
+
+    private val _historyGroupedForSelectedDate = MutableStateFlow<List<WorkoutHistoryGroup>>(emptyList())
+    val historyGroupedForSelectedDate: StateFlow<List<WorkoutHistoryGroup>> = _historyGroupedForSelectedDate.asStateFlow()
 
     private val _historyLabel = MutableStateFlow<String?>(null)
     val historyLabel: StateFlow<String?> = _historyLabel.asStateFlow()
@@ -276,10 +281,8 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
         val exercisesById = latestExercises.associateBy { it.id }
         val sets = latestSetLogs.filter { it.sessionId in sessionIds }.sortedBy { it.loggedAtEpochMillis }
         _historyForSelectedDate.value = buildDayHistoryEntries(sets, exercisesById)
-        val primaryMuscleGroups = sessionIds.flatMap { sessionId ->
-            muscleGroupsWorkedInSession(sessionId, sets, latestExercises)
-        }.toSet()
-        _historyLabel.value = sessionDayLabel(primaryMuscleGroups, isCardioOnlySession(sets, exercisesById))
+        _historyGroupedForSelectedDate.value = buildGroupedDayHistory(sets, exercisesById)
+        _historyLabel.value = sessionDayLabel(sets, exercisesById)
         // Same span-of-logged-timestamps estimate trainingStats() uses, scoped to this one day's
         // sessions -- a session with only one set contributes 0 (no span to measure).
         _historyDurationMinutes.value = sets.groupBy { it.sessionId }

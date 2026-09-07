@@ -8,6 +8,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import com.lsing.timego.ui.theme.TimeGoMotion
 
 /** Shared expand/collapse transition for exercise rows and library sections. */
@@ -15,7 +16,7 @@ import com.lsing.timego.ui.theme.TimeGoMotion
 fun AnimatedExpand(visible: Boolean, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     AnimatedVisibility(
         visible = visible,
-        modifier = modifier,
+        modifier = modifier.clipToBounds(),
         enter = expandVertically(TimeGoMotion.expandEnter) + fadeIn(TimeGoMotion.fadeEnter),
         exit = shrinkVertically(TimeGoMotion.expandExit) + fadeOut(TimeGoMotion.fadeExit),
     ) {

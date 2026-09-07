@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -52,7 +53,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.AlertDialog
+import com.lsing.timego.ui.common.TimeGoDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -201,6 +202,7 @@ private fun LogLandingContent(
         WorkoutHistoryDialog(
             title = "Last session",
             entries = summary.lastSession.detail,
+            groupedEntries = summary.lastSession.groupedDetail,
             onDismiss = { showLastSessionDetail = false },
             label = summary.lastSession.label,
             durationMinutes = summary.lastSession.durationMinutes.toDouble(),
@@ -305,6 +307,14 @@ private fun LogLandingContent(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = Spacing.ExtraSmall),
                                 )
+                                summary.recommendationNote?.let { note ->
+                                    Text(
+                                        note,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(top = 2.dp),
+                                    )
+                                }
                                 if (!isSessionActive && summary.canChooseAnother) {
                                     TextButton(
                                         onClick = onChooseAnother,
@@ -509,22 +519,30 @@ private fun LoggingContent(
     }
 
     if (showEndSessionConfirmation) {
-        AlertDialog(
+        TimeGoDialog(
             onDismissRequest = { showEndSessionConfirmation = false },
-            title = { Text("End workout?") },
-            text = { Text("Your logged sets are saved. End this session when you are finished adding sets.") },
+            eyebrow = "SESSION",
+            title = "End workout?",
             dismissButton = {
-                TextButton(onClick = { showEndSessionConfirmation = false }) { Text("Keep logging") }
+                val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
+                TextButton(onClick = dismiss) { Text("Keep logging") }
             },
             confirmButton = {
+                val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
                 Button(
                     onClick = {
-                        showEndSessionConfirmation = false
+                        dismiss()
                         onEndSession()
                     },
                 ) { Text("End session") }
             },
-        )
+        ) {
+            Text(
+                "Your logged sets are saved. End this session when you are finished adding sets.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 
     Scaffold(
@@ -725,7 +743,7 @@ private fun ExerciseRowHeader(
 ) {
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
+        animationSpec = androidx.compose.animation.core.tween(280, easing = androidx.compose.animation.core.EaseInOut),
         label = "chevronRotation",
     )
     val starScale by animateFloatAsState(
@@ -778,12 +796,36 @@ private fun ExerciseRowHeader(
 @Composable
 private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Composable () -> Unit) {
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    var cardHeight by remember { mutableStateOf(0) }
+    var cardWidth by remember { mutableStateOf(0) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val viewportHeightPx = with(density) { (configuration.screenHeightDp.dp - 140.dp).toPx() }
+
     LaunchedEffect(expanded) {
         if (expanded) {
-            kotlinx.coroutines.delay(120)
-            bringIntoViewRequester.bringIntoView()
+            kotlinx.coroutines.delay(100)
+            val h = cardHeight.toFloat()
+            val extraPadding = ((viewportHeightPx - h) / 2f).coerceAtLeast(0f)
+            bringIntoViewRequester.bringIntoView(
+                androidx.compose.ui.geometry.Rect(
+                    left = 0f,
+                    top = -extraPadding,
+                    right = cardWidth.toFloat().coerceAtLeast(1f),
+                    bottom = h + extraPadding,
+                ),
+            )
             kotlinx.coroutines.delay(200)
-            bringIntoViewRequester.bringIntoView()
+            val finalH = cardHeight.toFloat()
+            val finalPadding = ((viewportHeightPx - finalH) / 2f).coerceAtLeast(0f)
+            bringIntoViewRequester.bringIntoView(
+                androidx.compose.ui.geometry.Rect(
+                    left = 0f,
+                    top = -finalPadding,
+                    right = cardWidth.toFloat().coerceAtLeast(1f),
+                    bottom = finalH + finalPadding,
+                ),
+            )
         }
     }
     val accent = MaterialTheme.colorScheme.primary
@@ -793,6 +835,10 @@ private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Compos
         modifier = Modifier
             .fillMaxWidth()
             .bringIntoViewRequester(bringIntoViewRequester)
+            .onSizeChanged {
+                cardWidth = it.width
+                cardHeight = it.height
+            }
             .padding(start = Spacing.Large, end = Spacing.Small)
             .then(if (expanded) Modifier.background(MaterialTheme.colorScheme.surfaceContainer) else Modifier),
     ) {
@@ -917,7 +963,7 @@ private fun StrengthLogRow(
                 val setsSummary = currentSessionSets.mapIndexed { idx, s ->
                     val w = if (isBodyweight && s.addedWeightKg != null) formatCalisthenicsWeight(s.addedWeightKg) else "${s.weightKg}kg"
                     "#${idx + 1}: $w x ${s.reps}"
-                }.joinToString("  •  ")
+                }.joinToString("  â€¢  ")
                 Text(
                     "Today: $setsSummary",
                     style = LedgerFigureValue.copy(fontSize = 12.sp),

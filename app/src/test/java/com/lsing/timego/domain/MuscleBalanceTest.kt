@@ -240,7 +240,7 @@ class MuscleBalanceTest {
     @Test
     fun `expandMuscleGroupRegions expands back and arms recommendations`() {
         assertEquals(
-            setOf("LATS", "UPPER_BACK", "LOWER_BACK", "BICEPS", "TRICEPS", "FOREARMS"),
+            setOf("LATS", "UPPER_BACK", "LOWER_BACK", "TRAPS", "BICEPS", "TRICEPS", "FOREARMS"),
             expandMuscleGroupRegions(setOf("UPPER_BACK", "BICEPS")),
         )
     }
@@ -315,5 +315,94 @@ class MuscleBalanceTest {
         val result = recommendSynergisticMuscleGroups(allGroups, lastTrained, today)
 
         assertEquals(listOf("QUADS", "HAMSTRINGS"), result)
+    }
+
+    @Test
+    fun `rankUntrainedMuscleGroups demotes groups trained in the last 48 hours`() {
+        val today = LocalDate.of(2026, 8, 10)
+        val lastTrained = mapOf(
+            "CHEST" to LocalDate.of(2026, 8, 9), // 1 day ago: in active recovery (< 48h)
+            "LATS" to LocalDate.of(2026, 8, 7),  // 3 days ago: fully recovered (>= 48h)
+        )
+        val allGroups = listOf("CHEST", "LATS")
+
+        val result = rankUntrainedMuscleGroups(allGroups, lastTrained, today)
+
+        // LATS is fully recovered so it must rank ahead of CHEST despite CHEST being trained recently
+        assertEquals(listOf("LATS", "CHEST"), result)
+    }
+
+    @Test
+    fun `recommendSynergisticMuscleGroups protects heavily worked synergists from next-day programming`() {
+        val today = LocalDate.of(2026, 8, 10)
+        // User trained Chest yesterday; Triceps was heavily loaded as a synergist yesterday
+        val lastTrained = mapOf(
+            "QUADS" to LocalDate.of(2026, 8, 5),    // 5 days ago (primary)
+            "TRICEPS" to LocalDate.of(2026, 8, 1),  // primary trained 9 days ago, BUT:
+        )
+        val lastWorked = mapOf(
+            "QUADS" to LocalDate.of(2026, 8, 5),
+            "TRICEPS" to LocalDate.of(2026, 8, 9), // worked as synergist yesterday (< 48h)!
+        )
+        val allGroups = listOf("QUADS", "TRICEPS")
+
+        val result = recommendSynergisticMuscleGroups(
+            allGroups = allGroups,
+            lastTrainedByGroup = lastTrained,
+            today = today,
+            lastWorkedByGroup = lastWorked,
+        )
+
+        // Quads must be recommended as primary because Triceps is in active recovery from yesterday
+        assertEquals("QUADS", result.first())
+    }
+
+    @Test
+    fun `workoutTargetGroups enforces kinetic purity for Back and Biceps pull workout`() {
+        val targets = workoutTargetGroups(listOf("LATS", "BICEPS"))
+
+        // Must include Pull groups
+        assertEquals(true, "LATS" in targets)
+        assertEquals(true, "UPPER_BACK" in targets)
+        assertEquals(true, "BICEPS" in targets)
+        assertEquals(true, "FOREARMS" in targets)
+
+        // Must NOT include Push muscles or Triceps
+        assertEquals(false, "TRICEPS" in targets)
+        assertEquals(false, "FRONT_DELTS" in targets)
+        assertEquals(false, "SIDE_DELTS" in targets)
+        assertEquals(false, "CHEST" in targets)
+    }
+
+    @Test
+    fun `recommendSynergisticMuscleGroups pairs stale Core with Legs or Pull rather than isolated abs`() {
+        val today = LocalDate.of(2026, 8, 10)
+        val lastTrained = mapOf(
+            "ABS" to LocalDate.of(2026, 7, 1),      // very stale
+            "QUADS" to LocalDate.of(2026, 8, 5),    // 5 days ago
+            "HAMSTRINGS" to LocalDate.of(2026, 8, 5),
+        )
+        val allGroups = listOf("ABS", "QUADS", "HAMSTRINGS")
+
+        val result = recommendSynergisticMuscleGroups(allGroups, lastTrained, today)
+
+        assertEquals("ABS", result[0])
+        assertEquals(true, result[1] == "QUADS" || result[1] == "HAMSTRINGS")
+    }
+
+    @Test
+    fun `recommendSynergisticMuscleGroups treats Traps as Back and prioritizes Biceps or Posterior Chain`() {
+        val today = LocalDate.of(2026, 8, 10)
+        val lastTrained = mapOf(
+            "TRAPS" to LocalDate.of(2026, 7, 1),      // very stale
+            "BICEPS" to LocalDate.of(2026, 8, 5),     // 5 days ago
+            "FRONT_DELTS" to LocalDate.of(2026, 8, 1),
+        )
+        val allGroups = listOf("TRAPS", "BICEPS", "FRONT_DELTS")
+
+        val result = recommendSynergisticMuscleGroups(allGroups, lastTrained, today)
+
+        assertEquals("TRAPS", result[0])
+        assertEquals("BICEPS", result[1])
     }
 }

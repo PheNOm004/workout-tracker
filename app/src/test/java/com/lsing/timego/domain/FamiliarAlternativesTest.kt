@@ -125,4 +125,11 @@ class FamiliarAlternativesTest {
         val b = call(usageCounts = mapOf(1L to 2, 2L to 2), routine = setOf(3L), logged = setOf(4L))
         assertEquals(a, b)
     }
+
+    @Test
+    fun `exhausting all candidates returns empty list`() {
+        val allIds = allExercises.map { it.id }.toSet()
+        val result = call(excluded = allIds)
+        assertTrue(result.isEmpty())
+    }
 }

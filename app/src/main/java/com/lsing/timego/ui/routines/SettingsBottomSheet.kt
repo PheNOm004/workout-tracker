@@ -1,4 +1,8 @@
-package com.lsing.timego.ui.routines
+﻿package com.lsing.timego.ui.routines
+
+import androidx.compose.material3.BottomSheetDefaults
+import com.lsing.timego.ui.theme.NightDeckHigh
+import com.lsing.timego.ui.theme.NightEyebrow
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -49,6 +53,11 @@ fun SettingsBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        containerColor = NightDeckHigh,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        dragHandle = {
+            BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.outlineVariant)
+        },
     ) {
         Column(
             modifier = Modifier
@@ -57,6 +66,12 @@ fun SettingsBottomSheet(
                 .padding(bottom = Spacing.ExtraLarge + 24.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
+            Text(
+                "SETTINGS",
+                style = NightEyebrow,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 2.dp),
+            )
             Text(
                 "Preferences & Data",
                 style = MaterialTheme.typography.titleLarge,
