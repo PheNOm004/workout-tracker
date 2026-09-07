@@ -77,9 +77,6 @@ import com.lsing.timego.ui.theme.NightCoralShade
 import com.lsing.timego.ui.theme.NightMint
 import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.ui.theme.Spacing
-import com.lsing.timego.ui.common.ConsistencyHeatmapSkeleton
-import com.lsing.timego.ui.common.ExercisePerformanceSkeleton
-import com.lsing.timego.ui.common.MuscleDistributionSkeleton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -182,20 +179,9 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 }
 
         if (segment == ProgressSegment.TRAINING) {
-            if (!isHydrated) {
-                item {
-                    ConsistencyHeatmapSkeleton()
-                }
-                item {
-                    MuscleDistributionSkeleton()
-                }
-                item {
-                    ExercisePerformanceSkeleton()
-                }
-            } else {
-                // ==================== TRAINING SEGMENT ====================
-                item {
-                    SectionHeader("Consistency", topPadding = Spacing.ExtraSmall)
+            // ==================== TRAINING SEGMENT ====================
+            item {
+                SectionHeader("Consistency", topPadding = Spacing.ExtraSmall)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -243,10 +229,14 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 }
                 FlowRow(modifier = Modifier.fillMaxWidth()) {
                     val tapToBreakdown = Modifier.clickable { showPeriodBreakdown = true }
-                    StatTile("Workouts", trainingStats.workouts.toString(), modifier = tapToBreakdown)
-                    StatTile("Duration", "${trainingStats.totalDurationMinutes.toInt()} min", modifier = tapToBreakdown)
-                    StatTile("Volume", "${trainingStats.totalVolumeKg.toInt()} kg", modifier = tapToBreakdown)
-                    StatTile("Sets", trainingStats.totalSets.toString(), modifier = tapToBreakdown)
+                    val workoutsVal = if (!isHydrated && trainingStats.workouts == 0) "--" else trainingStats.workouts.toString()
+                    val durationVal = if (!isHydrated && trainingStats.totalDurationMinutes == 0.0) "--" else "${trainingStats.totalDurationMinutes.toInt()} min"
+                    val volumeVal = if (!isHydrated && trainingStats.totalVolumeKg == 0.0) "--" else "${trainingStats.totalVolumeKg.toInt()} kg"
+                    val setsVal = if (!isHydrated && trainingStats.totalSets == 0) "--" else trainingStats.totalSets.toString()
+                    StatTile("Workouts", workoutsVal, modifier = tapToBreakdown)
+                    StatTile("Duration", durationVal, modifier = tapToBreakdown)
+                    StatTile("Volume", volumeVal, modifier = tapToBreakdown)
+                    StatTile("Sets", setsVal, modifier = tapToBreakdown)
                 }
             }
 
@@ -375,6 +365,26 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                             }
                                         }
                                     }
+                                } else {
+                                    SurfaceCard(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+                                        hero = true,
+                                        riveted = true,
+                                    ) {
+                                        Column(modifier = Modifier.padding(Spacing.Medium)) {
+                                            Text(
+                                                "Exercise Strength Progression",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
+                                            )
+                                            AnimatedStrengthCurve(
+                                                strengthCurve = emptyList(),
+                                                emptyMessage = "No logged sets yet to draw progression curve.",
+                                                label = "emptyExerciseStrengthCurve",
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -417,7 +427,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                         }
                     }
                 }
-            }
             }
             item {
                 Spacer(modifier = Modifier.height(76.dp))

@@ -142,7 +142,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
         label = "logSessionTransition",
     ) { state ->
         when (state) {
-            is SessionUiState.Loading -> { /* nothing to render yet */ }
+            is SessionUiState.Loading,
             is SessionUiState.NoActiveSession -> LogLandingContent(
                 summary = landingSummary,
                 routines = routines,
