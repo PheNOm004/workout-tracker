@@ -125,21 +125,27 @@ val SYNERGISTIC_MUSCLE_CLUSTERS: List<Set<String>> = listOf(
     ),
 )
 
-/** Returns the set of muscle groups that are biomechanically synergistic to pair with [primaryGroup]. */
 fun synergisticPartnersFor(primaryGroup: String): Set<String> {
     val partners = mutableSetOf<String>()
     SYNERGISTIC_MUSCLE_CLUSTERS.forEach { cluster ->
         if (primaryGroup in cluster) partners += cluster
     }
-    // Antagonist Upper pairings (Chest + Back, Biceps + Triceps)
+    // Antagonist Upper pairings & functional splits
     if (primaryGroup == MuscleGroup.CHEST.name) {
-        partners += setOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name)
-    } else if (primaryGroup == MuscleGroup.LATS.name || primaryGroup == MuscleGroup.UPPER_BACK.name) {
-        partners += setOf(MuscleGroup.BICEPS.name, MuscleGroup.CHEST.name)
+        partners += setOf(MuscleGroup.TRICEPS.name, MuscleGroup.FRONT_DELTS.name, MuscleGroup.LATS.name)
+    } else if (primaryGroup == MuscleGroup.LATS.name || primaryGroup == MuscleGroup.UPPER_BACK.name || primaryGroup == MuscleGroup.LOWER_BACK.name) {
+        // Biomechanically optimal: Back + Biceps (classic Pull) or Back + Legs (Posterior chain / Deadlift day)
+        partners += setOf(MuscleGroup.BICEPS.name, MuscleGroup.HAMSTRINGS.name, MuscleGroup.GLUTES.name, MuscleGroup.FOREARMS.name)
+        // Ensure push delts (Front/Side) and rear delts do not expand Back into a "Shoulders" recommendation
+        partners.remove(MuscleGroup.FRONT_DELTS.name)
+        partners.remove(MuscleGroup.SIDE_DELTS.name)
+        partners.remove(MuscleGroup.REAR_DELTS.name)
     } else if (primaryGroup == MuscleGroup.BICEPS.name) {
-        partners += setOf(MuscleGroup.TRICEPS.name, MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name)
+        partners += setOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.TRICEPS.name)
     } else if (primaryGroup == MuscleGroup.TRICEPS.name) {
-        partners += setOf(MuscleGroup.BICEPS.name, MuscleGroup.CHEST.name)
+        partners += setOf(MuscleGroup.CHEST.name, MuscleGroup.BICEPS.name)
+    } else if (primaryGroup == MuscleGroup.HAMSTRINGS.name || primaryGroup == MuscleGroup.GLUTES.name) {
+        partners += setOf(MuscleGroup.QUADS.name, MuscleGroup.LATS.name, MuscleGroup.LOWER_BACK.name)
     }
     partners.remove(primaryGroup)
     return partners
@@ -147,7 +153,7 @@ fun synergisticPartnersFor(primaryGroup: String): Set<String> {
 
 /** Evidence-based recommendation algorithm that selects the most neglected muscle group as the
  *  primary focus, and pairs it with its most stale synergistic partner to ensure logical,
- *  effective workout programming (e.g. Back + Biceps, Chest + Triceps/Delts, Quads + Hamstrings). */
+ *  effective workout programming (e.g. Back + Biceps, Back + Legs, Chest + Triceps/Delts, Quads + Hamstrings). */
 fun recommendSynergisticMuscleGroups(
     allGroups: List<String>,
     lastTrainedByGroup: Map<String, LocalDate>,
@@ -157,8 +163,16 @@ fun recommendSynergisticMuscleGroups(
     if (ranked.isEmpty()) return emptyList()
     val primary = ranked.first()
     val partners = synergisticPartnersFor(primary)
-    val secondary = ranked.firstOrNull { it != primary && it in partners }
-        ?: ranked.firstOrNull { it != primary }
+
+    // For Back: explicitly prioritize Biceps and Posterior Chain (Hamstrings/Glutes)
+    val secondary = if (primary == MuscleGroup.LATS.name || primary == MuscleGroup.UPPER_BACK.name || primary == MuscleGroup.LOWER_BACK.name) {
+        listOf(MuscleGroup.BICEPS.name, MuscleGroup.HAMSTRINGS.name, MuscleGroup.GLUTES.name, MuscleGroup.FOREARMS.name)
+            .firstOrNull { it in partners && it in ranked }
+            ?: ranked.firstOrNull { it != primary && it in partners }
+    } else {
+        ranked.firstOrNull { it != primary && it in partners }
+    } ?: ranked.firstOrNull { it != primary }
+
     return if (secondary != null) listOf(primary, secondary) else listOf(primary)
 }
 
