@@ -9,6 +9,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -43,9 +44,6 @@ import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
@@ -106,24 +104,26 @@ private fun regionHitAt(regions: Map<MuscleGroup, Region>, position: Offset, sca
     return regions.entries.firstOrNull { it.value.contains(x, y) }?.key
 }
 
-/** Long-press a muscle zone to raise its readout, release to drop it -- [onHold] fires with the
- *  hit group on a long press and with null once the finger lifts or the gesture is cancelled. */
-private fun Modifier.muscleHoldGesture(
+/** Tap a muscle zone for a persistent readout, or hold it for a transient readout that drops on
+ *  release. Tapping neutral/blank diagram space reports null so a pinned readout can be closed. */
+private fun Modifier.musclePopupGesture(
     regions: Map<MuscleGroup, Region>,
     viewBox: FloatArray,
+    onTap: (MuscleGroup?) -> Unit,
     onHold: (MuscleGroup?) -> Unit,
 ): Modifier = pointerInput(regions) {
-    awaitEachGesture {
-        val down = awaitFirstDown(requireUnconsumed = false)
-        val longPress = awaitLongPressOrCancellation(down.id) ?: return@awaitEachGesture
+    fun hitAt(position: Offset): MuscleGroup? {
         val scaleFactor = this@pointerInput.size.width / (viewBox[2] - viewBox[0])
-        val hit = regionHitAt(regions, longPress.position, scaleFactor) ?: return@awaitEachGesture
-        onHold(hit)
-        do {
-            val event = awaitPointerEvent()
-        } while (event.changes.any { it.pressed })
-        onHold(null)
+        return regionHitAt(regions, position, scaleFactor)
     }
+    detectTapGestures(
+        onPress = {
+            tryAwaitRelease()
+            onHold(null)
+        },
+        onTap = { position -> onTap(hitAt(position)) },
+        onLongPress = { position -> onHold(hitAt(position)) },
+    )
 }
 
 private fun hexToColor(hex: String): Color {
@@ -166,7 +166,8 @@ fun MuscleBodyDiagram(
     val backShapes = CACHED_BACK_SHAPES
     val frontRegions = CACHED_FRONT_REGIONS
     val backRegions = CACHED_BACK_REGIONS
-    var pressedGroup by remember { mutableStateOf<MuscleGroup?>(null) }
+    var heldGroup by remember { mutableStateOf<MuscleGroup?>(null) }
+    var tappedGroup by remember { mutableStateOf<MuscleGroup?>(null) }
     val frontAspect = (FRONT_BODY_VIEWBOX[2] - FRONT_BODY_VIEWBOX[0]) / (FRONT_BODY_VIEWBOX[3] - FRONT_BODY_VIEWBOX[1])
     val backAspect = (BACK_BODY_VIEWBOX[2] - BACK_BODY_VIEWBOX[0]) / (BACK_BODY_VIEWBOX[3] - BACK_BODY_VIEWBOX[1])
 
@@ -200,7 +201,15 @@ fun MuscleBodyDiagram(
                 modifier = Modifier
                     .weight(1f)
                     .aspectRatio(frontAspect)
-                    .muscleHoldGesture(frontRegions, FRONT_BODY_VIEWBOX) { pressedGroup = it },
+                    .musclePopupGesture(
+                        regions = frontRegions,
+                        viewBox = FRONT_BODY_VIEWBOX,
+                        onTap = { group -> tappedGroup = group?.takeUnless { it == tappedGroup } },
+                        onHold = { group ->
+                            if (group != null) tappedGroup = null
+                            heldGroup = group
+                        },
+                    ),
             ) {
                 val scaleFactor = size.width / (FRONT_BODY_VIEWBOX[2] - FRONT_BODY_VIEWBOX[0])
                 scale(scaleFactor, scaleFactor, pivot = Offset.Zero) {
@@ -211,7 +220,15 @@ fun MuscleBodyDiagram(
                 modifier = Modifier
                     .weight(1f)
                     .aspectRatio(backAspect)
-                    .muscleHoldGesture(backRegions, BACK_BODY_VIEWBOX) { pressedGroup = it },
+                    .musclePopupGesture(
+                        regions = backRegions,
+                        viewBox = BACK_BODY_VIEWBOX,
+                        onTap = { group -> tappedGroup = group?.takeUnless { it == tappedGroup } },
+                        onHold = { group ->
+                            if (group != null) tappedGroup = null
+                            heldGroup = group
+                        },
+                    ),
             ) {
                 val scaleFactor = size.width / (BACK_BODY_VIEWBOX[2] - BACK_BODY_VIEWBOX[0])
                 scale(scaleFactor, scaleFactor, pivot = Offset.Zero) {
@@ -226,13 +243,14 @@ fun MuscleBodyDiagram(
         )
     }
 
-    // Kept mounted through the exit animation: targetState follows the hold, currentState lags
+    // Kept mounted through the exit animation: targetState follows the tap/hold selection, currentState lags
     // until the fade/scale-out finishes. shownGroup holds the last group so the card still has
     // content to render while it animates away after the finger lifts.
     val popupVisible = remember { MutableTransitionState(false) }
-    popupVisible.targetState = pressedGroup != null
+    val selectedGroup = heldGroup ?: tappedGroup
+    popupVisible.targetState = selectedGroup != null
     var shownGroup by remember { mutableStateOf<MuscleGroup?>(null) }
-    pressedGroup?.let { shownGroup = it }
+    selectedGroup?.let { shownGroup = it }
 
     if (popupVisible.currentState || popupVisible.targetState) {
         Popup(alignment = Alignment.Center) {
@@ -291,7 +309,10 @@ private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier
  *  mostly-empty full silhouette. A half with no matching shapes is omitted entirely (not rendered
  *  as blank space) so e.g. an all-front-body session doesn't reserve dead width for an empty back
  *  canvas. With [intensities], the crop uses the same relative heat scale as the Progress tab;
- *  without it, [accentColor] is shaded per shape as a binary "in/out of the set" signal. */
+ *  without it, [accentColor] is shaded per shape as a binary "in/out of the set" signal.
+ *  [showNeutralContext] keeps context-only groups visible in the theme's neutral anatomy tone
+ *  while [highlightGroups] alone retain the accent or heat intensity. [highlightStrengths] can
+ *  soften supporting highlights without changing data-backed heat intensities. */
 @Composable
 fun CroppedMuscleDiagram(
     muscleGroups: Set<String>,
@@ -299,9 +320,11 @@ fun CroppedMuscleDiagram(
     modifier: Modifier = Modifier,
     intensities: Map<String, Float> = emptyMap(),
     highlightGroups: Set<String> = muscleGroups,
-    neutralizeUnhighlighted: Boolean = false,
+    highlightStrengths: Map<String, Float> = emptyMap(),
+    showNeutralContext: Boolean = false,
     emptyLabel: String = "Nothing yet",
 ) {
+    val neutralColor = MaterialTheme.colorScheme.surfaceVariant
     val drawableGroups = remember(muscleGroups) { diagramGroupsForHeatmap(muscleGroups) }
     val drawableHighlightGroups = remember(highlightGroups) { diagramGroupsForHeatmap(highlightGroups) }
     val frontSpecs = remember(drawableGroups) {
@@ -352,7 +375,9 @@ fun CroppedMuscleDiagram(
                 CroppedMuscleHalf(
                     specs = frontSpecs,
                     highlightGroups = drawableHighlightGroups,
-                    neutralizeUnhighlighted = neutralizeUnhighlighted,
+                    highlightStrengths = highlightStrengths,
+                    showNeutralContext = showNeutralContext,
+                    neutralColor = neutralColor,
                     accentColor = accentColor,
                     intensities = intensities,
                     modifier = Modifier.fillMaxHeight(),
@@ -362,7 +387,9 @@ fun CroppedMuscleDiagram(
                 CroppedMuscleHalf(
                     specs = backSpecs,
                     highlightGroups = drawableHighlightGroups,
-                    neutralizeUnhighlighted = neutralizeUnhighlighted,
+                    highlightStrengths = highlightStrengths,
+                    showNeutralContext = showNeutralContext,
+                    neutralColor = neutralColor,
                     accentColor = accentColor,
                     intensities = intensities,
                     modifier = Modifier.fillMaxHeight(),
@@ -392,7 +419,9 @@ internal fun muscleCropBounds(specs: List<MusclePathSpec>, padding: Float = 20f)
 private fun CroppedMuscleHalf(
     specs: List<MusclePathSpec>,
     highlightGroups: Set<String>,
-    neutralizeUnhighlighted: Boolean,
+    highlightStrengths: Map<String, Float>,
+    showNeutralContext: Boolean,
+    neutralColor: Color,
     accentColor: Color,
     intensities: Map<String, Float>,
     modifier: Modifier = Modifier,
@@ -411,16 +440,18 @@ private fun CroppedMuscleHalf(
         scale(scaleFactor, scaleFactor, pivot = Offset.Zero) {
             shapes.forEach { shape ->
                 val isHighlighted = shape.muscleGroup?.name in highlightGroups
-                // Context-only groups (e.g. chest/biceps pulled in just to size an upper-body
-                // recommendation crop) size the crop box but aren't drawn -- otherwise muscles
-                // that weren't actually recommended show up fully rendered next to the ones that
-                // were, misleadingly widening what looks "recommended".
-                if (neutralizeUnhighlighted && !isHighlighted) return@forEach
                 val intensity = shape.muscleGroup?.name?.let(intensities::get)
-                val color = if (intensity != null && intensity > 0f) {
-                    hexToColor(recolorByLightness(heatColor(intensity), shape.lightness))
-                } else {
-                    accentColor.copy(alpha = (0.55f + shape.lightness * 0.45f).coerceIn(0.45f, 1f))
+                val color = when {
+                    !isHighlighted && showNeutralContext -> neutralColor
+                    !isHighlighted -> return@forEach
+                    intensity != null && intensity > 0f ->
+                        hexToColor(recolorByLightness(heatColor(intensity), shape.lightness))
+                    else -> accentColor.copy(
+                        alpha = (
+                            (0.55f + shape.lightness * 0.45f) *
+                                (shape.muscleGroup?.name?.let(highlightStrengths::get) ?: 1f)
+                            ).coerceIn(0.35f, 1f),
+                    )
                 }
                 drawPath(shape.path, color = color)
             }

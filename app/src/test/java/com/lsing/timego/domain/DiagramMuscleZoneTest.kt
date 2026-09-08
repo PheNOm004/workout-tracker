@@ -49,14 +49,46 @@ class DiagramMuscleZoneTest {
     }
 
     @Test
-    fun `upper body recommendation crop excludes lower body context`() {
-        val groups = diagramGroupsForRecommendationCrop(
+    fun `upper body region crop excludes lower body context`() {
+        val groups = diagramGroupsForBodyRegionCrop(
             setOf(MuscleGroup.UPPER_BACK.name, MuscleGroup.FRONT_DELTS.name),
         )
         assertEquals(true, MuscleGroup.CHEST.name in groups)
         assertEquals(true, MuscleGroup.BICEPS.name in groups)
         assertEquals(false, MuscleGroup.QUADS.name in groups)
         assertEquals(false, MuscleGroup.CALVES.name in groups)
+    }
+
+    @Test
+    fun `mixed body region crop includes coherent full body context`() {
+        val groups = diagramGroupsForBodyRegionCrop(
+            setOf(MuscleGroup.CHEST.name, MuscleGroup.QUADS.name),
+        )
+
+        assertEquals(true, MuscleGroup.BICEPS.name in groups)
+        assertEquals(true, MuscleGroup.HAMSTRINGS.name in groups)
+    }
+
+    @Test
+    fun `recommendation hierarchy distinguishes primary and secondary regions`() {
+        val strengths = recommendationHighlightStrengths(
+            listOf(MuscleGroup.CHEST.name, MuscleGroup.TRICEPS.name),
+        )
+
+        assertEquals(1f, strengths[MuscleGroup.CHEST.name] ?: 0f, 0.001f)
+        assertEquals(0.55f, strengths[MuscleGroup.TRICEPS.name] ?: 0f, 0.001f)
+        assertEquals(0.55f, strengths[MuscleGroup.BICEPS.name] ?: 0f, 0.001f)
+        assertEquals(false, MuscleGroup.QUADS.name in strengths)
+    }
+
+    @Test
+    fun `primary emphasis wins when recommendation regions overlap`() {
+        val strengths = recommendationHighlightStrengths(
+            listOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name),
+        )
+
+        assertEquals(1f, strengths[MuscleGroup.LATS.name] ?: 0f, 0.001f)
+        assertEquals(1f, strengths[MuscleGroup.UPPER_BACK.name] ?: 0f, 0.001f)
     }
 
 }

@@ -43,14 +43,33 @@ private val LOWER_BODY_CROP_GROUPS = setOf(
     MuscleGroup.CALVES.name,
 )
 
-/** Selects only the anatomical context needed to size a recommendation crop. */
-fun diagramGroupsForRecommendationCrop(groups: Set<String>): Set<String> {
+/** Selects the anatomical context needed to make a cropped body region read as a coherent whole. */
+fun diagramGroupsForBodyRegionCrop(groups: Set<String>): Set<String> {
     val drawableGroups = diagramGroupsForHeatmap(groups)
     val hasUpperBody = drawableGroups.any { it in UPPER_BODY_CROP_GROUPS }
     val hasLowerBody = drawableGroups.any { it in LOWER_BODY_CROP_GROUPS }
     return when {
         hasUpperBody && !hasLowerBody -> UPPER_BODY_CROP_GROUPS
         hasLowerBody && !hasUpperBody -> LOWER_BODY_CROP_GROUPS
+        hasUpperBody && hasLowerBody -> UPPER_BODY_CROP_GROUPS + LOWER_BODY_CROP_GROUPS
         else -> drawableGroups
     }
+}
+
+/** Visual emphasis for the ordered focus returned by [recommendSynergisticMuscleGroups]. The first
+ *  seed is primary; later seeds are supporting targets. Display-region expansion stays visual only,
+ *  and primary emphasis wins when two seeds share anatomical artwork. */
+fun recommendationHighlightStrengths(
+    recommendedSeeds: List<String>,
+    secondaryStrength: Float = 0.55f,
+): Map<String, Float> {
+    val primary = recommendedSeeds.firstOrNull() ?: return emptyMap()
+    val strengths = linkedMapOf<String, Float>()
+    expandMuscleGroupRegions(listOf(primary)).forEach { strengths[it] = 1f }
+    recommendedSeeds.drop(1).forEach { seed ->
+        expandMuscleGroupRegions(listOf(seed)).forEach { group ->
+            strengths.putIfAbsent(group, secondaryStrength.coerceIn(0f, 1f))
+        }
+    }
+    return strengths
 }

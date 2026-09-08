@@ -98,6 +98,26 @@ class MuscleBodyDiagramTest {
         compose.onNodeWithText("No sets · test period").assertDoesNotExist()
     }
 
+    @Test
+    fun tappingChestKeepsReadoutVisibleUntilChestIsTappedAgain() {
+        compose.setContent {
+            TimeGoTheme {
+                MuscleBodyDiagram(emptyMap(), Modifier.fillMaxWidth().testTag("map"), periodLabel = "test period")
+            }
+        }
+        val node = compose.onNodeWithTag("map")
+        val width = node.fetchSemanticsNode().size.width.toFloat() / 2f
+        val point = Offset((420f - FRONT_BODY_VIEWBOX[0]) * width / 380f, (238f - FRONT_BODY_VIEWBOX[1]) * width / 380f)
+
+        node.performTouchInput { click(point) }
+        compose.mainClock.advanceTimeBy(1000)
+        compose.onNodeWithText("No sets · test period").assertExists()
+
+        node.performTouchInput { click(point) }
+        compose.mainClock.advanceTimeBy(1000)
+        compose.onNodeWithText("No sets · test period").assertDoesNotExist()
+    }
+
     @Test fun renderDarkStates() = renderStates(true)
     @Test fun renderLightStates() = renderStates(false)
 

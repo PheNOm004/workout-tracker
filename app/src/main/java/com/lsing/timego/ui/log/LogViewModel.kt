@@ -46,6 +46,7 @@ import com.lsing.timego.domain.muscleGroupIntensityForSession
 import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.recommendSynergisticMuscleGroups
+import com.lsing.timego.domain.recommendationHighlightStrengths
 import com.lsing.timego.domain.repRangeAtWeight
 import com.lsing.timego.domain.routineLastCompletedDates
 import com.lsing.timego.domain.routinesForToday
@@ -94,6 +95,7 @@ data class LandingSummary(
     val lastSession: LastSessionSummary?,
     val recommendedMuscleGroups: List<String>,
     val suggestedExercise: Exercise?,
+    val recommendationHighlightStrengths: Map<String, Float> = emptyMap(),
     /** At least one more familiar alternative exists beyond [suggestedExercise], so the session-local
      *  "Choose another" action (Coach Memory Phase 1) has somewhere to go. */
     val canChooseAnother: Boolean = false,
@@ -471,6 +473,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
             val recommendedSeeds = recommendSynergisticMuscleGroups(allGroups, lastTrained, LocalDate.now(), lastWorked)
             val recommended = expandMuscleGroupRegions(recommendedSeeds).toList()
+            val highlightStrengths = recommendationHighlightStrengths(recommendedSeeds)
             val exerciseTargetGroups = workoutTargetGroups(recommendedSeeds)
             val recommendedGroups = recommended.toSet()
 
@@ -518,6 +521,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                 lastSession = summary,
                 recommendedMuscleGroups = recommended,
                 suggestedExercise = suggestedExercise,
+                recommendationHighlightStrengths = highlightStrengths,
                 canChooseAnother = alternatives.any { it.id != suggestedExercise?.id },
                 noAlternativesLeft = exclusions.isNotEmpty() && suggestedExercise == null,
                 recommendationNote = recommendationNote,

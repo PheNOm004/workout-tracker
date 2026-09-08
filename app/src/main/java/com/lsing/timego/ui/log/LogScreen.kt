@@ -90,7 +90,7 @@ import com.lsing.timego.domain.MET_CARDIO
 import com.lsing.timego.domain.MET_WARMUP
 import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.domain.averagePaceMinPerKm
-import com.lsing.timego.domain.diagramGroupsForRecommendationCrop
+import com.lsing.timego.domain.diagramGroupsForBodyRegionCrop
 import com.lsing.timego.domain.estimatedCalorieBurn
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.domain.formatDaysSince
@@ -429,12 +429,13 @@ private fun LogLandingContent(
                                 )
                             }
                             CroppedMuscleDiagram(
-                                muscleGroups = diagramGroupsForRecommendationCrop(
+                                muscleGroups = diagramGroupsForBodyRegionCrop(
                                     summary.recommendedMuscleGroups.toSet(),
                                 ),
                                 accentColor = MaterialTheme.colorScheme.primary,
                                 highlightGroups = summary.recommendedMuscleGroups.toSet(),
-                                neutralizeUnhighlighted = true,
+                                highlightStrengths = summary.recommendationHighlightStrengths,
+                                showNeutralContext = true,
                                 modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(vertical = Spacing.Small),
                             )
                         } else {
@@ -514,9 +515,11 @@ private fun LogLandingContent(
                         )
                     }
                     CroppedMuscleDiagram(
-                        muscleGroups = summary.lastSession.muscleGroups,
+                        muscleGroups = diagramGroupsForBodyRegionCrop(summary.lastSession.muscleGroups),
                         intensities = summary.lastSession.muscleIntensities,
                         accentColor = MaterialTheme.colorScheme.tertiary,
+                        highlightGroups = summary.lastSession.muscleGroups,
+                        showNeutralContext = true,
                         modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(top = Spacing.Small),
                     )
                     if (summary.lastSession.muscleGroups.isNotEmpty()) {
