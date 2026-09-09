@@ -28,8 +28,10 @@ import com.lsing.timego.ui.theme.Spacing
 @Composable
 fun AddExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String, muscleGroups: List<String>, category: String) -> Unit) {
     var name by remember { mutableStateOf("") }
+    var nameTouched by remember { mutableStateOf(false) }
     var category by remember { mutableStateOf(ExerciseCategory.STRENGTH) }
     val selectedGroups = remember { mutableStateOf(setOf<String>()) }
+    val canAdd = name.isNotBlank() && selectedGroups.value.isNotEmpty()
 
     TimeGoDialog(
         onDismissRequest = onDismiss,
@@ -38,11 +40,11 @@ fun AddExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String, muscleGroups:
         confirmButton = {
             val dismiss = LocalTimeGoDialogDismiss.current
             TextButton(onClick = {
-                if (name.isNotBlank() && selectedGroups.value.isNotEmpty()) {
+                if (canAdd) {
                     onAdd(name, selectedGroups.value.toList(), category.name)
                     dismiss()
                 }
-            }) {
+            }, enabled = canAdd) {
                 Text("Add")
             }
         },
@@ -54,8 +56,15 @@ fun AddExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String, muscleGroups:
         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
             OutlinedTextField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = { name = it; nameTouched = true },
                 label = { Text("Exercise name") },
+                supportingText = {
+                    Text(
+                        if (nameTouched && name.isBlank()) "Exercise name is required" else " ",
+                        color = if (nameTouched && name.isBlank()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                isError = nameTouched && name.isBlank(),
                 modifier = Modifier.fillMaxWidth(),
             )
             Text("Category", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall))
@@ -70,6 +79,12 @@ fun AddExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String, muscleGroups:
                 }
             }
             Text("Muscle groups", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall))
+            Text(
+                "Choose at least one muscle group to enable Add.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
+            )
             FlowRow(modifier = Modifier.fillMaxWidth()) {
                 MuscleGroup.entries.forEach { group ->
                     FilterChip(

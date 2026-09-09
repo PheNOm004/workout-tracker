@@ -2,6 +2,12 @@ package com.lsing.timego.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -34,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +51,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -103,78 +115,23 @@ private fun RetainedNavContent(
     selectedRoute: String,
     modifier: Modifier = Modifier,
 ) {
-    var activeRoute by remember { mutableStateOf(selectedRoute) }
-    var previousRoute by remember { mutableStateOf<String?>(null) }
-    var slideForward by remember { mutableStateOf(true) }
-    val slideProgress = remember { Animatable(1f) }
-
-    LaunchedEffect(selectedRoute) {
-        if (selectedRoute != activeRoute) {
-            val fromIndex = destinations.indexOfRoute(activeRoute).coerceAtLeast(0)
-            val toIndex = destinations.indexOfRoute(selectedRoute).coerceAtLeast(0)
-            slideForward = toIndex >= fromIndex
-            previousRoute = activeRoute
-            activeRoute = selectedRoute
-            slideProgress.snapTo(0f)
-            slideProgress.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 260, easing = EaseInOut),
-            )
-            previousRoute = null
-        }
-    }
-
-    Box(modifier = modifier.fillMaxSize()) {
-        destinations.forEach { dest ->
-            val route = dest.route
-            val isTarget = (route == activeRoute)
-            val isPrevious = (route == previousRoute)
-            val isVisible = isTarget || isPrevious
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .zIndex(if (isTarget) 1f else 0f)
-                    .graphicsLayer {
-                        if (!isVisible) {
-                            alpha = 0f
-                            translationX = 10000f
-                        } else {
-                            val p = slideProgress.value
-                            val isAnimating = (previousRoute != null)
-                            val (alphaVal, offsetFraction) = when {
-                                isTarget && isAnimating -> {
-                                    val startOffset = if (slideForward) 0.35f else -0.35f
-                                    Pair(p, (1f - p) * startOffset)
-                                }
-                                isPrevious && isAnimating -> {
-                                    val endOffset = if (slideForward) -0.35f else 0.35f
-                                    Pair(1f - p, p * endOffset)
-                                }
-                                isTarget -> Pair(1f, 0f)
-                                else -> Pair(0f, 0f)
-                            }
-                            alpha = alphaVal
-                            translationX = offsetFraction * size.width
-                        }
-                    }
-                    .then(
-                        if (!isTarget) {
-                            Modifier
-                                .pointerInput(Unit) {
-                                    awaitPointerEventScope {
-                                        while (true) {
-                                            val event = awaitPointerEvent()
-                                            event.changes.forEach { it.consume() }
-                                        }
-                                    }
-                                }
-                                .clearAndSetSemantics { }
-                        } else {
-                            Modifier
-                        }
-                    ),
-            ) {
+    val stateHolder = rememberSaveableStateHolder()
+    AnimatedContent(
+        targetState = selectedRoute,
+        transitionSpec = {
+            val movingForward = destinations.indexOfRoute(targetState) >= destinations.indexOfRoute(initialState)
+            val enter = slideInHorizontally(TimeGoMotion.navigationInOffset) { width -> if (movingForward) width / 5 else -width / 5 } +
+                fadeIn(TimeGoMotion.contentEnter)
+            val exit = slideOutHorizontally(TimeGoMotion.navigationOutOffset) { width -> if (movingForward) -width / 5 else width / 5 } +
+                fadeOut(TimeGoMotion.contentExit)
+            enter togetherWith exit
+        },
+        contentKey = { it },
+        label = "rootDestinationTransition",
+        modifier = modifier.fillMaxSize(),
+    ) { route ->
+        stateHolder.SaveableStateProvider(route) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 when (route) {
                     "log" -> com.lsing.timego.ui.log.LogScreen()
                     "progress" -> com.lsing.timego.ui.progress.ProgressScreen()
@@ -288,7 +245,12 @@ private fun TimeGoBottomDock(
                                         interactionSource = interactionSource,
                                         indication = null,
                                         onClick = { onSelectRoute(destination.route) },
-                                    ),
+                                    )
+                                    .semantics(mergeDescendants = true) {
+                                        role = Role.Tab
+                                        selected = isSelected
+                                        contentDescription = destination.label
+                                    },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Column(
@@ -297,7 +259,7 @@ private fun TimeGoBottomDock(
                                 ) {
                                     Icon(
                                         imageVector = destination.icon,
-                                        contentDescription = destination.label,
+                                        contentDescription = null,
                                         tint = contentColor,
                                         modifier = Modifier
                                             .size(22.dp)

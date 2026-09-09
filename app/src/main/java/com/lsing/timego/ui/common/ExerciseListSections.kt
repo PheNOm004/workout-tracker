@@ -6,14 +6,27 @@ import androidx.compose.animation.core.spring
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Clear
@@ -27,13 +40,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.MuscleGroup
@@ -298,6 +315,127 @@ enum class MuscleFilterOption(val label: String) {
     CARDIO("Cardio"),
 }
 
+/** Flat A-Z exercise browser with a bounded viewport and visible right-hand scroll thumb. */
+@Composable
+private fun AlphabeticalExerciseList(
+    exercises: List<Exercise>,
+    itemContent: @Composable (Exercise) -> Unit,
+) {
+    val listState = rememberLazyListState()
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 96.dp, max = 520.dp),
+    ) {
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val trackHeightPx = with(density) { maxHeight.toPx() }
+        val layoutInfo = listState.layoutInfo
+        val totalItems = layoutInfo.totalItemsCount
+        val visibleItems = layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
+        val averageItemHeightPx = layoutInfo.visibleItemsInfo
+            .map { it.size.toFloat() }
+            .average()
+            .toFloat()
+            .takeIf { it.isFinite() && it > 0f }
+            ?: with(density) { 48.dp.toPx() }
+        val viewportHeightPx = (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset)
+            .toFloat()
+            .coerceAtLeast(1f)
+        val contentHeightPx = (averageItemHeightPx * totalItems).coerceAtLeast(viewportHeightPx)
+        val contentScrollRangePx = (contentHeightPx - viewportHeightPx).coerceAtLeast(1f)
+        val firstVisible = layoutInfo.visibleItemsInfo.firstOrNull()
+        val currentScrollPx = if (firstVisible == null) 0f else {
+            firstVisible.index * averageItemHeightPx - firstVisible.offset
+        }
+        val scrollFraction = if (contentScrollRangePx <= 1f) 0f else {
+            currentScrollPx / contentScrollRangePx
+        }
+        val thumbHeightPx = (trackHeightPx * (viewportHeightPx / contentHeightPx)).coerceIn(
+            with(density) { 40.dp.toPx() },
+            with(density) { 96.dp.toPx() },
+        )
+        val thumbOffsetPx = if (totalItems <= visibleItems) 0f else {
+            (trackHeightPx - thumbHeightPx) * scrollFraction.coerceIn(0f, 1f)
+        }
+
+        /*
+         * The picker uses a bounded LazyColumn so switching order only composes the visible rows.
+         * A plain Column here made the entire catalogue compose eagerly and caused multi-second
+         * A-Z transitions on the phone.
+         */
+        val sections = remember(exercises) {
+            exercises
+                .groupBy { it.name.firstOrNull()?.uppercaseChar()?.toString() ?: "#" }
+                .toSortedMap()
+        }
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = 12.dp),
+        ) {
+            sections.forEach { (letter, sectionExercises) ->
+                item(key = "section-$letter") {
+                    Text(
+                        letter,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = Spacing.Small, bottom = Spacing.ExtraSmall)
+                            .semantics { contentDescription = "Alphabetical section $letter" },
+                    )
+                }
+                items(sectionExercises, key = { it.id }) { exercise ->
+                    itemContent(exercise)
+                }
+            }
+        }
+
+        if (totalItems > visibleItems) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .fillMaxHeight()
+                    .width(48.dp)
+                    .zIndex(2f)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f))
+                    .pointerInput(totalItems, contentScrollRangePx, trackHeightPx, thumbHeightPx) {
+                        detectDragGestures { change, dragAmount ->
+                            change.consume()
+                            val thumbTravelRange = (trackHeightPx - thumbHeightPx).coerceAtLeast(1f)
+                            val contentDelta = dragAmount.y / thumbTravelRange * contentScrollRangePx
+                            listState.dispatchRawDelta(contentDelta)
+                        }
+                    }
+                    .semantics { contentDescription = "Alphabetical exercise list scrollbar" },
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(y = with(density) { thumbOffsetPx.toDp() })
+                    .width(8.dp)
+                    .height(with(density) { thumbHeightPx.toDp() })
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)),
+            )
+        }
+    }
+}
+
+enum class ExerciseListOrder(val label: String) {
+    CURRENT("Current"),
+    ALPHABETICAL("A–Z"),
+}
+
+internal fun orderExercises(exercises: List<Exercise>, order: ExerciseListOrder): List<Exercise> =
+    if (order == ExerciseListOrder.ALPHABETICAL) {
+        exercises.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
+    } else {
+        exercises
+    }
+
 fun exerciseMatchesFilter(exercise: Exercise, filter: MuscleFilterOption, favoriteIds: Set<Long> = emptySet()): Boolean {
     return when (filter) {
         MuscleFilterOption.ALL -> true
@@ -318,6 +456,9 @@ fun ExerciseSections(
     exercises: List<Exercise>,
     searchQuery: String? = null,
     onSearchQueryChange: ((String) -> Unit)? = null,
+    showSearchField: Boolean = true,
+    listOrder: ExerciseListOrder = ExerciseListOrder.CURRENT,
+    onListOrderChange: ((ExerciseListOrder) -> Unit)? = null,
     selectedFilter: MuscleFilterOption = MuscleFilterOption.ALL,
     onSelectFilter: ((MuscleFilterOption) -> Unit)? = null,
     favoriteExerciseIds: Set<Long> = emptySet(),
@@ -327,26 +468,48 @@ fun ExerciseSections(
     val query = searchQuery ?: localQuery
     var localFilter by remember { mutableStateOf(MuscleFilterOption.ALL) }
     val currentFilter = if (onSelectFilter != null) selectedFilter else localFilter
+    val orderedExercises = remember(exercises, listOrder) { orderExercises(exercises, listOrder) }
     val setFilter: (MuscleFilterOption) -> Unit = { filter ->
         if (onSelectFilter != null) onSelectFilter(filter) else localFilter = filter
     }
     var expandedGroupKeys by remember { mutableStateOf<List<String>>(emptyList()) }
     val setQuery: (String) -> Unit = { value -> onSearchQueryChange?.invoke(value) ?: run { localQuery = value } }
 
-    OutlinedTextField(
-        value = query,
-        onValueChange = setQuery,
-        label = { Text("Search exercises") },
-        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-        singleLine = true,
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { setQuery("") }) {
-                    Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+    if (showSearchField) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = setQuery,
+            label = { Text("Search exercises") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            singleLine = true,
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { setQuery("") }) {
+                        Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+                    }
                 }
+            },
+        )
+    }
+
+    if (onListOrderChange != null) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = Spacing.Small),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
+        ) {
+            Text("Order", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ExerciseListOrder.entries.forEach { option ->
+                FilterChip(
+                    selected = listOrder == option,
+                    onClick = { onListOrderChange.invoke(option) },
+                    label = { Text(option.label) },
+                )
             }
-        },
-    )
+        }
+    }
 
     // Muscle Filter Pills Row
     Row(
@@ -367,12 +530,20 @@ fun ExerciseSections(
     }
 
     if (query.isNotBlank()) {
-        val totalMatches = remember(exercises, query) {
+        val totalMatches = remember(orderedExercises, query) {
             val normalizedQuery = normalizeForSearch(query)
-            exercises.count { normalizeForSearch(it.name).contains(normalizedQuery) }
+            orderedExercises.count { normalizeForSearch(it.name).contains(normalizedQuery) }
         }
-        val matches = remember(exercises, query) { boundedExerciseSearch(exercises, query) }
-        matches.forEach { exercise -> itemContent(exercise) }
+        val matches = remember(orderedExercises, query) { boundedExerciseSearch(orderedExercises, query) }
+        if (listOrder == ExerciseListOrder.ALPHABETICAL) {
+            AlphabeticalExerciseList(matches, itemContent)
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp, max = 520.dp),
+            ) {
+                items(matches, key = { it.id }) { exercise -> itemContent(exercise) }
+            }
+        }
         if (totalMatches > matches.size) {
             Text(
                 "Showing the first ${matches.size} matches. Refine your search to narrow the list.",
@@ -385,8 +556,8 @@ fun ExerciseSections(
     }
 
     if (currentFilter != MuscleFilterOption.ALL) {
-        val filtered = remember(exercises, currentFilter, favoriteExerciseIds) {
-            exercises.filter { exerciseMatchesFilter(it, currentFilter, favoriteExerciseIds) }
+        val filtered = remember(orderedExercises, currentFilter, favoriteExerciseIds) {
+            orderedExercises.filter { exerciseMatchesFilter(it, currentFilter, favoriteExerciseIds) }
         }
         if (filtered.isEmpty()) {
             Text(
@@ -396,122 +567,97 @@ fun ExerciseSections(
                 modifier = Modifier.padding(vertical = Spacing.Medium),
             )
         } else {
-            // Group by sub-muscle group or render direct list with fast access
-            val bySubGroup = remember(filtered) {
-                filtered.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }.toSortedMap()
-            }
-            bySubGroup.forEach { (subGroup, groupExercises) ->
-                Text(
-                    formatEnumLabel(subGroup),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = Spacing.Medium, bottom = Spacing.ExtraSmall),
-                )
-                groupExercises.forEach { exercise -> itemContent(exercise) }
+            if (listOrder == ExerciseListOrder.ALPHABETICAL) {
+                AlphabeticalExerciseList(filtered, itemContent)
+            } else {
+                val bySubGroup = remember(filtered) {
+                    filtered.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }.toSortedMap()
+                }
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp, max = 520.dp),
+                ) {
+                    bySubGroup.forEach { (subGroup, groupExercises) ->
+                        item(key = "filter-$subGroup") {
+                            Text(
+                                formatEnumLabel(subGroup),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = Spacing.Medium, bottom = Spacing.ExtraSmall),
+                            )
+                        }
+                        items(groupExercises, key = { it.id }) { exercise -> itemContent(exercise) }
+                    }
+                }
             }
         }
         return
     }
 
-    val byCategory = remember(exercises) { exercises.groupBy { it.category } }
-    ExerciseCategory.entries.forEach { category ->
-        val inCategory = byCategory[category.name].orEmpty()
-        if (inCategory.isEmpty()) return@forEach
-        key(category) {
-            var expanded by remember(category) { mutableStateOf(false) }
-            val catBringIntoView = remember { BringIntoViewRequester() }
-            LaunchedEffect(expanded) {
-                if (expanded) {
-                    kotlinx.coroutines.delay(120)
-                    catBringIntoView.bringIntoView()
-                    kotlinx.coroutines.delay(220)
-                    catBringIntoView.bringIntoView()
+    if (listOrder == ExerciseListOrder.ALPHABETICAL) {
+        AlphabeticalExerciseList(orderedExercises, itemContent)
+        return
+    }
+
+    val byCategory = remember(orderedExercises) { orderedExercises.groupBy { it.category } }
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp, max = 520.dp),
+    ) {
+        ExerciseCategory.entries.forEach { category ->
+            val inCategory = byCategory[category.name].orEmpty()
+            if (inCategory.isEmpty()) return@forEach
+            item(key = "category-${category.name}") {
+                var expanded by remember(category) { mutableStateOf(false) }
+                val catBringIntoView = remember { BringIntoViewRequester() }
+                LaunchedEffect(expanded) {
+                    if (expanded) catBringIntoView.bringIntoView()
                 }
-            }
-            val catChevronRotation by animateFloatAsState(
-                targetValue = if (expanded) 90f else 0f,
-                animationSpec = androidx.compose.animation.core.tween(280, easing = androidx.compose.animation.core.EaseInOut),
-                label = "catChevronRotation",
-            )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .bringIntoViewRequester(catBringIntoView),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = Spacing.Large, bottom = Spacing.ExtraSmall)
-                        .clickable { expanded = !expanded },
+                val catChevronRotation by animateFloatAsState(
+                    targetValue = if (expanded) 90f else 0f,
+                    animationSpec = androidx.compose.animation.core.tween(280, easing = androidx.compose.animation.core.EaseInOut),
+                    label = "catChevronRotation",
+                )
+                Column(
+                    modifier = Modifier.fillMaxWidth().bringIntoViewRequester(catBringIntoView),
                 ) {
-                    val visual = categoryVisual(category)
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = if (expanded) "Collapse" else "Expand",
-                        tint = visual.accent,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .padding(start = 8.dp, end = 4.dp)
-                            .graphicsLayer { rotationZ = catChevronRotation },
-                    )
-                    Text(
-                        formatEnumLabel(category.name),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                AnimatedExpand(expanded) {
-                    val byMuscleGroup = remember(inCategory) {
-                        inCategory.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }.toSortedMap()
+                            .fillMaxWidth()
+                            .padding(top = Spacing.Large, bottom = Spacing.ExtraSmall)
+                            .clickable { expanded = !expanded },
+                    ) {
+                        val visual = categoryVisual(category)
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = if (expanded) "Collapse" else "Expand",
+                            tint = visual.accent,
+                            modifier = Modifier.padding(start = 8.dp, end = 4.dp).graphicsLayer { rotationZ = catChevronRotation },
+                        )
+                        Text(formatEnumLabel(category.name), style = MaterialTheme.typography.titleMedium)
                     }
-                    byMuscleGroup.forEach { (group, groupExercises) ->
-                        key(group) {
+                    AnimatedExpand(expanded) {
+                        val byMuscleGroup = remember(inCategory) {
+                            inCategory.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }.toSortedMap()
+                        }
+                        byMuscleGroup.forEach { (group, groupExercises) ->
                             val groupKey = "${category.name}:$group"
                             val groupExpanded = groupKey in expandedGroupKeys
-                            val groupBringIntoView = remember { BringIntoViewRequester() }
-                            LaunchedEffect(groupExpanded) {
-                                if (groupExpanded) {
-                                    kotlinx.coroutines.delay(120)
-                                    groupBringIntoView.bringIntoView()
-                                    kotlinx.coroutines.delay(220)
-                                    groupBringIntoView.bringIntoView()
-                                }
-                            }
-                            val subChevronRotation by animateFloatAsState(
-                                targetValue = if (groupExpanded) 90f else 0f,
-                                animationSpec = androidx.compose.animation.core.tween(280, easing = androidx.compose.animation.core.EaseInOut),
-                                label = "subChevronRotation",
-                            )
-                            Column(
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .bringIntoViewRequester(groupBringIntoView),
+                                    .padding(top = Spacing.Small)
+                                    .clickable { expandedGroupKeys = toggleExpandedExerciseGroupKeys(expandedGroupKeys, groupKey) },
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = Spacing.Small)
-                                        .clickable {
-                                            expandedGroupKeys = toggleExpandedExerciseGroupKeys(expandedGroupKeys, groupKey)
-                                        },
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                        contentDescription = if (groupExpanded) "Collapse" else "Expand",
-                                        modifier = Modifier
-                                            .padding(start = 32.dp, end = 4.dp)
-                                            .graphicsLayer { rotationZ = subChevronRotation },
-                                    )
-                                    Text(
-                                        formatEnumLabel(group),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                                AnimatedExpand(groupExpanded) {
-                                    groupExercises.forEach { exercise -> itemContent(exercise) }
-                                }
+                                Icon(
+                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = if (groupExpanded) "Collapse" else "Expand",
+                                    modifier = Modifier.padding(start = 32.dp, end = 4.dp),
+                                )
+                                Text(formatEnumLabel(group), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            AnimatedExpand(groupExpanded) {
+                                groupExercises.forEach { exercise -> itemContent(exercise) }
                             }
                         }
                     }

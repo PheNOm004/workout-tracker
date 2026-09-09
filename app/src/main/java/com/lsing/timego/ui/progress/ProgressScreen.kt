@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
@@ -67,6 +68,9 @@ import com.lsing.timego.ui.common.SparklineChart
 import com.lsing.timego.ui.common.StatTile
 import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
+import com.lsing.timego.ui.common.ConsistencyHeatmapSkeleton
+import com.lsing.timego.ui.common.MuscleDistributionSkeleton
+import com.lsing.timego.ui.common.ExercisePerformanceSkeleton
 import com.lsing.timego.ui.common.toPositiveFiniteDoubleOrNull
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.common.timeframeLabel
@@ -130,6 +134,30 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val bodyListState = rememberLazyListState(
         cacheWindow = LazyLayoutCacheWindow(aheadFraction = 1.5f, behindFraction = 1f),
     )
+
+    if (!isHydrated) {
+        LazyColumn(
+            modifier = Modifier.padding(horizontal = Spacing.Large),
+            contentPadding = PaddingValues(bottom = Spacing.Large),
+        ) {
+            item {
+                Text(
+                    "Progress",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall),
+                )
+                Text(
+                    "Loading your training data…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                ConsistencyHeatmapSkeleton(modifier = Modifier.padding(top = Spacing.Small))
+                ExercisePerformanceSkeleton()
+                MuscleDistributionSkeleton()
+            }
+        }
+        return
+    }
 
     if (selectedHistoryDate != null) {
         WorkoutHistoryDialog(
@@ -555,6 +583,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
                             .padding(vertical = 4.dp, horizontal = Spacing.Small),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
@@ -621,7 +650,7 @@ private fun AnimatedStrengthCurve(
 ) {
     AnimatedContent(
         targetState = strengthCurve,
-        contentKey = { it.isEmpty() },
+        contentKey = { curve -> curve.map { point -> point.first to point.second } },
         transitionSpec = { fadeIn(TimeGoMotion.contentEnter) togetherWith fadeOut(TimeGoMotion.contentExit) },
         label = label,
     ) { visibleCurve ->

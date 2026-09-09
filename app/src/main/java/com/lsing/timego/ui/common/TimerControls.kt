@@ -82,25 +82,31 @@ private enum class TimerControlsState {
  *  to idle afterwards. */
 @Composable
 fun TimerControls(
+    timerKey: Long,
+    activeTimerKey: Long?,
+    startedAtEpochMillis: Long?,
     delaySeconds: Int,
     formatElapsed: (Int) -> String,
     onEnterManually: () -> Unit,
+    onStart: () -> Unit,
+    onCancel: () -> Unit,
     onStop: (elapsedSeconds: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var startedAtEpochMillis by remember { mutableStateOf<Long?>(null) }
     var phase by remember { mutableStateOf<HoldTimerPhase?>(null) }
+    var lastRenderedPhase by remember { mutableStateOf<HoldTimerPhase?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
+    val isTimerOwner = activeTimerKey == timerKey && startedAtEpochMillis != null
 
-    LaunchedEffect(startedAtEpochMillis, delaySeconds, lifecycleOwner) {
-        val startedAt = startedAtEpochMillis
+    LaunchedEffect(isTimerOwner, startedAtEpochMillis, delaySeconds, lifecycleOwner) {
+        val startedAt = startedAtEpochMillis.takeIf { isTimerOwner }
         if (startedAt == null) {
             phase = null
             return@LaunchedEffect
         }
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
-                phase = timerPhaseAt(startedAt, delaySeconds, System.currentTimeMillis())
+                phase = timerPhaseAt(startedAt, delaySeconds, System.currentTimeMillis()).also { lastRenderedPhase = it }
                 delay(POLL_INTERVAL_MILLIS)
             }
         }
@@ -160,9 +166,7 @@ fun TimerControls(
                                 contentColor = Color(0xFF0A1810),
                             ),
                             onClick = {
-                                val now = System.currentTimeMillis()
-                                phase = timerPhaseAt(now, delaySeconds, now)
-                                startedAtEpochMillis = now
+                                onStart()
                             },
                         ) {
                             Text("Start timer", fontWeight = FontWeight.SemiBold)
@@ -173,7 +177,8 @@ fun TimerControls(
                         }
                     }
                     TimerControlsState.COUNTDOWN -> {
-                        val countdownPhase = phase as? HoldTimerPhase.CountingDown
+                        val countdownPhase = (phase as? HoldTimerPhase.CountingDown)
+                            ?: (lastRenderedPhase as? HoldTimerPhase.CountingDown)
                         Box(
                             modifier = Modifier
                                 .size(10.dp)
@@ -200,13 +205,14 @@ fun TimerControls(
                         OutlinedButton(
                             interactionSource = cancelInteractionSource,
                             modifier = Modifier.tactilePress(cancelInteractionSource, pressedScale = 0.95f),
-                            onClick = { startedAtEpochMillis = null },
+                            onClick = onCancel,
                         ) {
                             Text("Cancel")
                         }
                     }
                     TimerControlsState.RUNNING -> {
-                        val runningPhase = phase as? HoldTimerPhase.Running
+                        val runningPhase = (phase as? HoldTimerPhase.Running)
+                            ?: (lastRenderedPhase as? HoldTimerPhase.Running)
                         Box(
                             modifier = Modifier
                                 .size(10.dp)
@@ -243,7 +249,7 @@ fun TimerControls(
                             ),
                             onClick = {
                                 onStop(runningPhase?.elapsedSeconds ?: 0)
-                                startedAtEpochMillis = null
+                                onCancel()
                             },
                         ) {
                             Text("Stop & Log", fontWeight = FontWeight.Bold)

@@ -1,6 +1,7 @@
 package com.lsing.timego.ui.log
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -16,15 +17,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,7 +37,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -41,8 +45,12 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -59,18 +67,23 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import com.lsing.timego.ui.theme.NightEdgeHairline
 import com.lsing.timego.ui.common.TimeGoDialog
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -78,6 +91,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.ExerciseCategory
@@ -102,6 +116,7 @@ import com.lsing.timego.domain.toggleExpandedExerciseIds
 import com.lsing.timego.ui.common.AnimatedExpand
 import com.lsing.timego.ui.common.CroppedMuscleDiagram
 import com.lsing.timego.ui.common.ExerciseSections
+import com.lsing.timego.ui.common.ExerciseListOrder
 import com.lsing.timego.ui.common.MuscleHeatLegend
 import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SectionHeader
@@ -113,6 +128,7 @@ import com.lsing.timego.ui.common.toPositiveIntOrNull
 import com.lsing.timego.ui.common.TrainingPulse
 import com.lsing.timego.ui.common.tactilePress
 import com.lsing.timego.ui.common.WorkoutHistoryDialog
+import com.lsing.timego.ui.common.ShimmerLine
 import com.lsing.timego.ui.common.categoryVisual
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.common.formatMuscleGroupList
@@ -121,7 +137,7 @@ import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.Spacing
 import java.time.LocalDate
 
-private const val ACTIVE_LIBRARY_ITEM_INDEX = 4
+private enum class ActiveLogPage { SESSION, EXERCISE_PICKER }
 
 @Composable
 fun LogScreen(viewModel: LogViewModel = viewModel()) {
@@ -131,6 +147,26 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val landingBalanceTimeframe by viewModel.landingBalanceTimeframe.collectAsStateWithLifecycle()
     val landingMuscleBalance by viewModel.landingMuscleBalance.collectAsStateWithLifecycle()
     val routineLastCompleted by viewModel.routineLastCompleted.collectAsStateWithLifecycle()
+    val activeTimer by viewModel.activeTimer.collectAsStateWithLifecycle()
+    var peekingLanding by rememberSaveable { mutableStateOf(false) }
+    var expandedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
+    var librarySearchQuery by rememberSaveable { mutableStateOf("") }
+    var exerciseListOrderName by rememberSaveable { mutableStateOf(ExerciseListOrder.CURRENT.name) }
+    var draftSessionId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var activeLogPageName by rememberSaveable { mutableStateOf(ActiveLogPage.SESSION.name) }
+    var selectedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
+
+    LaunchedEffect(sessionState) {
+        val sessionId = (sessionState as? SessionUiState.Active)?.sessionId
+        if (sessionId != draftSessionId) {
+            draftSessionId = sessionId
+            expandedExerciseIds = emptyList()
+            librarySearchQuery = ""
+            peekingLanding = false
+            activeLogPageName = ActiveLogPage.SESSION.name
+            selectedExerciseIds = emptyList()
+        }
+    }
 
     AnimatedContent(
         targetState = sessionState,
@@ -142,7 +178,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
         label = "logSessionTransition",
     ) { state ->
         when (state) {
-            is SessionUiState.Loading,
+            is SessionUiState.Loading -> LogLoadingContent()
             is SessionUiState.NoActiveSession -> LogLandingContent(
                 summary = landingSummary,
                 routines = routines,
@@ -155,39 +191,101 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 onSelectBalanceTimeframe = viewModel::selectLandingBalanceTimeframe,
             )
             is SessionUiState.Active -> {
-                var peekingLanding by remember(state.sessionId) { mutableStateOf(false) }
+                val activeViewStateHolder = rememberSaveableStateHolder()
                 AnimatedContent(
-                    targetState = peekingLanding,
+                    targetState = if (peekingLanding) "LANDING" else activeLogPageName,
                     transitionSpec = {
-                        val enter = slideInHorizontally(TimeGoMotion.navigationInOffset) { width -> if (targetState) -width / 4 else width / 4 } + fadeIn(TimeGoMotion.contentEnter)
-                        val exit = slideOutHorizontally(TimeGoMotion.navigationOutOffset) { width -> if (targetState) width / 4 else -width / 4 } + fadeOut(TimeGoMotion.contentExit)
+                        val enteringLanding = targetState == "LANDING"
+                        val enter = slideInHorizontally(TimeGoMotion.navigationInOffset) { width -> if (enteringLanding) -width / 4 else width / 4 } + fadeIn(TimeGoMotion.contentEnter)
+                        val exit = slideOutHorizontally(TimeGoMotion.navigationOutOffset) { width -> if (enteringLanding) width / 4 else -width / 4 } + fadeOut(TimeGoMotion.contentExit)
                         enter togetherWith exit
                     },
-                    label = "peekingLandingTransition",
-                ) { peeking ->
-                    if (peeking) {
-                        LogLandingContent(
-                            summary = landingSummary,
-                            routines = routines,
-                            isSessionActive = true,
-                            onStartOrContinue = { peekingLanding = false },
-                            onChooseAnother = {},
-                            routineLastCompleted = routineLastCompleted,
-                            balanceTimeframe = landingBalanceTimeframe,
-                            muscleBalance = landingMuscleBalance,
-                            onSelectBalanceTimeframe = viewModel::selectLandingBalanceTimeframe,
-                        )
+                    label = "activeLogPageTransition",
+                ) { page ->
+                    if (page == "LANDING") {
+                        activeViewStateHolder.SaveableStateProvider("activeLanding") {
+                            LogLandingContent(
+                                summary = landingSummary,
+                                routines = routines,
+                                isSessionActive = true,
+                                onStartOrContinue = { peekingLanding = false },
+                                onChooseAnother = {},
+                                routineLastCompleted = routineLastCompleted,
+                                balanceTimeframe = landingBalanceTimeframe,
+                                muscleBalance = landingMuscleBalance,
+                                onSelectBalanceTimeframe = viewModel::selectLandingBalanceTimeframe,
+                            )
+                        }
+                    } else if (page == ActiveLogPage.EXERCISE_PICKER.name) {
+                        activeViewStateHolder.SaveableStateProvider("exercisePicker") {
+                            ExercisePickerContent(
+                                exercises = viewModel.exerciseLibrary.collectAsStateWithLifecycle().value,
+                                viewModel = viewModel,
+                                activeTimer = activeTimer,
+                                listOrder = ExerciseListOrder.valueOf(exerciseListOrderName),
+                                onListOrderChange = { exerciseListOrderName = it.name },
+                                searchQuery = librarySearchQuery,
+                                onSearchQueryChange = { librarySearchQuery = it },
+                                favoriteExerciseIds = viewModel.favoriteExerciseIds.collectAsStateWithLifecycle().value,
+                                onToggleFavorite = viewModel::toggleFavoriteExercise,
+                                onAddCustomExercise = viewModel::addCustomExercise,
+                                onBack = { activeLogPageName = ActiveLogPage.SESSION.name },
+                            )
+                        }
                     } else {
-                        LoggingContent(
-                            sessionId = state.sessionId,
-                            viewModel = viewModel,
-                            onEndSession = viewModel::endActiveSession,
-                            onBackToLanding = { peekingLanding = true },
-                        )
+                        activeViewStateHolder.SaveableStateProvider("activeLogging") {
+                            LoggingContent(
+                                sessionId = state.sessionId,
+                                viewModel = viewModel,
+                                activeTimer = activeTimer,
+                                expandedExerciseIds = expandedExerciseIds,
+                                onExpandedExerciseIdsChange = { expandedExerciseIds = it },
+                                selectedExerciseIds = selectedExerciseIds,
+                                onOpenExercisePicker = { activeLogPageName = ActiveLogPage.EXERCISE_PICKER.name },
+                                onSelectExercise = { exerciseId ->
+                                    if (exerciseId !in selectedExerciseIds) selectedExerciseIds = selectedExerciseIds + exerciseId
+                                    expandedExerciseIds = listOf(exerciseId)
+                                },
+                                onEndSession = viewModel::endActiveSession,
+                                onBackToLanding = { peekingLanding = true },
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LogLoadingContent() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.Large),
+    ) {
+        Text("Today's Workout", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Preparing your session…",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Medium),
+        )
+        SurfaceCard(modifier = Modifier.fillMaxWidth(), hero = true, riveted = true) {
+            Column(modifier = Modifier.padding(Spacing.Medium)) {
+                ShimmerLine(width = 112.dp, height = 12.dp)
+                Spacer(modifier = Modifier.height(Spacing.Small))
+                ShimmerLine(width = 210.dp, height = 22.dp)
+                Spacer(modifier = Modifier.height(Spacing.Medium))
+                ShimmerLine(width = 170.dp, height = 12.dp)
+                Spacer(modifier = Modifier.height(Spacing.Medium))
+                ShimmerLine(width = 260.dp, height = 44.dp)
+            }
+        }
+        Spacer(modifier = Modifier.height(Spacing.Medium))
+        ShimmerLine(width = 150.dp, height = 16.dp)
+        ShimmerLine(width = 280.dp, height = 88.dp, modifier = Modifier.padding(top = Spacing.Small))
     }
 }
 
@@ -271,7 +369,10 @@ private fun LogLandingContent(
             SectionHeader("Today's Workout", topPadding = Spacing.ExtraSmall)
             if (todaysScheduledRoutine != null) {
                 SurfaceCard(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
+                        .padding(bottom = Spacing.Medium),
                     hero = true,
                     riveted = true,
                 ) {
@@ -304,7 +405,10 @@ private fun LogLandingContent(
                 }
             } else if (activeFlexibleRoutine != null) {
                 SurfaceCard(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
+                        .padding(bottom = Spacing.Medium),
                     hero = true,
                     riveted = true,
                 ) {
@@ -378,7 +482,10 @@ private fun LogLandingContent(
                 }
             } else {
                 SurfaceCard(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
+                        .padding(bottom = Spacing.Medium),
                     hero = true,
                     riveted = true,
                 ) {
@@ -413,7 +520,7 @@ private fun LogLandingContent(
                                 if (!isSessionActive && summary.canChooseAnother) {
                                     TextButton(
                                         onClick = onChooseAnother,
-                                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = Spacing.ExtraSmall),
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp, vertical = Spacing.ExtraSmall),
                                         modifier = Modifier.heightIn(min = 48.dp),
                                     ) {
                                         Text("Choose another", style = MaterialTheme.typography.labelLarge)
@@ -587,10 +694,17 @@ private fun LandingMetric(label: String, value: String, modifier: Modifier = Mod
 private fun LoggingContent(
     sessionId: Long,
     viewModel: LogViewModel,
+    activeTimer: ActiveTimer?,
+    expandedExerciseIds: List<Long>,
+    onExpandedExerciseIdsChange: (List<Long>) -> Unit,
+    selectedExerciseIds: List<Long>,
+    onOpenExercisePicker: () -> Unit,
+    onSelectExercise: (Long) -> Unit,
     onEndSession: () -> Unit,
     onBackToLanding: () -> Unit,
 ) {
     val exercises by viewModel.displayedExercises.collectAsStateWithLifecycle()
+    val libraryExercises by viewModel.exerciseLibrary.collectAsStateWithLifecycle()
     val quickAddExercises by viewModel.quickAddExercises.collectAsStateWithLifecycle()
     val favoriteExerciseIds by viewModel.favoriteExerciseIds.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
@@ -602,19 +716,8 @@ private fun LoggingContent(
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
     val setLoggedPulse by viewModel.setLoggedPulse.collectAsStateWithLifecycle()
     val activeSessionSetsByExercise by viewModel.activeSessionSetsByExercise.collectAsStateWithLifecycle()
-    var expandedExerciseIds by remember(sessionId) { mutableStateOf<List<Long>>(emptyList()) }
-    var showAddDialog by remember { mutableStateOf(false) }
     var showEndSessionConfirmation by remember { mutableStateOf(false) }
-    var librarySearchQuery by remember { mutableStateOf("") }
     val activeListState = rememberLazyListState()
-    val activeScope = rememberCoroutineScope()
-
-    if (showAddDialog) {
-        AddExerciseDialog(
-            onDismiss = { showAddDialog = false },
-            onAdd = viewModel::addCustomExercise,
-        )
-    }
 
     if (showEndSessionConfirmation) {
         TimeGoDialog(
@@ -643,21 +746,16 @@ private fun LoggingContent(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.imePadding(),
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Add custom exercise")
-            }
-        },
-    ) { fabPadding ->
-        LazyColumn(
-            state = activeListState,
-            modifier = Modifier.padding(Spacing.Large).padding(fabPadding),
-        ) {
+    LazyColumn(
+        state = activeListState,
+        modifier = Modifier
+            .imePadding()
+            .padding(horizontal = Spacing.Large),
+        contentPadding = PaddingValues(bottom = Spacing.ExtraLarge),
+    ) {
             item(key = "activeHeader") {
                 Text(
-                    "Log your next set",
+                    "Current session",
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
                 )
@@ -694,74 +792,91 @@ private fun LoggingContent(
             }
             item(key = "activeSummary") {
                 // Live in-session summary of completed sets
-                val exercisesById = remember(exercises) { exercises.associateBy { it.id } }
+                val exercisesById = remember(libraryExercises) { libraryExercises.associateBy { it.id } }
                 ActiveWorkoutSection(
                     activeSetsByExercise = activeSessionSetsByExercise,
                     exercisesById = exercisesById,
                     selectedExerciseId = expandedExerciseIds.singleOrNull(),
                     onSelectExercise = { exerciseId ->
-                        exercisesById[exerciseId]?.let { exercise ->
-                            librarySearchQuery = exercise.name
-                            expandedExerciseIds = listOf(exerciseId)
-                            activeScope.launch {
-                                activeListState.animateScrollToItem(ACTIVE_LIBRARY_ITEM_INDEX)
-                            }
-                        }
+                        exercisesById[exerciseId]?.let { onSelectExercise(exerciseId) }
                     },
                 )
             }
             item(key = "favorites") {
-                val favoriteExercises = exercises.filter { it.id in favoriteExerciseIds }
+                val favoriteExercises = libraryExercises.filter { it.id in favoriteExerciseIds }
+                SectionHeader("Favorites", topPadding = Spacing.Small)
                 if (favoriteExercises.isNotEmpty()) {
-                    SectionHeader("Favorites", topPadding = Spacing.Small)
                     FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
                         favoriteExercises.forEach { exercise ->
                             AnimatedAssistChip(
                                 onClick = {
-                                    librarySearchQuery = exercise.name
-                                    expandedExerciseIds = listOf(exercise.id)
-                                    activeScope.launch {
-                                        activeListState.animateScrollToItem(ACTIVE_LIBRARY_ITEM_INDEX)
-                                    }
+                                    onSelectExercise(exercise.id)
                                 },
                                 label = { Text(exercise.name) },
                                 modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
                             )
                         }
                     }
+                } else {
+                    Text(
+                        "Your starred exercises will appear here.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = Spacing.Small),
+                    )
                 }
             }
             item(key = "quickAdd") {
+                SectionHeader("Quick add", topPadding = Spacing.Small)
                 if (quickAddExercises.isNotEmpty()) {
-                    SectionHeader("Quick add", topPadding = Spacing.Small)
                     FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
                         quickAddExercises.forEach { exercise ->
                             AnimatedAssistChip(
                                 onClick = {
-                                    librarySearchQuery = exercise.name
-                                    expandedExerciseIds = listOf(exercise.id)
-                                    activeScope.launch {
-                                        activeListState.animateScrollToItem(ACTIVE_LIBRARY_ITEM_INDEX)
-                                    }
+                                    onSelectExercise(exercise.id)
                                 },
                                 label = { Text(exercise.name) },
                                 modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
                             )
                         }
                     }
+                } else {
+                    val hasLoggedStrength = activeSessionSetsByExercise.keys.any { id ->
+                        libraryExercises.firstOrNull { it.id == id }?.category in setOf(
+                            ExerciseCategory.STRENGTH.name,
+                            ExerciseCategory.CALISTHENICS.name,
+                        )
+                    }
+                    Text(
+                        if (hasLoggedStrength) "No familiar strength exercises to add yet." else "Log a strength or calisthenics set to unlock session-aware quick add.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = Spacing.Small),
+                    )
                 }
             }
-            item(key = "exerciseLibrary") {
-                SectionHeader("Exercise Library", topPadding = Spacing.Small)
-                ExerciseSections(
-                    exercises = exercises,
-                    searchQuery = librarySearchQuery,
-                    onSearchQueryChange = { librarySearchQuery = it },
-                    favoriteExerciseIds = favoriteExerciseIds,
-                ) { exercise ->
+            item(key = "logExerciseAction") {
+                Button(
+                    onClick = onOpenExercisePicker,
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.padding(end = Spacing.ExtraSmall))
+                    Text("Log exercise")
+                }
+            }
+            item(key = "selectedExercises") {
+                val exercisesById = remember(libraryExercises) { libraryExercises.associateBy { it.id } }
+                val selectedExercises = (selectedExerciseIds + activeSessionSetsByExercise.keys)
+                    .distinct()
+                    .mapNotNull { exercisesById[it] }
+                if (selectedExercises.isNotEmpty()) {
+                    SectionHeader("Exercises", topPadding = Spacing.Small)
+                }
+                selectedExercises.forEach { exercise ->
                     val currentExerciseSets = activeSessionSetsByExercise[exercise.id].orEmpty()
                     when (exercise.loggingType) {
                         LoggingType.HOLD.name -> HoldLogRow(
+                            exerciseId = exercise.id,
                             exerciseName = exercise.name,
                             category = exercise.category,
                             suggestion = holdSuggestions[exercise.id],
@@ -769,13 +884,17 @@ private fun LoggingContent(
                             isFavorite = exercise.id in favoriteExerciseIds,
                             onToggleFavorite = { viewModel.toggleFavoriteExercise(exercise.id) },
                             pulseId = setLoggedPulse?.takeIf { it.exerciseId == exercise.id }?.eventId ?: 0L,
+                            activeTimer = activeTimer,
                             expanded = exercise.id in expandedExerciseIds,
                             onToggle = {
-                                expandedExerciseIds = toggleExpandedExerciseIds(expandedExerciseIds, exercise.id)
+                                onExpandedExerciseIdsChange(toggleExpandedExerciseIds(expandedExerciseIds, exercise.id))
                             },
                             onLog = { duration, target, isWarmup, targetProvenance -> viewModel.logHoldSet(exercise.id, duration, target, isWarmup, targetProvenance) },
+                            onStartTimer = { viewModel.startTimer(exercise.id) },
+                            onCancelTimer = { viewModel.clearActiveTimer(exercise.id) },
                         )
                         LoggingType.DURATION_DISTANCE.name -> CardioLogRow(
+                            exerciseId = exercise.id,
                             exerciseName = exercise.name,
                             category = exercise.category,
                             met = if (exercise.category == ExerciseCategory.CARDIO.name) MET_CARDIO else MET_WARMUP,
@@ -784,11 +903,14 @@ private fun LoggingContent(
                             isFavorite = exercise.id in favoriteExerciseIds,
                             onToggleFavorite = { viewModel.toggleFavoriteExercise(exercise.id) },
                             pulseId = setLoggedPulse?.takeIf { it.exerciseId == exercise.id }?.eventId ?: 0L,
+                            activeTimer = activeTimer,
                             expanded = exercise.id in expandedExerciseIds,
                             onToggle = {
-                                expandedExerciseIds = toggleExpandedExerciseIds(expandedExerciseIds, exercise.id)
+                                onExpandedExerciseIdsChange(toggleExpandedExerciseIds(expandedExerciseIds, exercise.id))
                             },
                             onLog = { duration, distance -> viewModel.logCardioSet(exercise.id, duration, distance) },
+                            onStartTimer = { viewModel.startTimer(exercise.id) },
+                            onCancelTimer = { viewModel.clearActiveTimer(exercise.id) },
                         )
                         else -> StrengthLogRow(
                             exerciseName = exercise.name,
@@ -803,7 +925,7 @@ private fun LoggingContent(
                             expanded = exercise.id in expandedExerciseIds,
                             pulseId = setLoggedPulse?.takeIf { it.exerciseId == exercise.id }?.eventId ?: 0L,
                             onToggle = {
-                                expandedExerciseIds = toggleExpandedExerciseIds(expandedExerciseIds, exercise.id)
+                                onExpandedExerciseIdsChange(toggleExpandedExerciseIds(expandedExerciseIds, exercise.id))
                             },
                             onLog = { weight, reps, target, isWarmup, addedWeightKg, rpe, targetProvenance ->
                                 viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg, rpe, targetProvenance)
@@ -813,10 +935,258 @@ private fun LoggingContent(
                 }
             }
             item(key = "activeBottomSpacer") {
-                // Bottom spacer so the last exercise card isn't hidden behind the FAB.
-                Spacer(modifier = Modifier.height(64.dp))
+                Spacer(modifier = Modifier.height(Spacing.ExtraLarge))
             }
         }
+}
+
+@Composable
+private fun ExercisePickerContent(
+    exercises: List<com.lsing.timego.data.Exercise>,
+    viewModel: LogViewModel,
+    activeTimer: ActiveTimer?,
+    listOrder: ExerciseListOrder,
+    onListOrderChange: (ExerciseListOrder) -> Unit,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    favoriteExerciseIds: Set<Long>,
+    onToggleFavorite: (Long) -> Unit,
+    onAddCustomExercise: (name: String, muscleGroups: List<String>, category: String) -> Unit,
+    onBack: () -> Unit,
+) {
+    var showAddDialog by remember { mutableStateOf(false) }
+    var expandedExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
+    val holdSuggestions by viewModel.holdSuggestions.collectAsStateWithLifecycle()
+    val lastWorkingSets by viewModel.lastWorkingSets.collectAsStateWithLifecycle()
+    val latestBodyWeightKg by viewModel.latestBodyWeightKg.collectAsStateWithLifecycle()
+    val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
+    val setLoggedPulse by viewModel.setLoggedPulse.collectAsStateWithLifecycle()
+    val activeSessionSetsByExercise by viewModel.activeSessionSetsByExercise.collectAsStateWithLifecycle()
+    val muscleContext = expandedExerciseId?.let { id ->
+        exercises.firstOrNull { it.id == id }?.muscleGroups?.let(::formatMuscleGroupList)
+    }
+    if (showAddDialog) {
+        AddExerciseDialog(
+            onDismiss = { showAddDialog = false },
+            onAdd = { name, muscleGroups, category ->
+                onAddCustomExercise(name, muscleGroups, category)
+                showAddDialog = false
+            },
+        )
+    }
+
+    var showOrderMenu by remember { mutableStateOf(false) }
+    Box(modifier = Modifier.fillMaxSize().imePadding()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .padding(horizontal = Spacing.Large)
+                .padding(top = Spacing.Small),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to current session")
+                }
+                Box {
+                    IconButton(
+                        onClick = { showOrderMenu = true },
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Change exercise order")
+                    }
+                    DropdownMenu(
+                        expanded = showOrderMenu,
+                        onDismissRequest = { showOrderMenu = false },
+                    ) {
+                        ExerciseListOrder.entries.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option.label) },
+                                onClick = {
+                                    onListOrderChange(option)
+                                    showOrderMenu = false
+                                },
+                                leadingIcon = if (listOrder == option) {
+                                    { Icon(Icons.Filled.Check, contentDescription = null) }
+                                } else null,
+                            )
+                        }
+                    }
+                }
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (!muscleContext.isNullOrBlank()) {
+                        Text(
+                            muscleContext,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(Spacing.ExtraSmall))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            ) {
+                ExerciseSections(
+                    exercises = exercises,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = onSearchQueryChange,
+                    showSearchField = false,
+                    listOrder = listOrder,
+                    favoriteExerciseIds = favoriteExerciseIds,
+                ) { exercise ->
+                    ExercisePickerRow(
+                        exercise = exercise,
+                        expanded = expandedExerciseId == exercise.id,
+                        suggestion = suggestions[exercise.id],
+                        holdSuggestion = holdSuggestions[exercise.id],
+                        lastWorkingSet = lastWorkingSets[exercise.id],
+                        currentSessionSets = activeSessionSetsByExercise[exercise.id].orEmpty(),
+                        latestBodyWeightKg = latestBodyWeightKg,
+                        holdDelaySeconds = holdDelaySeconds,
+                        activeTimer = activeTimer,
+                        isFavorite = exercise.id in favoriteExerciseIds,
+                        pulseId = setLoggedPulse?.takeIf { it.exerciseId == exercise.id }?.eventId ?: 0L,
+                        onToggleFavorite = { onToggleFavorite(exercise.id) },
+                        onToggle = {
+                            expandedExerciseId = if (expandedExerciseId == exercise.id) null else exercise.id
+                        },
+                        onLogStrength = { weight, reps, target, isWarmup, addedWeightKg, rpe, provenance ->
+                            viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg, rpe, provenance)
+                        },
+                        onLogCardio = { duration, distance -> viewModel.logCardioSet(exercise.id, duration, distance) },
+                        onLogHold = { duration, target, isWarmup, provenance ->
+                            viewModel.logHoldSet(exercise.id, duration, target, isWarmup, provenance)
+                        },
+                        onStartTimer = { viewModel.startTimer(exercise.id) },
+                        onCancelTimer = { viewModel.clearActiveTimer(exercise.id) },
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(Spacing.ExtraLarge + 72.dp))
+        }
+        SurfaceCard(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = Spacing.Large, vertical = Spacing.Small),
+            hero = true,
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = { Text("Search exercises") },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.ExtraSmall, vertical = Spacing.ExtraSmall),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { onSearchQueryChange("") }) {
+                            Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+                        }
+                    }
+                },
+            )
+        }
+        FloatingActionButton(
+            onClick = { showAddDialog = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
+                .padding(end = Spacing.Large, bottom = 96.dp),
+        ) {
+            Icon(Icons.Filled.Add, contentDescription = "Add custom exercise")
+        }
+    }
+}
+
+@Composable
+private fun ExercisePickerRow(
+    exercise: com.lsing.timego.data.Exercise,
+    expanded: Boolean,
+    suggestion: com.lsing.timego.domain.OverloadSuggestion?,
+    holdSuggestion: HoldSuggestion?,
+    lastWorkingSet: SetLog?,
+    currentSessionSets: List<SetLog>,
+    latestBodyWeightKg: Double?,
+    holdDelaySeconds: Int,
+    activeTimer: ActiveTimer?,
+    isFavorite: Boolean,
+    pulseId: Long,
+    onToggleFavorite: () -> Unit,
+    onToggle: () -> Unit,
+    onLogStrength: (Double, Int, Int, Boolean, Double?, Int?, TargetProvenance) -> Unit,
+    onLogCardio: (Double, Double?) -> Unit,
+    onLogHold: (Int, Int, Boolean, TargetProvenance) -> Unit,
+    onStartTimer: () -> Unit,
+    onCancelTimer: () -> Unit,
+) {
+    when (exercise.loggingType) {
+        LoggingType.HOLD.name -> HoldLogRow(
+            exerciseId = exercise.id,
+            exerciseName = exercise.name,
+            category = exercise.category,
+            suggestion = holdSuggestion,
+            delaySeconds = holdDelaySeconds,
+            isFavorite = isFavorite,
+            onToggleFavorite = onToggleFavorite,
+            expanded = expanded,
+            pulseId = pulseId,
+            activeTimer = activeTimer,
+            onToggle = onToggle,
+            onLog = onLogHold,
+            onStartTimer = onStartTimer,
+            onCancelTimer = onCancelTimer,
+        )
+        LoggingType.DURATION_DISTANCE.name -> CardioLogRow(
+            exerciseId = exercise.id,
+            exerciseName = exercise.name,
+            category = exercise.category,
+            met = if (exercise.category == ExerciseCategory.CARDIO.name) MET_CARDIO else MET_WARMUP,
+            bodyWeightKg = latestBodyWeightKg,
+            delaySeconds = holdDelaySeconds,
+            isFavorite = isFavorite,
+            onToggleFavorite = onToggleFavorite,
+            expanded = expanded,
+            pulseId = pulseId,
+            activeTimer = activeTimer,
+            onToggle = onToggle,
+            onLog = onLogCardio,
+            onStartTimer = onStartTimer,
+            onCancelTimer = onCancelTimer,
+        )
+        else -> StrengthLogRow(
+            exerciseName = exercise.name,
+            category = exercise.category,
+            suggestion = suggestion,
+            lastWorkingSet = lastWorkingSet,
+            currentSessionSets = currentSessionSets,
+            isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
+            latestBodyWeightKg = latestBodyWeightKg,
+            isFavorite = isFavorite,
+            onToggleFavorite = onToggleFavorite,
+            expanded = expanded,
+            pulseId = pulseId,
+            onToggle = onToggle,
+            onLog = onLogStrength,
+        )
     }
 }
 
@@ -897,32 +1267,21 @@ private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Compos
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     var cardHeight by remember { mutableStateOf(0) }
     var cardWidth by remember { mutableStateOf(0) }
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val viewportHeightPx = with(density) { (configuration.screenHeightDp.dp - 140.dp).toPx() }
+    val viewportHeightPx = LocalWindowInfo.current.containerSize.height.toFloat().coerceAtLeast(1f)
 
-    LaunchedEffect(expanded) {
-        if (expanded) {
-            kotlinx.coroutines.delay(100)
-            val h = cardHeight.toFloat()
-            val extraPadding = ((viewportHeightPx - h) / 2f).coerceAtLeast(0f)
+    LaunchedEffect(expanded, cardHeight, cardWidth, viewportHeightPx) {
+        if (expanded && cardHeight > 0 && cardWidth > 0) {
+            // Recenter after every animated size change using the actual window viewport. This
+            // avoids a second fixed-delay correction and keeps the expanded exercise in the
+            // visual middle while the keyboard/insets are changing.
+            withFrameNanos { }
+            val extraPadding = ((viewportHeightPx - cardHeight) / 2f).coerceAtLeast(0f)
             bringIntoViewRequester.bringIntoView(
                 androidx.compose.ui.geometry.Rect(
                     left = 0f,
                     top = -extraPadding,
-                    right = cardWidth.toFloat().coerceAtLeast(1f),
-                    bottom = h + extraPadding,
-                ),
-            )
-            kotlinx.coroutines.delay(200)
-            val finalH = cardHeight.toFloat()
-            val finalPadding = ((viewportHeightPx - finalH) / 2f).coerceAtLeast(0f)
-            bringIntoViewRequester.bringIntoView(
-                androidx.compose.ui.geometry.Rect(
-                    left = 0f,
-                    top = -finalPadding,
-                    right = cardWidth.toFloat().coerceAtLeast(1f),
-                    bottom = finalH + finalPadding,
+                    right = cardWidth.toFloat(),
+                    bottom = cardHeight + extraPadding,
                 ),
             )
         }
@@ -933,6 +1292,7 @@ private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Compos
         cornerRadius = 10.dp,
         modifier = Modifier
             .fillMaxWidth()
+            .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
             .bringIntoViewRequester(bringIntoViewRequester)
             .onSizeChanged {
                 cardWidth = it.width
@@ -994,10 +1354,10 @@ private fun StrengthLogRow(
     // Bodyweight exercises (Pull-Up, Push-Up, Dip, ...) ask for just the added weight k (e.g. a
     // weighted vest) -- blank/0 means bodyweight-only, not "no weight logged." weightKg (the
     // absolute bodyweight+k total 1RM/PR/suggester math needs) is computed at log time, not typed.
-    var weightText by remember(exerciseName) { mutableStateOf("") }
-    var repsText by remember(exerciseName) { mutableStateOf("") }
-    var rpeText by remember(exerciseName) { mutableStateOf("") }
-    var isWarmup by remember(exerciseName) { mutableStateOf(false) }
+    var weightText by rememberSaveable(exerciseName) { mutableStateOf("") }
+    var repsText by rememberSaveable(exerciseName) { mutableStateOf("") }
+    var rpeText by rememberSaveable(exerciseName) { mutableStateOf("") }
+    var isWarmup by rememberSaveable(exerciseName) { mutableStateOf(false) }
     val reps = repsText.toPositiveIntOrNull()
     val rpe = rpeText.toIntOrNull()?.takeIf { it in 1..10 }
     val validRpe = rpeText.isBlank() || rpe != null
@@ -1220,6 +1580,7 @@ private fun StrengthLogRow(
 
 @Composable
 private fun CardioLogRow(
+    exerciseId: Long,
     exerciseName: String,
     category: String,
     met: Double,
@@ -1229,16 +1590,21 @@ private fun CardioLogRow(
     onToggleFavorite: () -> Unit,
     expanded: Boolean,
     pulseId: Long,
+    activeTimer: ActiveTimer?,
     onToggle: () -> Unit,
     onLog: (durationMinutes: Double, distanceKm: Double?) -> Unit,
+    onStartTimer: () -> Unit,
+    onCancelTimer: () -> Unit,
 ) {
-    var useTimer by remember(exerciseName) { mutableStateOf(false) }
-    var durationText by remember(exerciseName) { mutableStateOf("") }
-    var distanceText by remember(exerciseName) { mutableStateOf("") }
+    var useTimer by rememberSaveable(exerciseName) { mutableStateOf(false) }
+    var durationText by rememberSaveable(exerciseName) { mutableStateOf("") }
+    var distanceText by rememberSaveable(exerciseName) { mutableStateOf("") }
     val duration = durationText.toPositiveFiniteDoubleOrNull()
     val distance = distanceText.toPositiveFiniteDoubleOrNull()
     val validDistance = distanceText.isBlank() || distance != null
     val visual = categoryVisual(category)
+    val timerOwnsExercise = activeTimer?.exerciseId == exerciseId
+    val timerVisible = useTimer || timerOwnsExercise
 
     ExerciseCard(expanded, pulseId) {
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded, isFavorite, onToggleFavorite, onToggle)
@@ -1280,7 +1646,7 @@ private fun CardioLogRow(
                 ),
                 modifier = Modifier.padding(horizontal = Spacing.Medium),
             )
-            if (!useTimer) {
+            if (!timerVisible) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1325,9 +1691,20 @@ private fun CardioLogRow(
                 ) { Text("Use timer") }
             } else {
                 TimerControls(
+                    timerKey = exerciseId,
+                    activeTimerKey = activeTimer?.exerciseId,
+                    startedAtEpochMillis = activeTimer?.startedAtEpochMillis,
                     delaySeconds = delaySeconds,
                     formatElapsed = ::formatElapsedSeconds,
-                    onEnterManually = { useTimer = false },
+                    onEnterManually = {
+                        useTimer = false
+                        onCancelTimer()
+                    },
+                    onStart = onStartTimer,
+                    onCancel = {
+                        useTimer = false
+                        onCancelTimer()
+                    },
                     onStop = { elapsedSeconds ->
                         onLog(elapsedSeconds / 60.0, distance)
                         useTimer = false
@@ -1347,6 +1724,7 @@ private fun formatElapsedSeconds(totalSeconds: Int): String {
 
 @Composable
 private fun HoldLogRow(
+    exerciseId: Long,
     exerciseName: String,
     category: String,
     suggestion: HoldSuggestion?,
@@ -1355,13 +1733,18 @@ private fun HoldLogRow(
     onToggleFavorite: () -> Unit,
     expanded: Boolean,
     pulseId: Long,
+    activeTimer: ActiveTimer?,
     onToggle: () -> Unit,
     onLog: (durationSeconds: Int, targetDurationSeconds: Int, isWarmup: Boolean, targetProvenance: TargetProvenance) -> Unit,
+    onStartTimer: () -> Unit,
+    onCancelTimer: () -> Unit,
 ) {
-    var isWarmup by remember(exerciseName) { mutableStateOf(false) }
-    var useTimer by remember(exerciseName) { mutableStateOf(true) }
-    var manualDurationText by remember(exerciseName) { mutableStateOf("") }
+    var isWarmup by rememberSaveable(exerciseName) { mutableStateOf(false) }
+    var useTimer by rememberSaveable(exerciseName) { mutableStateOf(true) }
+    var manualDurationText by rememberSaveable(exerciseName) { mutableStateOf("") }
     val visual = categoryVisual(category)
+    val timerOwnsExercise = activeTimer?.exerciseId == exerciseId
+    val timerVisible = useTimer || timerOwnsExercise
 
     ExerciseCard(expanded, pulseId) {
         ExerciseRowHeader(
@@ -1394,7 +1777,7 @@ private fun HoldLogRow(
                 Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
                 Text("Warmup set", style = MaterialTheme.typography.bodySmall)
             }
-            if (!useTimer) {
+            if (!timerVisible) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1437,9 +1820,20 @@ private fun HoldLogRow(
                 ) { Text("Use timer instead") }
             } else {
                 TimerControls(
+                    timerKey = exerciseId,
+                    activeTimerKey = activeTimer?.exerciseId,
+                    startedAtEpochMillis = activeTimer?.startedAtEpochMillis,
                     delaySeconds = delaySeconds,
                     formatElapsed = { "${it}s" },
-                    onEnterManually = { useTimer = false },
+                    onEnterManually = {
+                        useTimer = false
+                        onCancelTimer()
+                    },
+                    onStart = onStartTimer,
+                    onCancel = {
+                        useTimer = false
+                        onCancelTimer()
+                    },
                     onStop = { seconds ->
                         onLog(seconds, suggestion?.targetDurationSeconds ?: seconds, isWarmup, targetProvenanceFor(suggestion != null))
                         isWarmup = false

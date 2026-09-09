@@ -2,6 +2,7 @@ package com.lsing.timego.ui.log
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.TargetProvenance
@@ -108,6 +109,8 @@ data class LandingSummary(
 /** One-shot visual acknowledgement emitted only after the repository has saved a set. */
 data class SetLoggedPulse(val exerciseId: Long, val eventId: Long)
 
+data class ActiveTimer(val exerciseId: Long, val startedAtEpochMillis: Long)
+
 /** Named holder for the four-way [combine] feeding suggestions/landing balance -- destructured at
  *  the collector, so the positional tuple never escapes this file. */
 private data class LandingInputs(
@@ -121,7 +124,10 @@ private data class LandingInputs(
  *  link); non-null filters [displayedExercises] to that routine's exercises and tags logged
  *  sessions with it. On first load, if today has a scheduled routine, it's auto-selected instead
  *  of defaulting to freeform -- that's the whole point of routine scheduling (Update 1.1). */
-class LogViewModel(application: Application) : AndroidViewModel(application) {
+class LogViewModel(
+    application: Application,
+    private val savedStateHandle: SavedStateHandle,
+) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
     private val settingsRepository = SettingsRepository(application)
     private val suggester: com.lsing.timego.domain.OverloadSuggester = AdaptiveOverloadSuggester()
@@ -148,6 +154,12 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _displayedExercises = MutableStateFlow<List<Exercise>>(emptyList())
     val displayedExercises: StateFlow<List<Exercise>> = _displayedExercises.asStateFlow()
+
+    /** Full catalogue for the dedicated exercise picker. Kept warm in the ViewModel so opening
+     * the picker never waits for a second database query, while the picker UI itself is composed
+     * only when requested. */
+    private val _exerciseLibrary = MutableStateFlow<List<Exercise>>(emptyList())
+    val exerciseLibrary: StateFlow<List<Exercise>> = _exerciseLibrary.asStateFlow()
 
     private val _quickAddExercises = MutableStateFlow<List<Exercise>>(emptyList())
     val quickAddExercises: StateFlow<List<Exercise>> = _quickAddExercises.asStateFlow()
@@ -205,6 +217,13 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
     val holdDelaySeconds: StateFlow<Int> = _holdDelaySeconds.asStateFlow()
 
+    private val _activeTimer = MutableStateFlow(
+        savedStateHandle.get<Long>(ACTIVE_TIMER_EXERCISE_KEY)?.let { exerciseId ->
+            savedStateHandle.get<Long>(ACTIVE_TIMER_STARTED_KEY)?.let { startedAt -> ActiveTimer(exerciseId, startedAt) }
+        },
+    )
+    val activeTimer: StateFlow<ActiveTimer?> = _activeTimer.asStateFlow()
+
     private var nextPulseEventId = 0L
     private val _setLoggedPulse = MutableStateFlow<SetLoggedPulse?>(null)
     val setLoggedPulse: StateFlow<SetLoggedPulse?> = _setLoggedPulse.asStateFlow()
@@ -243,6 +262,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                                 LandingInputs(exercises, setLogs, sessions, timeframe)
                             }.collect { (list, setLogs, sessions, timeframe) ->
                                 allExercises = list
+                                _exerciseLibrary.value = list
                                 latestSetLogs = setLogs
                                 latestSessions = sessions
                                 _routineLastCompleted.value = routineLastCompletedDates(sessions)
@@ -323,7 +343,23 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
         val rankedExercises = exercisesRankedByFrequency(filteredExercises, exerciseUsageCounts)
         _displayedExercises.value = rankedExercises
-        _quickAddExercises.value = quickAddExercises(rankedExercises, exerciseUsageCounts)
+        val activeExerciseIds = _activeSessionSetsByExercise.value.keys
+        val hasLoggedSet = activeExerciseIds.isNotEmpty()
+        val strengthContext = activeExerciseIds.any { id ->
+            allExercises.firstOrNull { it.id == id }?.category in setOf(
+                ExerciseCategory.STRENGTH.name,
+                ExerciseCategory.CALISTHENICS.name,
+            )
+        }
+        _quickAddExercises.value = if (hasLoggedSet && strengthContext) {
+            val quickAddPool = exercisesRankedByFrequency(allExercises, exerciseUsageCounts)
+            quickAddExercises(
+                quickAddPool.filter { it.category in setOf(ExerciseCategory.STRENGTH.name, ExerciseCategory.CALISTHENICS.name) },
+                exerciseUsageCounts,
+            )
+        } else {
+            emptyList()
+        }
     }
 
     /** Splits suggestion computation by loggingType: WEIGHT_REPS exercises get a weight/reps
@@ -544,6 +580,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         // workout; a fresh session starts with a clean recommendation.
         _suggestionExclusions.value = emptySet()
         lastShownSuggestionId = null
+        clearActiveTimer()
         viewModelScope.launch {
             val session = repository.startSession(routineId)
             selectRoutine(routineId)
@@ -554,6 +591,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
     fun endActiveSession() {
         val current = _sessionState.value
         if (current !is SessionUiState.Active) return
+        clearActiveTimer()
         viewModelScope.launch {
             val endedAt = System.currentTimeMillis()
             repository.endSession(current.sessionId, endedAt)
@@ -638,4 +676,21 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             repository.addCustomExercise(name, muscleGroups, category)
         }
     }
+
+    fun startTimer(exerciseId: Long) {
+        val timer = ActiveTimer(exerciseId, System.currentTimeMillis())
+        _activeTimer.value = timer
+        savedStateHandle[ACTIVE_TIMER_EXERCISE_KEY] = timer.exerciseId
+        savedStateHandle[ACTIVE_TIMER_STARTED_KEY] = timer.startedAtEpochMillis
+    }
+
+    fun clearActiveTimer(exerciseId: Long? = null) {
+        if (exerciseId != null && _activeTimer.value?.exerciseId != exerciseId) return
+        _activeTimer.value = null
+        savedStateHandle.remove<Long>(ACTIVE_TIMER_EXERCISE_KEY)
+        savedStateHandle.remove<Long>(ACTIVE_TIMER_STARTED_KEY)
+    }
 }
+
+private const val ACTIVE_TIMER_EXERCISE_KEY = "timego.activeTimer.exerciseId"
+private const val ACTIVE_TIMER_STARTED_KEY = "timego.activeTimer.startedAtEpochMillis"

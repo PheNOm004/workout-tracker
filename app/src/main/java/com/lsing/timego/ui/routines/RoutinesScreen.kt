@@ -49,6 +49,7 @@ import com.lsing.timego.data.TIMEGO_BACKUP_MIME_TYPE
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SurfaceCard
+import com.lsing.timego.ui.common.RoutineCardSkeleton
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.Spacing
@@ -80,6 +81,26 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
         uri?.let(viewModel::restoreBackup)
     }
 
+    if (!isHydrated) {
+        LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
+            item {
+                Text(
+                    "Routines",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
+                )
+                Text(
+                    "Loading your training plan…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                RoutineCardSkeleton()
+                RoutineCardSkeleton()
+            }
+        }
+        return
+    }
+
     backupResult?.let { result ->
         TimeGoDialog(
             onDismissRequest = viewModel::clearBackupResult,
@@ -89,7 +110,6 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                 val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
                 TextButton(onClick = {
                     dismiss()
-                    viewModel.clearBackupResult()
                 }) { Text("OK") }
             },
         ) {
@@ -112,16 +132,13 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             trainingLean = trainingLean,
             onSetTrainingLean = viewModel::setTrainingLean,
             onExportBackup = {
-                showSettingsSheet = false
                 exportLauncher.launch("timego-backup-${LocalDate.now()}.db")
             },
             onRestoreBackup = {
-                showSettingsSheet = false
                 restoreLauncher.launch(arrayOf("*/*"))
             },
             sessionHistoryCount = sessionHistory.size,
             onViewSessionHistory = {
-                showSettingsSheet = false
                 showSessionHistory = true
             },
             onDismiss = { showSettingsSheet = false },

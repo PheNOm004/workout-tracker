@@ -35,6 +35,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -196,7 +200,20 @@ fun MuscleBodyDiagram(
     }
 
     Column(modifier = modifier) {
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "Front and back muscle map. Tap a highlighted muscle to pin its summary; hold for a temporary summary."
+                    customActions = MuscleGroup.entries.map { group ->
+                        CustomAccessibilityAction("Inspect ${formatEnumLabel(group.name)}") {
+                            tappedGroup = group
+                            heldGroup = null
+                            true
+                        }
+                    }
+                },
+        ) {
             Canvas(
                 modifier = Modifier
                     .weight(1f)

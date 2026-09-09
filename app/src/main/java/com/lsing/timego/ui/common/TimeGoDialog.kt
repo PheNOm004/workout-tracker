@@ -47,7 +47,6 @@ import com.lsing.timego.ui.theme.Spacing
 
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withTimeoutOrNull
 
 /** Provides access to the animated dismiss handler for [TimeGoDialog]. */
 val LocalTimeGoDialogDismiss = compositionLocalOf<() -> Unit> { {} }
@@ -98,10 +97,8 @@ fun TimeGoDialog(
 
     LaunchedEffect(isDismissing) {
         if (isDismissing) {
-            withTimeoutOrNull(350L) {
-                snapshotFlow { transitionState.isIdle && !transitionState.currentState }
-                    .first { it }
-            }
+            snapshotFlow { transitionState.isIdle && !transitionState.currentState }
+                .first { it }
             onDismissRequest()
         }
     }
@@ -114,9 +111,7 @@ fun TimeGoDialog(
 
     Dialog(
         onDismissRequest = {
-            if (isDismissing) {
-                onDismissRequest()
-            } else {
+            if (!isDismissing) {
                 animateAndDismiss()
             }
         },

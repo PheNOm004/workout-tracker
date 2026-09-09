@@ -27,6 +27,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -34,6 +39,7 @@ import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.Spacing
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +55,18 @@ fun SettingsBottomSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var actionInFlight by remember { mutableStateOf(false) }
+
+    fun dismissThen(action: () -> Unit) {
+        if (actionInFlight) return
+        actionInFlight = true
+        scope.launch {
+            sheetState.hide()
+            action()
+            onDismiss()
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -140,13 +158,13 @@ fun SettingsBottomSheet(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
             ) {
                 Button(
-                    onClick = onExportBackup,
+                    onClick = { dismissThen(onExportBackup) },
                     modifier = Modifier.weight(1f),
                 ) {
                     Text("Export Backup")
                 }
                 OutlinedButton(
-                    onClick = onRestoreBackup,
+                    onClick = { dismissThen(onRestoreBackup) },
                     modifier = Modifier.weight(1f),
                 ) {
                     Text("Restore")
@@ -169,7 +187,7 @@ fun SettingsBottomSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                OutlinedButton(onClick = onViewSessionHistory) {
+                OutlinedButton(onClick = { dismissThen(onViewSessionHistory) }) {
                     Text("Manage")
                 }
             }

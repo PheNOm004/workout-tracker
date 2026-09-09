@@ -7,6 +7,18 @@ import org.junit.Test
 
 class ExerciseListSectionsTest {
     @Test
+    fun `alphabetical order sorts case insensitively without changing current order`() {
+        val exercises = listOf(
+            Exercise(id = 1, name = "Z Press", muscleGroups = listOf("CHEST"), isCustom = false),
+            Exercise(id = 2, name = "bench press", muscleGroups = listOf("CHEST"), isCustom = false),
+            Exercise(id = 3, name = "Arnold Press", muscleGroups = listOf("SHOULDERS"), isCustom = false),
+        )
+
+        assertEquals(listOf("Z Press", "bench press", "Arnold Press"), orderExercises(exercises, ExerciseListOrder.CURRENT).map { it.name })
+        assertEquals(listOf("Arnold Press", "bench press", "Z Press"), orderExercises(exercises, ExerciseListOrder.ALPHABETICAL).map { it.name })
+    }
+
+    @Test
     fun `boundedExerciseSearch limits broad matches while preserving the supplied order`() {
         val exercises = (1..45).map { index ->
             Exercise(id = index.toLong(), name = "Press $index", muscleGroups = listOf("CHEST"), isCustom = false)

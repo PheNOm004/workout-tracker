@@ -48,7 +48,7 @@ These rules apply to the entire TimeGo repository. They supplement the user-leve
 - The Galaxy S23 is a live-data device, not the default instrumentation-test target.
 - Before any phone operation, read the latest device incidents in
   `C:\Users\lsing\.claude\obsidian_demo\Projects\TimeGo\05 Verification and Device State.md` and
-  `C:\Users\lsing\.claude\obsidian_demo\Projects\TimeGo\08 Session Log.md`.
+  `C:\Users\lsing\.claude\obsidian_demo\Projects\TimeGo\History\08 Session Log.md`.
 - Never run `pm clear`, uninstall TimeGo, delete its private files, or perform a fresh install on the
   primary device without explicit approval and a verified recovery copy.
 - Never run `connectedDebugAndroidTest` or another uninstalling instrumentation task on the primary
