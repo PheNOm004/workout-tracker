@@ -1,7 +1,8 @@
 import type { EmailReport } from "./renderReportEmail.js";
 import type { Cadence } from "./reportPeriods.js";
 
-type CloudRow = { domainType?: string; sessionUuid?: string; date?: string; startEpochMillis?: number; endEpochMillis?: number; weightKg?: number; reps?: number; holdSeconds?: number; durationMinutes?: number; distanceKm?: number };
+type CloudRow = { domainType?: string; stableUuid?: string; sessionUuid?: string; date?: string; startEpochMillis?: number; endEpochMillis?: number; weightKg?: number; reps?: number; holdSeconds?: number; durationMinutes?: number; distanceKm?: number };
+const nonNegative = (value: number | undefined): number => typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 0;
 
 export function periodBounds(cadence: Cadence, periodKey: string): { start: string; end: string } {
   if (cadence === "weekly") {
@@ -17,22 +18,22 @@ export function periodBounds(cadence: Cadence, periodKey: string): { start: stri
 export function buildServerReport(cadence: Cadence, periodKey: string, rows: CloudRow[]): EmailReport {
   const bounds = periodBounds(cadence, periodKey);
   const sessions = rows.filter((row) => row.domainType === "session" && row.date && row.date >= bounds.start && row.date <= bounds.end);
-  const sessionIds = new Set(sessions.map((row) => (row as CloudRow & { stableUuid?: string }).stableUuid).filter(Boolean));
+  const sessionIds = new Set(sessions.map((row) => row.stableUuid).filter(Boolean));
   const sets = rows.filter((row) => row.domainType === "set_log" && row.sessionUuid && sessionIds.has(row.sessionUuid));
   const latestBodyWeightKg = rows
-    .filter((row) => row.domainType === "body_metric" && row.date && row.date >= bounds.start && row.date <= bounds.end && typeof row.weightKg === "number")
+    .filter((row) => row.domainType === "body_metric" && row.date && row.date >= bounds.start && row.date <= bounds.end && nonNegative(row.weightKg) > 0)
     .sort((left, right) => (left.date! < right.date! ? 1 : -1))[0]?.weightKg;
   return {
     title: cadence === "weekly" ? "Your TimeGo weekly report" : "Your TimeGo monthly report",
     period: `${bounds.start} to ${bounds.end}`,
     sessions: sessions.length,
     activeDays: new Set(sessions.map((row) => row.date)).size,
-    durationMinutes: sessions.reduce((sum, row) => sum + Math.max(0, ((row.endEpochMillis ?? row.startEpochMillis ?? 0) - (row.startEpochMillis ?? 0)) / 60000), 0),
-    workingSets: sets.filter((row) => (row.reps ?? 0) > 0).length,
-    strengthVolumeKg: sets.reduce((sum, row) => sum + (row.weightKg ?? 0) * (row.reps ?? 0), 0),
-    holdSeconds: sets.reduce((sum, row) => sum + (row.holdSeconds ?? 0), 0),
-    cardioMinutes: sets.reduce((sum, row) => sum + (row.durationMinutes ?? 0), 0),
-    cardioDistanceKm: sets.reduce((sum, row) => sum + (row.distanceKm ?? 0), 0),
+    durationMinutes: sessions.reduce((sum, row) => sum + nonNegative(((row.endEpochMillis ?? row.startEpochMillis ?? 0) - (row.startEpochMillis ?? 0)) / 60000), 0),
+    workingSets: sets.filter((row) => nonNegative(row.reps) > 0).length,
+    strengthVolumeKg: sets.reduce((sum, row) => sum + nonNegative(row.weightKg) * nonNegative(row.reps), 0),
+    holdSeconds: sets.reduce((sum, row) => sum + nonNegative(row.holdSeconds), 0),
+    cardioMinutes: sets.reduce((sum, row) => sum + nonNegative(row.durationMinutes), 0),
+    cardioDistanceKm: sets.reduce((sum, row) => sum + nonNegative(row.distanceKm), 0),
     latestBodyWeightKg,
     suggestion: sessions.length ? "Keep the next period consistent and progress only while technique remains controlled." : "No workouts were logged. Start with one manageable session when ready.",
   };

@@ -4,6 +4,7 @@ import { isDue, reportPeriodKey } from "../src/reports/reportPeriods.js";
 import { renderReportEmail } from "../src/reports/renderReportEmail.js";
 import { sendReport } from "../src/reports/sendReport.js";
 import { hasReportDeliveryConsent } from "../src/reports/scheduleReports.js";
+import { buildServerReport } from "../src/reports/buildServerReport.js";
 
 const report = { title: "Weekly report", period: "2026-09-07 to 2026-09-13", sessions: 3, activeDays: 3, durationMinutes: 120, workingSets: 20, strengthVolumeKg: 4200, holdSeconds: 60, cardioMinutes: 25, cardioDistanceKm: 4.2, suggestion: "Keep <control> & consistency." };
 
@@ -19,6 +20,14 @@ describe("report scheduling", () => {
   });
   it("handles month and year boundaries", () => expect(reportPeriodKey("monthly", "Australia/Sydney", new Date("2025-12-31T21:00:00Z"))).toBe("2025-12"));
   it("builds deterministic delivery keys", () => expect(deliveryKey("user_1", "weekly", "2026-09-07")).toBe("user_1_weekly_2026-09-07"));
+  it("sanitizes malformed synced metrics", () => {
+    const result = buildServerReport("weekly", "2026-09-07", [
+      { domainType: "session", stableUuid: "s1", date: "2026-09-08", startEpochMillis: 0, endEpochMillis: 60_000 },
+      { domainType: "set_log", sessionUuid: "s1", weightKg: Number.NaN, reps: -3, holdSeconds: Number.POSITIVE_INFINITY },
+    ]);
+    expect(result.strengthVolumeKg).toBe(0);
+    expect(result.holdSeconds).toBe(0);
+  });
 });
 
 describe("email rendering and delivery", () => {
