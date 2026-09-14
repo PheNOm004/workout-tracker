@@ -25,5 +25,11 @@
 /backups/
 /personal-records/
 
+# Signing material is supplied from the local environment or CI secret store.
+*.jks
+*.keystore
+*.p12
+keystore.properties
+
 # Jupyter server logs can include local session URLs and access tokens.
 /ml-prototype/jupyter.log
