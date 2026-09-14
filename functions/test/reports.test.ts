@@ -3,10 +3,16 @@ import { deliveryKey } from "../src/reports/deliveryLedger.js";
 import { isDue, reportPeriodKey } from "../src/reports/reportPeriods.js";
 import { renderReportEmail } from "../src/reports/renderReportEmail.js";
 import { sendReport } from "../src/reports/sendReport.js";
+import { hasReportDeliveryConsent } from "../src/reports/scheduleReports.js";
 
 const report = { title: "Weekly report", period: "2026-09-07 to 2026-09-13", sessions: 3, activeDays: 3, durationMinutes: 120, workingSets: 20, strengthVolumeKg: 4200, holdSeconds: 60, cardioMinutes: 25, cardioDistanceKm: 4.2, suggestion: "Keep <control> & consistency." };
 
 describe("report scheduling", () => {
+  it("requires cloud consent before delivery", () => {
+    expect(hasReportDeliveryConsent({ email: "a@example.com", timezoneId: "UTC", cloudBackupEnabled: false })).toBe(false);
+    expect(hasReportDeliveryConsent({ email: "a@example.com", timezoneId: "UTC" })).toBe(false);
+    expect(hasReportDeliveryConsent({ email: "a@example.com", timezoneId: "UTC", cloudBackupEnabled: true })).toBe(true);
+  });
   it("uses the subscription timezone across DST", () => {
     expect(isDue("weekly", "Australia/Sydney", new Date("2026-10-04T21:00:00Z"))).toBe(true);
     expect(isDue("weekly", "America/New_York", new Date("2026-10-05T12:00:00Z"))).toBe(true);
