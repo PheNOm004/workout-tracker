@@ -2,7 +2,10 @@ package com.lsing.timego.domain
 
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.SetLog
+import com.lsing.timego.domain.programs.ProgramDayType
+import com.lsing.timego.domain.programs.ProgramSlot
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.LocalDate
 
@@ -404,5 +407,42 @@ class MuscleBalanceTest {
 
         assertEquals("TRAPS", result[0])
         assertEquals("BICEPS", result[1])
+    }
+}
+
+class MuscleBalanceDayTypeTest {
+    private val push = ProgramDayType("Push", setOf("CHEST", "TRICEPS"), listOf(ProgramSlot("Chest", setOf("CHEST"))))
+    private val pull = ProgramDayType("Pull", setOf("LATS", "BICEPS"), listOf(ProgramSlot("Back", setOf("LATS"))))
+    private val legs = ProgramDayType("Legs", setOf("QUADS"), listOf(ProgramSlot("Legs", setOf("QUADS"))))
+
+    @Test
+    fun `never-trained day-type ranks first`() {
+        val lastTrained = mapOf("CHEST" to LocalDate.of(2026, 9, 1), "TRICEPS" to LocalDate.of(2026, 9, 1))
+        val result = recommendProgramDayType(listOf(push, pull, legs), lastTrained, LocalDate.of(2026, 9, 5))
+        assertEquals(pull, result)
+    }
+
+    @Test
+    fun `48-hour recovery guardrail demotes a day-type trained yesterday`() {
+        val today = LocalDate.of(2026, 9, 5)
+        val lastTrained = mapOf(
+            "CHEST" to today.minusDays(1), "TRICEPS" to today.minusDays(1),
+            "LATS" to today.minusDays(10), "BICEPS" to today.minusDays(10),
+            "QUADS" to today.minusDays(3),
+        )
+        val result = recommendProgramDayType(listOf(push, pull, legs), lastTrained, today)
+        assertEquals(pull, result)
+    }
+
+    @Test
+    fun `single day-type program always returns that day-type`() {
+        val fullBody = ProgramDayType("Full Body", setOf("CHEST"), listOf(ProgramSlot("Chest", setOf("CHEST"))))
+        val result = recommendProgramDayType(listOf(fullBody), emptyMap(), LocalDate.of(2026, 9, 5))
+        assertEquals(fullBody, result)
+    }
+
+    @Test
+    fun `empty day-type list returns null`() {
+        assertNull(recommendProgramDayType(emptyList(), emptyMap(), LocalDate.of(2026, 9, 5)))
     }
 }

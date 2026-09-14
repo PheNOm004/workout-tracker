@@ -5,6 +5,7 @@ import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.SetLog
+import com.lsing.timego.domain.programs.ProgramDayType
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -264,6 +265,25 @@ fun recommendSynergisticMuscleGroups(
     } ?: ranked.firstOrNull { it != primary }
 
     return if (secondary != null) listOf(primary, secondary) else listOf(primary)
+}
+
+/** Day-type analogue of [recommendSynergisticMuscleGroups]: scores each candidate day-type by its
+ *  most-stale-yet-recovered region (same [rankUntrainedMuscleGroups] logic, applied per day-type's
+ *  region set rather than per single region). Does not duplicate the underlying scoring -- a
+ *  day-type's staleness is its most-urgent member region's staleness, so the 48-hour recovery
+ *  guardrail applies transitively. */
+fun recommendProgramDayType(
+    dayTypes: List<ProgramDayType>,
+    lastTrainedByGroup: Map<String, LocalDate>,
+    today: LocalDate,
+    lastWorkedByGroup: Map<String, LocalDate> = lastTrainedByGroup,
+): ProgramDayType? {
+    if (dayTypes.isEmpty()) return null
+    if (dayTypes.size == 1) return dayTypes.first()
+    val allGroups = dayTypes.flatMap { it.regionGroups }.distinct()
+    val ranked = rankUntrainedMuscleGroups(allGroups, lastWorkedByGroup, today)
+    val mostUrgent = ranked.firstOrNull() ?: return dayTypes.first()
+    return dayTypes.firstOrNull { mostUrgent in it.regionGroups } ?: dayTypes.first()
 }
 
 /** Resolves precise exercise targeting groups for a recommended workout split, preserving kinetic
