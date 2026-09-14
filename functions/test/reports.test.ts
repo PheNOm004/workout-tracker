@@ -5,6 +5,7 @@ import { renderReportEmail } from "../src/reports/renderReportEmail.js";
 import { sendReport } from "../src/reports/sendReport.js";
 import { hasReportDeliveryConsent } from "../src/reports/scheduleReports.js";
 import { buildServerReport } from "../src/reports/buildServerReport.js";
+import { HttpEmailProvider } from "../src/reports/HttpEmailProvider.js";
 
 const report = { title: "Weekly report", period: "2026-09-07 to 2026-09-13", sessions: 3, activeDays: 3, durationMinutes: 120, workingSets: 20, strengthVolumeKg: 4200, holdSeconds: 60, cardioMinutes: 25, cardioDistanceKm: 4.2, suggestion: "Keep <control> & consistency." };
 
@@ -31,6 +32,24 @@ describe("report scheduling", () => {
 });
 
 describe("email rendering and delivery", () => {
+  it("bounds HTTP provider requests with an abort signal", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: "provider-1" }) });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const result = await new HttpEmailProvider("https://provider.example/send", "secret", "TimeGo <reports@example.com>").send({
+        to: "person@example.com",
+        subject: "Weekly report",
+        text: "Report",
+        html: "<p>Report</p>",
+      });
+      expect(result.messageId).toBe("provider-1");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("escapes private report content and keeps plain text", () => {
     const rendered = renderReportEmail(report, "https://example.test/manage?t=abc&x=1");
     expect(rendered.html).toContain("&lt;control&gt; &amp; consistency");
