@@ -28,6 +28,11 @@ describe("email rendering and delivery", () => {
     expect(rendered.html).not.toContain("<control>");
     expect(rendered.text).toContain("Working sets: 20");
   });
+  it("includes an optional latest body weight", () => {
+    const rendered = renderReportEmail({ ...report, latestBodyWeightKg: 81.5 }, "https://example.test/manage");
+    expect(rendered.text).toContain("Latest body weight: 81.5 kg");
+    expect(rendered.html).toContain("Latest body weight");
+  });
   it("suppresses duplicate sends", async () => {
     const provider = { send: vi.fn() };
     const ledger = { acquire: vi.fn().mockResolvedValue(false), delivered: vi.fn(), failed: vi.fn() };

@@ -19,6 +19,9 @@ export function buildServerReport(cadence: Cadence, periodKey: string, rows: Clo
   const sessions = rows.filter((row) => row.domainType === "session" && row.date && row.date >= bounds.start && row.date <= bounds.end);
   const sessionIds = new Set(sessions.map((row) => (row as CloudRow & { stableUuid?: string }).stableUuid).filter(Boolean));
   const sets = rows.filter((row) => row.domainType === "set_log" && row.sessionUuid && sessionIds.has(row.sessionUuid));
+  const latestBodyWeightKg = rows
+    .filter((row) => row.domainType === "body_metric" && row.date && row.date >= bounds.start && row.date <= bounds.end && typeof row.weightKg === "number")
+    .sort((left, right) => (left.date! < right.date! ? 1 : -1))[0]?.weightKg;
   return {
     title: cadence === "weekly" ? "Your TimeGo weekly report" : "Your TimeGo monthly report",
     period: `${bounds.start} to ${bounds.end}`,
@@ -30,6 +33,7 @@ export function buildServerReport(cadence: Cadence, periodKey: string, rows: Clo
     holdSeconds: sets.reduce((sum, row) => sum + (row.holdSeconds ?? 0), 0),
     cardioMinutes: sets.reduce((sum, row) => sum + (row.durationMinutes ?? 0), 0),
     cardioDistanceKm: sets.reduce((sum, row) => sum + (row.distanceKm ?? 0), 0),
+    latestBodyWeightKg,
     suggestion: sessions.length ? "Keep the next period consistent and progress only while technique remains controlled." : "No workouts were logged. Start with one manageable session when ready.",
   };
 }
