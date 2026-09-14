@@ -42,8 +42,14 @@ class FirebaseAuthRepository(
         return mapTask(user.reauthenticate(EmailAuthProvider.getCredential(email, password)))
     }
     override suspend fun deleteAccount(): AuthResult =
-        if (auth.currentUser == null) AuthResult.Success
-        else mapTask(functions.getHttpsCallable("deleteAccount").call())
+        auth.currentUser?.let { user ->
+            // The callable enforces a short auth_time window. Force-refresh the token after
+            // reauthentication so a cached ID token cannot make a valid deletion look stale.
+            when (val tokenResult = mapTask(user.getIdToken(true))) {
+                AuthResult.Success -> mapTask(functions.getHttpsCallable("deleteAccount").call())
+                is AuthResult.Failure -> tokenResult
+            }
+        } ?: AuthResult.Success
 
     private suspend fun mapTask(task: Task<*>, hideCredentialFailure: Boolean = false): AuthResult {
         val error = suspendCancellableCoroutine<Exception?> { continuation ->
