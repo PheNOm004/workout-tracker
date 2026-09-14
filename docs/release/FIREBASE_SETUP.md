@@ -18,6 +18,13 @@ checks required files before invoking the CLI:
 .\scripts\deploy-firebase.ps1 -ProjectId '<firebase-project-id>'
 ```
 
+If Firebase CLI is not installed globally, the guarded wrapper also supports the reviewed npm
+package invocation:
+
+```powershell
+.\scripts\deploy-firebase.ps1 -ProjectId '<firebase-project-id>' -UseNpx
+```
+
 Production deployment remains an explicit operator action and is not run by Android builds or CI.
 
 ## Managed production inputs
