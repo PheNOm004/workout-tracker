@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://timego.app/schemas/exercise-catalogue-v1.json",
+  "title": "TimeGo exercise catalogue",
+  "type": "object",
+  "required": ["schemaVersion", "catalogueVersion", "exercises"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "catalogueVersion": { "type": "integer", "minimum": 1 },
+    "exercises": {
+      "type": "array",
+      "minItems": 820,
+      "maxItems": 820,
+      "items": { "$ref": "#/$defs/exercise" }
+    }
+  },
+  "$defs": {
+    "stringList": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "name", "aliases", "category", "loggingType", "muscleGroups", "muscleWeights", "equipment", "difficulty", "complexity", "purpose", "setup", "steps", "cues", "mistakes", "easierVariationKey", "harderVariationKeys", "reviewStatus"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^timego\\.seed\\.v1\\.[a-z0-9-]+$" },
+        "name": { "type": "string", "minLength": 1 },
+        "aliases": { "$ref": "#/$defs/stringList" },
+        "category": { "enum": ["STRENGTH", "CALISTHENICS", "WARMUP", "CARDIO"] },
+        "loggingType": { "enum": ["WEIGHT_REPS", "REPS_ONLY", "DURATION", "DURATION_DISTANCE"] },
+        "muscleGroups": { "$ref": "#/$defs/stringList" },
+        "muscleWeights": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 100 } },
+        "equipment": { "$ref": "#/$defs/stringList" },
+        "difficulty": { "enum": ["BEGINNER", "INTERMEDIATE", "ADVANCED"] },
+        "complexity": { "enum": ["LOW", "MEDIUM", "HIGH"] },
+        "purpose": { "type": "string" },
+        "setup": { "$ref": "#/$defs/stringList" },
+        "steps": { "$ref": "#/$defs/stringList" },
+        "cues": { "$ref": "#/$defs/stringList" },
+        "mistakes": { "$ref": "#/$defs/stringList" },
+        "easierVariationKey": { "type": ["string", "null"] },
+        "harderVariationKeys": { "$ref": "#/$defs/stringList" },
+        "reviewStatus": { "enum": ["METADATA_ONLY", "REVIEWED_COMPLETE", "DEPRECATED"] }
+      }
+    }
+  }
+}
