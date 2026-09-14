@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 data class ReportUiState(
@@ -29,10 +29,6 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
     val state: StateFlow<ReportUiState> = mutableState.asStateFlow()
 
     init {
-        // Do not publish the initial local snapshot: on a fresh device it is the default
-        // (both cadences disabled) and must not overwrite an existing server preference.
-        // Deliberate changes made through this ViewModel emit after the initial snapshot.
-        viewModelScope.launch { subscriptionRepository.subscription.drop(1).collect { preferencesRemote.publish(it) } }
         viewModelScope.launch {
             combine(
                 workoutRepository.sessions,
@@ -54,7 +50,7 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
     fun setCadence(cadence: ReportCadence, enabled: Boolean, emailVerified: Boolean, cloudBackupEnabled: Boolean) {
         viewModelScope.launch {
             when (val result = subscriptionRepository.setCadence(cadence, enabled, emailVerified, cloudBackupEnabled)) {
-                SubscriptionResult.Success -> Unit
+                SubscriptionResult.Success -> publishCurrentPreferences()
                 is SubscriptionResult.Failure -> mutableState.value = mutableState.value.copy(message = when (result.reason) {
                     SubscriptionFailure.EMAIL_NOT_VERIFIED -> "Verify your email before enabling reports."
                     SubscriptionFailure.CLOUD_BACKUP_REQUIRED -> "Enable cloud backup before enabling reports."
@@ -64,14 +60,21 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun unsubscribeAll() { viewModelScope.launch { subscriptionRepository.unsubscribeAll() } }
+    fun unsubscribeAll() { viewModelScope.launch { subscriptionRepository.unsubscribeAll(); publishCurrentPreferences() } }
 
     fun setTimezone(timezoneId: String) {
         viewModelScope.launch {
             when (val result = subscriptionRepository.setTimezone(timezoneId.trim())) {
-                SubscriptionResult.Success -> mutableState.value = mutableState.value.copy(message = "Timezone saved.")
+                SubscriptionResult.Success -> {
+                    publishCurrentPreferences()
+                    mutableState.value = mutableState.value.copy(message = "Timezone saved.")
+                }
                 is SubscriptionResult.Failure -> mutableState.value = mutableState.value.copy(message = "Enter a valid IANA timezone, such as Australia/Sydney.")
             }
         }
+    }
+
+    private suspend fun publishCurrentPreferences() {
+        preferencesRemote.publish(subscriptionRepository.subscription.first())
     }
 }
