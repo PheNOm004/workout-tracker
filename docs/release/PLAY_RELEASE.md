@@ -36,6 +36,15 @@ $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
 .\gradlew.bat bundleRelease
 ```
 
+Or use the repository wrapper, which refuses to run until all four signing variables are present
+and runs the repository preflight first:
+
+```powershell
+.\scripts\build-play-aab.ps1
+```
+
+Add `-Firebase` only after the production `app/google-services.json` has been supplied locally.
+
 `assembleRelease` intentionally remains available without signing values for local R8 verification.
 `bundleRelease` produces an uploadable signed bundle only when all four environment values are set.
 Before upload, confirm the bundle certificate matches the Play Console upload certificate. After
