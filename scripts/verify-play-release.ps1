@@ -82,7 +82,7 @@ try {
         }
     }
 
-    foreach ($task in @('testDebugUnitTest', 'lintDebug', 'assembleDebug', 'assembleRelease')) {
+    foreach ($task in @('testDebugUnitTest', 'lintDebug', 'assembleDebug', 'assembleRelease', 'assembleDebugAndroidTest')) {
         Write-Host "Running Gradle $task..." -ForegroundColor Cyan
         & .\gradlew.bat $task
         Assert-LastExitCode "Gradle $task"
