@@ -46,5 +46,5 @@ jobs:
       - uses: android-actions/setup-android@v3
       - name: Install Android SDK platform
         run: sdkmanager "platforms;android-37" "build-tools;35.0.0"
-      - name: Android unit, lint, and debug/release checks
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease --no-daemon
+      - name: Android unit, lint, debug/release, and instrumentation APK checks
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease assembleDebugAndroidTest --no-daemon
