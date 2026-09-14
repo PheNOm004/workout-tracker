@@ -15,11 +15,13 @@ import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.SettingsRepository
 import com.lsing.timego.profile.ProfileRepository
 import com.lsing.timego.profile.TrainingProfile
+import com.lsing.timego.profile.Equipment
 import com.lsing.timego.domain.filterCandidates
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.data.guidance.CatalogueRepository
+import com.lsing.timego.domain.CandidateMetadata
 import com.lsing.timego.domain.DEFAULT_WEIGHT_INCREMENT_KG
 import com.lsing.timego.domain.HoldPerformance
 import com.lsing.timego.domain.HoldSuggestion
@@ -156,6 +158,7 @@ class LogViewModel(
     private var exerciseUsageCounts: Map<Long, Int> = emptyMap()
     private var hasAutoSelectedTodaysRoutine = false
     private var currentTrainingProfile = TrainingProfile()
+    private var latestGuidanceByKey: Map<String, com.lsing.timego.data.guidance.ExerciseGuidance> = emptyMap()
 
     /** Exercise ids that appear in any saved routine, for ranking "Choose another" candidates. */
     private var routineMemberExerciseIds: Set<Long> = emptySet()
@@ -271,6 +274,12 @@ class LogViewModel(
                         launch {
                             profileRepository.profile.collect { profile ->
                                 currentTrainingProfile = profile
+                                refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
+                            }
+                        }
+                        launch {
+                            catalogueRepository.guidanceByKey.collect { guidance ->
+                                latestGuidanceByKey = guidance
                                 refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
                             }
                         }
@@ -555,7 +564,9 @@ class LogViewModel(
             val profileCandidates = filterCandidates(
                 exercises = exercises,
                 profile = currentTrainingProfile,
-                metadataByCatalogueKey = emptyMap(),
+                metadataByCatalogueKey = latestGuidanceByKey.mapValues { (_, guidance) ->
+                    CandidateMetadata(equipment = guidance.equipment.mapNotNull(::equipmentFromCatalogue).toSet())
+                },
             ).candidates
 
             val baseSuggestion = suggestedExerciseFor(
@@ -593,6 +604,21 @@ class LogViewModel(
             )
         }
         _landingSummary.value = landingSummary
+    }
+
+    private fun equipmentFromCatalogue(value: String): Equipment? = when (value.trim().lowercase()) {
+        "bodyweight" -> Equipment.BODYWEIGHT
+        "barbell" -> Equipment.BARBELL
+        "dumbbell", "dumbbells" -> Equipment.DUMBBELL
+        "kettlebell", "kettlebells" -> Equipment.KETTLEBELL
+        "cable", "cables" -> Equipment.CABLE
+        "resistance band", "resistance bands", "band" -> Equipment.RESISTANCE_BAND
+        "machine", "machines" -> Equipment.MACHINE
+        "pull-up bar", "pull up bar", "pullup bar" -> Equipment.PULL_UP_BAR
+        "bench" -> Equipment.BENCH
+        "cardio machine", "cardio machines" -> Equipment.CARDIO_MACHINE
+        "pool" -> Equipment.POOL
+        else -> null
     }
 
     /** Coach Memory Phase 1: rotate the landing recommendation to a different familiar exercise for
