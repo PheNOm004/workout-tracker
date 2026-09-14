@@ -152,7 +152,6 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val calisthenicsTier by viewModel.calisthenicsTier.collectAsStateWithLifecycle()
     var peekingLanding by rememberSaveable { mutableStateOf(false) }
     var expandedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
-    var pendingProgramSuggestionIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
     var librarySearchQuery by rememberSaveable { mutableStateOf("") }
     var exerciseListOrderName by rememberSaveable { mutableStateOf(ExerciseListOrder.CURRENT.name) }
     var draftSessionId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -164,7 +163,6 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
         if (sessionId != draftSessionId) {
             draftSessionId = sessionId
             expandedExerciseIds = emptyList()
-            pendingProgramSuggestionIds = emptyList()
             librarySearchQuery = ""
             peekingLanding = false
             activeLogPageName = ActiveLogPage.SESSION.name
@@ -189,11 +187,6 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 isSessionActive = false,
                 onStartOrContinue = viewModel::startSession,
                 onChooseAnother = viewModel::chooseAnotherSuggestion,
-                onStartProgramSession = { suggestion ->
-                    val ids = viewModel.startProgramSession(suggestion)
-                    expandedExerciseIds = ids.take(1)
-                    pendingProgramSuggestionIds = ids.drop(1)
-                },
                 activeProgramId = activeProgramId,
                 onSetActiveProgramId = viewModel::setActiveProgramId,
                 calisthenicsTier = calisthenicsTier,
@@ -223,7 +216,6 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                                 isSessionActive = true,
                                 onStartOrContinue = { peekingLanding = false },
                                 onChooseAnother = {},
-                                onStartProgramSession = {},
                                 activeProgramId = activeProgramId,
                                 onSetActiveProgramId = viewModel::setActiveProgramId,
                                 calisthenicsTier = calisthenicsTier,
@@ -258,8 +250,6 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                                 activeTimer = activeTimer,
                                 expandedExerciseIds = expandedExerciseIds,
                                 onExpandedExerciseIdsChange = { expandedExerciseIds = it },
-                                pendingProgramSuggestionIds = pendingProgramSuggestionIds,
-                                onConsumeProgramSuggestion = { id -> pendingProgramSuggestionIds = pendingProgramSuggestionIds.filterNot { it == id } },
                                 selectedExerciseIds = selectedExerciseIds,
                                 onOpenExercisePicker = { activeLogPageName = ActiveLogPage.EXERCISE_PICKER.name },
                                 onSelectExercise = { exerciseId ->
@@ -317,7 +307,6 @@ private fun LogLandingContent(
     isSessionActive: Boolean,
     onStartOrContinue: (routineId: Long?) -> Unit,
     onChooseAnother: () -> Unit,
-    onStartProgramSession: (ProgramDayTypeSuggestion) -> Unit,
     activeProgramId: String?,
     onSetActiveProgramId: (String?) -> Unit,
     calisthenicsTier: com.lsing.timego.data.CalisthenicsTier,
@@ -340,11 +329,24 @@ private fun LogLandingContent(
         )
     }
 
-    val todaysScheduledRoutine = remember(routines) {
-        routinesForToday(routines, LocalDate.now().dayOfWeek).firstOrNull()
+    // Program picker is a filter over already-seeded routines (see SeedRoutines.kt), not a live
+    // recommender: "None" shows only user-created routines (programId == null); a seeded program
+    // shows just its own routines, narrowed to the selected tier for Calisthenics Progression.
+    val filteredRoutines = remember(routines, activeProgramId, calisthenicsTier) {
+        routines.filter { routine ->
+            when {
+                activeProgramId == null -> routine.programId == null
+                routine.programId != activeProgramId -> false
+                activeProgramId == "calisthenics_progression" -> routine.tier == calisthenicsTier.name
+                else -> true
+            }
+        }
     }
-    val flexibleRoutinesList = remember(routines) {
-        flexibleRoutines(routines)
+    val todaysScheduledRoutine = remember(filteredRoutines) {
+        routinesForToday(filteredRoutines, LocalDate.now().dayOfWeek).firstOrNull()
+    }
+    val flexibleRoutinesList = remember(filteredRoutines) {
+        flexibleRoutines(filteredRoutines)
     }
     val defaultSuggestedFlexibleRoutine = remember(flexibleRoutinesList, routineLastCompleted) {
         nextFlexibleRoutineInRotation(flexibleRoutinesList, routineLastCompleted)
@@ -578,26 +580,6 @@ private fun LogLandingContent(
                                 modifier = Modifier.padding(vertical = Spacing.ExtraSmall),
                             )
                         }
-                        summary.programSuggestion?.let { suggestion ->
-                            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
-                            Text(
-                                suggestion.dayTypeName,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                suggestion.exercises.joinToString(", ") { it.name },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 2.dp, bottom = Spacing.Small),
-                            )
-                            Button(
-                                onClick = { onStartProgramSession(suggestion) },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text("Start with this")
-                            }
-                        }
                         Button(
                             onClick = { onStartOrContinue(null) },
                             modifier = Modifier.fillMaxWidth().padding(top = Spacing.Small),
@@ -608,29 +590,8 @@ private fun LogLandingContent(
                 }
             }
 
-            // Quick Routines Carousel
-            if (routines.isNotEmpty()) {
-                SectionHeader("Your Routines", topPadding = Spacing.Small)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = Spacing.Medium)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
-                ) {
-                    Button(onClick = { onStartOrContinue(null) }) {
-                        Text("Freeform")
-                    }
-                    routines.forEach { routine ->
-                        OutlinedButton(onClick = { onStartOrContinue(routine.id) }) {
-                            Text(routine.name)
-                        }
-                    }
-                }
-            }
-
-            // Program -- optional, not required to follow; picking one only changes what the
-            // Recommended Focus card above suggests next.
+            // Program -- filters which routines the carousel below shows; "None" shows only your
+            // own user-created routines. Not required to follow; freeform stays reachable either way.
             SectionHeader("Program", topPadding = Spacing.Small)
             FlowRow(
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
@@ -641,11 +602,11 @@ private fun LogLandingContent(
                     onClick = { onSetActiveProgramId(null) },
                     label = { Text("None") },
                 )
-                com.lsing.timego.domain.programs.ProgramRegistry.ALL.forEach { program ->
+                com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.forEach { (programId, name) ->
                     FilterChip(
-                        selected = activeProgramId == program.id,
-                        onClick = { onSetActiveProgramId(program.id) },
-                        label = { Text(program.name) },
+                        selected = activeProgramId == programId,
+                        onClick = { onSetActiveProgramId(programId) },
+                        label = { Text(name) },
                     )
                 }
             }
@@ -660,6 +621,27 @@ private fun LogLandingContent(
                             onClick = { onSetCalisthenicsTier(tier) },
                             label = { Text(formatEnumLabel(tier.name)) },
                         )
+                    }
+                }
+            }
+
+            // Quick Routines Carousel -- filtered to the selected Program above.
+            if (filteredRoutines.isNotEmpty()) {
+                SectionHeader(if (activeProgramId == null) "Your Routines" else "Routines", topPadding = Spacing.Small)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = Spacing.Medium)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                ) {
+                    Button(onClick = { onStartOrContinue(null) }) {
+                        Text("Freeform")
+                    }
+                    filteredRoutines.forEach { routine ->
+                        OutlinedButton(onClick = { onStartOrContinue(routine.id) }) {
+                            Text(routine.name)
+                        }
                     }
                 }
             }
@@ -777,8 +759,6 @@ private fun LoggingContent(
     activeTimer: ActiveTimer?,
     expandedExerciseIds: List<Long>,
     onExpandedExerciseIdsChange: (List<Long>) -> Unit,
-    pendingProgramSuggestionIds: List<Long>,
-    onConsumeProgramSuggestion: (Long) -> Unit,
     selectedExerciseIds: List<Long>,
     onOpenExercisePicker: () -> Unit,
     onSelectExercise: (Long) -> Unit,
@@ -906,24 +886,6 @@ private fun LoggingContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = Spacing.Small),
                     )
-                }
-            }
-            if (pendingProgramSuggestionIds.isNotEmpty()) {
-                item(key = "programSuggestions") {
-                    SectionHeader("Suggested for this day", topPadding = Spacing.Small)
-                    FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
-                        pendingProgramSuggestionIds.mapNotNull { id -> libraryExercises.firstOrNull { it.id == id } }
-                            .forEach { exercise ->
-                                AnimatedAssistChip(
-                                    onClick = {
-                                        onSelectExercise(exercise.id)
-                                        onConsumeProgramSuggestion(exercise.id)
-                                    },
-                                    label = { Text(exercise.name) },
-                                    modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
-                                )
-                            }
-                    }
                 }
             }
             item(key = "quickAdd") {

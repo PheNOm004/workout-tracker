@@ -15,10 +15,8 @@ import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.SettingsRepository
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.CalisthenicsTier
+import com.lsing.timego.data.SEED_ROUTINES
 import com.lsing.timego.data.TrainingLean
-import com.lsing.timego.domain.programs.ProgramRegistry
-import com.lsing.timego.domain.programs.resolveSlot
-import com.lsing.timego.domain.recommendProgramDayType
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.DEFAULT_WEIGHT_INCREMENT_KG
 import com.lsing.timego.domain.HoldPerformance
@@ -96,13 +94,6 @@ data class LastSessionSummary(
  *  [SessionUiState] so the landing page's content (last session, recommendation) can still be
  *  shown when the user backs out of an in-progress session to peek at it, not just when there's
  *  genuinely no active session. */
-/** A resolved, ready-to-start preset for the active Program's recommended day-type. [exercises] is
- *  the ordered, resolved slot list -- editable once the session starts, never a locked Routine. */
-data class ProgramDayTypeSuggestion(
-    val dayTypeName: String,
-    val exercises: List<Exercise>,
-)
-
 data class LandingSummary(
     val lastSession: LastSessionSummary?,
     val recommendedMuscleGroups: List<String>,
@@ -115,8 +106,6 @@ data class LandingSummary(
      *  none remain; the landing card should point them at the freeform picker instead of looping. */
     val noAlternativesLeft: Boolean = false,
     val recommendationNote: String? = null,
-    /** Non-null only when a Program is active on the Routines page -- see [LogViewModel.startProgramSession]. */
-    val programSuggestion: ProgramDayTypeSuggestion? = null,
 )
 
 /** One-shot visual acknowledgement emitted only after the repository has saved a set. */
@@ -249,6 +238,7 @@ class LogViewModel(
     init {
         viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
+            repository.seedMissingRoutines(SEED_ROUTINES)
             // This ViewModel is activity-scoped by the custom root-tab host. Its session state is
             // always collected while Log is STARTED, so subscriber presence is the lifecycle
             // signal that starts all Room/DataStore work and cancels it off-screen/backgrounded.
@@ -591,33 +581,6 @@ class LogViewModel(
                 "Tailored to your $leanTitle preference"
             } else null
 
-            val program = ProgramRegistry.byId(_activeProgramId.value)
-            val candidateDayTypes = when {
-                program == null -> null
-                program.id == "calisthenics_progression" -> program.dayTypes.filter { dayType ->
-                    when (_calisthenicsTier.value) {
-                        CalisthenicsTier.BEGINNER -> dayType.name.startsWith("Beginner")
-                        CalisthenicsTier.INTERMEDIATE -> dayType.name.startsWith("Intermediate")
-                        CalisthenicsTier.ADVANCED -> dayType.name.startsWith("Advanced")
-                    }
-                }
-                else -> program.dayTypes
-            }
-            val recentLogsByExerciseId: Map<Long, List<SetPerformance>> = allSets
-                .groupBy { it.exerciseId }
-                .mapValues { (_, logs) ->
-                    logs.sortedBy { it.loggedAtEpochMillis }.takeLast(5)
-                        .map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
-                }
-            val programSuggestion = candidateDayTypes
-                ?.let { dayTypes -> recommendProgramDayType(dayTypes, lastTrained, LocalDate.now(), lastWorked) }
-                ?.let { dayType ->
-                    val resolved = dayType.slots.mapNotNull { slot ->
-                        resolveSlot(slot, exercises, effectiveLean, usageCounts, recentLogsByExerciseId)
-                    }
-                    if (resolved.isEmpty()) null else ProgramDayTypeSuggestion(dayType.name, resolved)
-                }
-
             LandingSummary(
                 lastSession = summary,
                 recommendedMuscleGroups = recommended,
@@ -626,19 +589,9 @@ class LogViewModel(
                 canChooseAnother = alternatives.any { it.id != suggestedExercise?.id },
                 noAlternativesLeft = exclusions.isNotEmpty() && suggestedExercise == null,
                 recommendationNote = recommendationNote,
-                programSuggestion = programSuggestion,
             )
         }
         _landingSummary.value = landingSummary
-    }
-
-    /** Starts a freeform session (routineId = null, identical to today's freeform start) and returns
-     *  the ids to pre-expand in the session UI. Does not persist anything beyond what [startSession]
-     *  already persists -- the suggested exercises are session-local UI state, not written to the
-     *  database until the user logs an actual set, matching every other freeform-session behavior. */
-    fun startProgramSession(suggestion: ProgramDayTypeSuggestion): List<Long> {
-        startSession(routineId = null)
-        return suggestion.exercises.map { it.id }
     }
 
     /** Coach Memory Phase 1: rotate the landing recommendation to a different familiar exercise for

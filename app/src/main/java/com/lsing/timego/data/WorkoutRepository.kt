@@ -298,6 +298,32 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         db.bodyMetricDao().insert(BodyMetric(date = date, weightKg = weightKg, waistCm = waistCm, heightCm = heightCm))
     }
 
+    /** Inserts any [seed] routine not already present (matched by `(programId, name)`, mirroring
+     *  [seedMissingExercises]'s name-matching convention) -- run once at startup, not gated on the
+     *  table being empty, so a future SEED_ROUTINES expansion still reaches an already-used install.
+     *  Resolves each [SeedRoutine.exerciseNames] entry against the already-seeded exercise catalogue
+     *  by exact name; a name with no catalogue match is skipped (not a hard failure) so a future
+     *  catalogue rename can't brick every program's seeding in one go. Never touches user-created
+     *  routines (programId == null). */
+    suspend fun seedMissingRoutines(seed: List<SeedRoutine>) {
+        val existingKeys = routines.first().mapTo(mutableSetOf()) { it.programId to it.name }
+        val missing = seed.filter { (it.programId to it.name) !in existingKeys }
+        if (missing.isEmpty()) return
+        val exerciseIdsByName = exercises.first().associate { it.name to it.id }
+        db.withTransaction {
+            missing.forEach { seedRoutine ->
+                val exerciseIds = seedRoutine.exerciseNames.mapNotNull { exerciseIdsByName[it] }
+                if (exerciseIds.isEmpty()) return@forEach
+                val routineId = db.routineDao().insertRoutine(
+                    Routine(name = seedRoutine.name, programId = seedRoutine.programId, tier = seedRoutine.tier),
+                )
+                exerciseIds.forEachIndexed { index, exerciseId ->
+                    db.routineDao().insertRoutineExercise(RoutineExercise(routineId = routineId, exerciseId = exerciseId, orderIndex = index))
+                }
+            }
+        }
+    }
+
     suspend fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>): Long = db.withTransaction {
         val routineId = db.routineDao().insertRoutine(Routine(name = name, daysOfWeek = daysOfWeek))
         exerciseIds.forEachIndexed { index, exerciseId ->
