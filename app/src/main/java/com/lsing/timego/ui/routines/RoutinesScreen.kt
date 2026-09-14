@@ -55,6 +55,8 @@ import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import com.lsing.timego.ui.onboarding.OnboardingScreen
+import com.lsing.timego.ui.onboarding.OnboardingViewModel
 
 private val SESSION_HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
@@ -73,6 +75,16 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showSessionHistory by remember { mutableStateOf(false) }
     var pendingDeleteSessionId by remember { mutableStateOf<Long?>(null) }
+    var showTrainingProfile by remember { mutableStateOf(false) }
+
+    if (showTrainingProfile) {
+        val profileViewModel: OnboardingViewModel = viewModel(key = "settings_onboarding")
+        OnboardingScreen(
+            viewModel = profileViewModel,
+            onFinished = { showTrainingProfile = false },
+        )
+        return
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(TIMEGO_BACKUP_MIME_TYPE)) { uri ->
         uri?.let(viewModel::exportBackup)
@@ -136,6 +148,9 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             },
             onRestoreBackup = {
                 restoreLauncher.launch(arrayOf("*/*"))
+            },
+            onEditTrainingProfile = {
+                showTrainingProfile = true
             },
             sessionHistoryCount = sessionHistory.size,
             onViewSessionHistory = {

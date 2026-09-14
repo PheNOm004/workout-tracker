@@ -58,6 +58,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.zIndex
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.animateDpAsState
@@ -71,6 +74,10 @@ import com.lsing.timego.ui.theme.NightDeckHigh
 import com.lsing.timego.ui.theme.NightEdgeHairline
 import com.lsing.timego.ui.theme.NightSheenTop
 import com.lsing.timego.ui.theme.TimeGoMotion
+import com.lsing.timego.profile.ProfileRepository
+import com.lsing.timego.profile.TrainingProfile
+import com.lsing.timego.ui.onboarding.OnboardingScreen
+import com.lsing.timego.ui.onboarding.OnboardingViewModel
 
 private data class TimeGoDestination(val route: String, val label: String, val icon: ImageVector)
 
@@ -92,6 +99,23 @@ private val destinations = listOf(
  */
 @Composable
 fun TimeGoNavHost() {
+    val context = LocalContext.current
+    val profileRepository = remember { ProfileRepository(context.applicationContext) }
+    val profile by profileRepository.profile.collectAsStateWithLifecycle(initialValue = TrainingProfile())
+    var onboardingDismissedForSession by rememberSaveable { mutableStateOf(false) }
+    if (
+        profile.onboardingVersion < ProfileRepository.CURRENT_ONBOARDING_VERSION &&
+        !profile.invitationDismissed &&
+        !onboardingDismissedForSession
+    ) {
+        val onboardingViewModel: OnboardingViewModel = viewModel(key = "root_onboarding")
+        OnboardingScreen(
+            viewModel = onboardingViewModel,
+            onFinished = { onboardingDismissedForSession = true },
+        )
+        return
+    }
+
     var selectedRoute by rememberSaveable { mutableStateOf("log") }
     BackHandler(enabled = selectedRoute != "log") { selectedRoute = "log" }
 

@@ -55,4 +55,18 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             _state.update { it.copy(saving = false, completed = true) }
         }
     }
+
+    fun dismiss() {
+        viewModelScope.launch {
+            repository.save(_state.value.draft.copy(invitationDismissed = true))
+            _state.update { it.copy(completed = true) }
+        }
+    }
+
+    fun reset() {
+        viewModelScope.launch {
+            repository.reset()
+            _state.value = OnboardingState()
+        }
+    }
 }

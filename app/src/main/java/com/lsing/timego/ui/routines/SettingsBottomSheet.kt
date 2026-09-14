@@ -50,6 +50,7 @@ fun SettingsBottomSheet(
     onSetTrainingLean: (TrainingLean) -> Unit,
     onExportBackup: () -> Unit,
     onRestoreBackup: () -> Unit,
+    onEditTrainingProfile: () -> Unit,
     sessionHistoryCount: Int,
     onViewSessionHistory: () -> Unit,
     onDismiss: () -> Unit,
@@ -170,6 +171,20 @@ fun SettingsBottomSheet(
                     Text("Restore")
                 }
             }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
+
+            SectionHeader(title = "Training Profile", topPadding = Spacing.Small)
+            Text(
+                "Review the explicit preferences TimeGo uses to filter and explain recommendations.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = Spacing.Small),
+            )
+            OutlinedButton(
+                onClick = { dismissThen(onEditTrainingProfile) },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Edit training profile") }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
 
