@@ -124,7 +124,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     }
 
     if (showAccount) {
-        AccountScreen(accountViewModel, onOpenCloudBackup = { showCloudBackup = true }, onOpenReports = { showReports = true }, onBack = { showAccount = false })
+        AccountScreen(accountViewModel, onOpenCloudBackup = { showCloudBackup = true }, onOpenReports = { showReports = true }, onDeleteLocalData = { viewModel.clearLocalWorkoutData() }, onBack = { showAccount = false })
         return
     }
 

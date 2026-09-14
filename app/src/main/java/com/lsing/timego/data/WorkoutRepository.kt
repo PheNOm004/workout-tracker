@@ -28,6 +28,21 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
     val routineExercises: Flow<List<RoutineExercise>> = db.routineDao().observeRoutineExercises()
     val setLogs: Flow<List<SetLog>> = db.setLogDao().observeAll()
 
+    /** Permanently removes local workout content after the user explicitly chooses that option
+     * during account deletion. Cloud deletion is performed first by the caller; this method only
+     * touches the local Room database and deliberately leaves bundled guidance available. */
+    suspend fun clearLocalWorkoutData() {
+        db.withTransaction {
+            db.openHelper.writableDatabase.execSQL("DELETE FROM set_logs")
+            db.openHelper.writableDatabase.execSQL("DELETE FROM workout_sessions")
+            db.openHelper.writableDatabase.execSQL("DELETE FROM routine_exercises")
+            db.openHelper.writableDatabase.execSQL("DELETE FROM routines")
+            db.openHelper.writableDatabase.execSQL("DELETE FROM body_metrics")
+            db.openHelper.writableDatabase.execSQL("DELETE FROM exercises WHERE isCustom = 1")
+            db.openHelper.writableDatabase.execSQL("DELETE FROM sync_metadata")
+        }
+    }
+
     /** Inserts any [seed] exercise whose name isn't already present -- NOT gated on the table
      *  being totally empty, since expanding the seed list (Update 1.1: 12 -> 119) must still
      *  reach devices that already have some exercises logged. Matches by name rather than id,

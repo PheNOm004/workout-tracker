@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +39,7 @@ import com.lsing.timego.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
 @Composable
-fun AccountScreen(viewModel: AccountViewModel, onOpenCloudBackup: () -> Unit, onOpenReports: () -> Unit, onBack: () -> Unit) {
+fun AccountScreen(viewModel: AccountViewModel, onOpenCloudBackup: () -> Unit, onOpenReports: () -> Unit, onDeleteLocalData: suspend () -> Unit = {}, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var registering by rememberSaveable { mutableStateOf(false) }
@@ -47,6 +48,7 @@ fun AccountScreen(viewModel: AccountViewModel, onOpenCloudBackup: () -> Unit, on
     var confirmation by rememberSaveable { mutableStateOf("") }
     var showDeletion by rememberSaveable { mutableStateOf(false) }
     var deletionPassword by rememberSaveable { mutableStateOf("") }
+    var alsoDeleteLocal by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.Large),
@@ -91,12 +93,22 @@ fun AccountScreen(viewModel: AccountViewModel, onOpenCloudBackup: () -> Unit, on
                 TextButton(onClick = { showDeletion = !showDeletion }) { Text(if (showDeletion) "Cancel account deletion" else "Delete account") }
                 if (showDeletion) {
                     Text("This deletes your cloud workout data, report subscriptions, and login. Local workout data stays on this device unless you separately remove it.", color = MaterialTheme.colorScheme.error)
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Checkbox(checked = alsoDeleteLocal, onCheckedChange = { alsoDeleteLocal = it })
+                        Text("Also delete local workout data")
+                    }
                     OutlinedTextField(deletionPassword, { deletionPassword = it }, label = { Text("Confirm password") }, visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth())
                     Button(
                         enabled = deletionPassword.isNotBlank() && !state.busy,
-                        onClick = { scope.launch { viewModel.reauthenticate(deletionPassword); if (viewModel.uiState.value.message == null) viewModel.deleteAccount() } },
+                        onClick = { scope.launch {
+                            viewModel.reauthenticate(deletionPassword)
+                            if (viewModel.uiState.value.message == null) {
+                                viewModel.deleteAccount()
+                                if (viewModel.uiState.value.message?.contains("deleted") == true && alsoDeleteLocal) onDeleteLocalData()
+                            }
+                        } },
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Permanently delete cloud account") }
+                    ) { Text(if (alsoDeleteLocal) "Delete account and local data" else "Permanently delete cloud account") }
                 }
             }
         }
