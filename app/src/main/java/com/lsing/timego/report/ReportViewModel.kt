@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.WorkoutRepository
+import com.lsing.timego.sync.SyncWorker
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,6 +76,12 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private suspend fun publishCurrentPreferences() {
-        preferencesRemote.publish(subscriptionRepository.subscription.first())
+        val result = preferencesRemote.publish(subscriptionRepository.subscription.first())
+        if (result.isSuccess) {
+            subscriptionRepository.clearSyncPending()
+        } else {
+            SyncWorker.enqueue(getApplication())
+            mutableState.value = mutableState.value.copy(message = "Saved locally; report preferences will sync when connected.")
+        }
     }
 }

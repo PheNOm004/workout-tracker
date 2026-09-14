@@ -17,6 +17,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.lsing.timego.data.TimeGoDatabase
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.first
+import com.lsing.timego.report.ReportPreferencesRemote
+import com.lsing.timego.report.ReportSubscriptionRepository
 
 class SyncWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
@@ -27,6 +29,12 @@ class SyncWorker(context: Context, parameters: WorkerParameters) : CoroutineWork
         if (!consent.enabled) return Result.success()
         val consentUpload = CloudBackupRemote(applicationContext).publish(consent)
         if (consentUpload.isFailure) return Result.retry()
+        val reportPreferences = ReportSubscriptionRepository(applicationContext)
+        if (reportPreferences.syncPending()) {
+            val reportUpload = ReportPreferencesRemote(applicationContext).publish(reportPreferences.subscription.first())
+            if (reportUpload.isFailure) return Result.retry()
+            reportPreferences.clearSyncPending()
+        }
         val database = TimeGoDatabase.getInstance(applicationContext)
         val repository = SyncRepository(database)
         val batch = repository.pendingBatch(100)

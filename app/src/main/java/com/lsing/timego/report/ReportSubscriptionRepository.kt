@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import java.time.DateTimeException
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.reportSubscriptionStore by preferencesDataStore("report_subscriptions")
@@ -53,6 +54,7 @@ class ReportSubscriptionRepository(private val context: Context) {
         if (enabled && !cloudBackupEnabled) return SubscriptionResult.Failure(SubscriptionFailure.CLOUD_BACKUP_REQUIRED)
         context.reportSubscriptionStore.edit { preferences ->
             preferences[if (cadence == ReportCadence.WEEKLY) WEEKLY else MONTHLY] = enabled
+            preferences[SYNC_PENDING] = true
             if (enabled) {
                 preferences[CONSENT_VERSION] = CURRENT_CONSENT_VERSION
                 preferences[CONSENTED_AT] = nowEpochMillis
@@ -63,7 +65,10 @@ class ReportSubscriptionRepository(private val context: Context) {
 
     suspend fun setTimezone(timezoneId: String): SubscriptionResult {
         try { ZoneId.of(timezoneId) } catch (_: DateTimeException) { return SubscriptionResult.Failure(SubscriptionFailure.INVALID_TIMEZONE) }
-        context.reportSubscriptionStore.edit { it[TIMEZONE] = timezoneId }
+        context.reportSubscriptionStore.edit {
+            it[TIMEZONE] = timezoneId
+            it[SYNC_PENDING] = true
+        }
         return SubscriptionResult.Success
     }
 
@@ -71,7 +76,14 @@ class ReportSubscriptionRepository(private val context: Context) {
         context.reportSubscriptionStore.edit {
             it[WEEKLY] = false
             it[MONTHLY] = false
+            it[SYNC_PENDING] = true
         }
+    }
+
+    suspend fun syncPending(): Boolean = context.reportSubscriptionStore.data.first()[SYNC_PENDING] ?: false
+
+    suspend fun clearSyncPending() {
+        context.reportSubscriptionStore.edit { it[SYNC_PENDING] = false }
     }
 
     companion object {
@@ -81,5 +93,6 @@ class ReportSubscriptionRepository(private val context: Context) {
         private val TIMEZONE = stringPreferencesKey("timezone_id")
         private val CONSENT_VERSION = intPreferencesKey("consent_version")
         private val CONSENTED_AT = longPreferencesKey("consented_at_epoch_millis")
+        private val SYNC_PENDING = booleanPreferencesKey("sync_pending")
     }
 }
