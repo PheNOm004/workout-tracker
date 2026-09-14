@@ -28,6 +28,16 @@ class AccountViewModelTest {
         assertEquals("Sign-in details could not be accepted.", viewModel.uiState.value.message)
     }
 
+    @Test fun verificationRefreshUpdatesGatingState() = runBlocking {
+        val repository = FakeAuthRepository(AuthState.SignedIn("person@example.com", false)).apply {
+            refreshedState = AuthState.SignedIn("person@example.com", true)
+        }
+        val viewModel = AccountViewModel(repository)
+        viewModel.refreshVerification()
+        assertEquals(AuthState.SignedIn("person@example.com", true), viewModel.uiState.value.authState)
+        assertTrue(viewModel.uiState.value.message!!.contains("refreshed"))
+    }
+
     @Test fun resetDoesNotRevealWhetherEmailExists() = runBlocking {
         val viewModel = AccountViewModel(FakeAuthRepository())
         viewModel.resetPassword("unknown@example.com")

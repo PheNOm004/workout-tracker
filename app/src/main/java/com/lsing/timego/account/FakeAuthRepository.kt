@@ -11,6 +11,7 @@ class FakeAuthRepository(
     private val mutableState = MutableStateFlow(initialState)
     override val authState: StateFlow<AuthState> = mutableState.asStateFlow()
     var nextFailure: AuthFailure? = null
+    var refreshedState: AuthState? = null
     private var reauthenticated = false
 
     override suspend fun register(email: String, password: String) = resultOr {
@@ -23,7 +24,10 @@ class FakeAuthRepository(
         null
     }
     override suspend fun sendVerification() = resultOr { null }
-    override suspend fun refresh() = resultOr { null }
+    override suspend fun refresh() = resultOr {
+        refreshedState?.let { mutableState.value = it }
+        null
+    }
     override suspend fun resetPassword(email: String) = resultOr { null }
     override suspend fun signOut() { mutableState.value = AuthState.Guest; reauthenticated = false }
     override suspend fun reauthenticate(password: String) = resultOr {
