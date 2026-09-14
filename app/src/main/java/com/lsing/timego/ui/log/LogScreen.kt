@@ -105,6 +105,7 @@ import com.lsing.timego.domain.MET_WARMUP
 import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.domain.averagePaceMinPerKm
 import com.lsing.timego.domain.diagramGroupsForBodyRegionCrop
+import com.lsing.timego.domain.expandMuscleGroupRegions
 import com.lsing.timego.domain.estimatedCalorieBurn
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.domain.formatDaysSince
@@ -144,6 +145,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
     val landingSummary by viewModel.landingSummary.collectAsStateWithLifecycle()
     val routines by viewModel.routines.collectAsStateWithLifecycle()
+    val routineExercisesById by viewModel.routineExercisesById.collectAsStateWithLifecycle()
     val landingBalanceTimeframe by viewModel.landingBalanceTimeframe.collectAsStateWithLifecycle()
     val landingMuscleBalance by viewModel.landingMuscleBalance.collectAsStateWithLifecycle()
     val routineLastCompleted by viewModel.routineLastCompleted.collectAsStateWithLifecycle()
@@ -157,6 +159,10 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     var draftSessionId by rememberSaveable { mutableStateOf<Long?>(null) }
     var activeLogPageName by rememberSaveable { mutableStateOf(ActiveLogPage.SESSION.name) }
     var selectedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
+    // Set just before starting a routine session (see onStartOrContinue below) and consumed by the
+    // LaunchedEffect once the new session actually exists -- setting selectedExerciseIds directly in
+    // the click handler would be clobbered by this same effect's own reset when sessionState updates.
+    var pendingRoutineExerciseIds by remember { mutableStateOf<List<Long>?>(null) }
 
     LaunchedEffect(sessionState) {
         val sessionId = (sessionState as? SessionUiState.Active)?.sessionId
@@ -166,7 +172,8 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
             librarySearchQuery = ""
             peekingLanding = false
             activeLogPageName = ActiveLogPage.SESSION.name
-            selectedExerciseIds = emptyList()
+            selectedExerciseIds = pendingRoutineExerciseIds ?: emptyList()
+            pendingRoutineExerciseIds = null
         }
     }
 
@@ -184,8 +191,12 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
             is SessionUiState.NoActiveSession -> LogLandingContent(
                 summary = landingSummary,
                 routines = routines,
+                routineExercisesById = routineExercisesById,
                 isSessionActive = false,
-                onStartOrContinue = viewModel::startSession,
+                onStartOrContinue = { routineId ->
+                    pendingRoutineExerciseIds = routineId?.let { id -> routineExercisesById[id]?.map { it.id } }.orEmpty()
+                    viewModel.startSession(routineId)
+                },
                 onChooseAnother = viewModel::chooseAnotherSuggestion,
                 activeProgramId = activeProgramId,
                 onSetActiveProgramId = viewModel::setActiveProgramId,
@@ -213,6 +224,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                             LogLandingContent(
                                 summary = landingSummary,
                                 routines = routines,
+                                routineExercisesById = routineExercisesById,
                                 isSessionActive = true,
                                 onStartOrContinue = { peekingLanding = false },
                                 onChooseAnother = {},
@@ -304,6 +316,7 @@ private fun LogLoadingContent() {
 private fun LogLandingContent(
     summary: LandingSummary,
     routines: List<com.lsing.timego.data.Routine>,
+    routineExercisesById: Map<Long, List<com.lsing.timego.data.Exercise>>,
     isSessionActive: Boolean,
     onStartOrContinue: (routineId: Long?) -> Unit,
     onChooseAnother: () -> Unit,
@@ -358,6 +371,11 @@ private fun LogLandingContent(
         userSelectedFlexibleRoutineId?.let { id -> flexibleRoutinesList.firstOrNull { it.id == id } }
             ?: defaultSuggestedFlexibleRoutine
     }
+
+    // A routine's own exercises are the ground truth for its target muscles -- no recommender
+    // needed, unlike the generic Recommended Focus diagram below.
+    fun regionsForRoutine(routineId: Long): Set<String> =
+        expandMuscleGroupRegions(routineExercisesById[routineId].orEmpty().flatMap { it.muscleGroups }.toSet())
 
     Column(
         modifier = Modifier
@@ -420,8 +438,18 @@ private fun LogLandingContent(
                             "Last completed: $lastTrainedStr",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = Spacing.Medium),
+                            modifier = Modifier.padding(bottom = Spacing.Small),
                         )
+                        val scheduledRegions = regionsForRoutine(todaysScheduledRoutine.id)
+                        if (scheduledRegions.isNotEmpty()) {
+                            CroppedMuscleDiagram(
+                                muscleGroups = diagramGroupsForBodyRegionCrop(scheduledRegions),
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                highlightGroups = scheduledRegions,
+                                showNeutralContext = true,
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(bottom = Spacing.Small),
+                            )
+                        }
                         Button(
                             onClick = { onStartOrContinue(todaysScheduledRoutine.id) },
                             modifier = Modifier.fillMaxWidth(),
@@ -468,8 +496,18 @@ private fun LogLandingContent(
                             "Last completed: $lastTrainedStr",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = if (flexibleRoutinesList.size > 1) Spacing.Small else Spacing.Medium),
+                            modifier = Modifier.padding(bottom = Spacing.Small),
                         )
+                        val flexibleRegions = regionsForRoutine(activeFlexibleRoutine.id)
+                        if (flexibleRegions.isNotEmpty()) {
+                            CroppedMuscleDiagram(
+                                muscleGroups = diagramGroupsForBodyRegionCrop(flexibleRegions),
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                highlightGroups = flexibleRegions,
+                                showNeutralContext = true,
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(bottom = Spacing.Small),
+                            )
+                        }
                         if (flexibleRoutinesList.size > 1) {
                             Row(
                                 modifier = Modifier
@@ -772,8 +810,6 @@ private fun LoggingContent(
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val holdSuggestions by viewModel.holdSuggestions.collectAsStateWithLifecycle()
     val lastWorkingSets by viewModel.lastWorkingSets.collectAsStateWithLifecycle()
-    val routines by viewModel.routines.collectAsStateWithLifecycle()
-    val selectedRoutineId by viewModel.selectedRoutineId.collectAsStateWithLifecycle()
     val latestBodyWeightKg by viewModel.latestBodyWeightKg.collectAsStateWithLifecycle()
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
     val setLoggedPulse by viewModel.setLoggedPulse.collectAsStateWithLifecycle()
@@ -835,22 +871,6 @@ private fun LoggingContent(
                         }
                     },
                 )
-                Row(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small).horizontalScroll(rememberScrollState())) {
-                    FilterChip(
-                        selected = selectedRoutineId == null,
-                        onClick = { viewModel.selectRoutine(null) },
-                        label = { Text("Freeform") },
-                        modifier = Modifier.padding(end = Spacing.Small),
-                    )
-                    routines.forEach { routine ->
-                        FilterChip(
-                            selected = selectedRoutineId == routine.id,
-                            onClick = { viewModel.selectRoutine(routine.id) },
-                            label = { Text(routine.name) },
-                            modifier = Modifier.padding(end = Spacing.Small),
-                        )
-                    }
-                }
             }
             item(key = "activeSummary") {
                 // Live in-session summary of completed sets

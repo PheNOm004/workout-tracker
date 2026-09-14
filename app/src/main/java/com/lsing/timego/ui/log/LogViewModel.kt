@@ -181,6 +181,11 @@ class LogViewModel(
     private val _routines = MutableStateFlow<List<Routine>>(emptyList())
     val routines: StateFlow<List<Routine>> = _routines.asStateFlow()
 
+    /** Each routine's own exercises, in saved order -- lets the landing page pre-populate a
+     *  session's exercise list and diagram from a routine without a second query round-trip. */
+    private val _routineExercisesById = MutableStateFlow<Map<Long, List<Exercise>>>(emptyMap())
+    val routineExercisesById: StateFlow<Map<Long, List<Exercise>>> = _routineExercisesById.asStateFlow()
+
     private val _selectedRoutineId = MutableStateFlow<Long?>(null)
     val selectedRoutineId: StateFlow<Long?> = _selectedRoutineId.asStateFlow()
 
@@ -327,8 +332,13 @@ class LogViewModel(
                             }
                         }
                         launch {
-                            repository.routineExercises.collect { members ->
-                                routineMemberExerciseIds = members.mapTo(mutableSetOf()) { it.exerciseId }
+                            combine(repository.routineExercises, repository.exercises) { members, exerciseList ->
+                                val exercisesById = exerciseList.associateBy { it.id }
+                                members.groupBy { it.routineId }
+                                    .mapValues { (_, list) -> list.sortedBy { it.orderIndex }.mapNotNull { exercisesById[it.exerciseId] } }
+                            }.collect { byRoutineId ->
+                                _routineExercisesById.value = byRoutineId
+                                routineMemberExerciseIds = byRoutineId.values.flatten().mapTo(mutableSetOf()) { it.id }
                                 refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
                             }
                         }
