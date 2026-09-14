@@ -28,9 +28,9 @@ class CloudBackupViewModel(application: Application) : AndroidViewModel(applicat
             repository.setEnabled(enabled, emailVerified, backendAvailable).fold(
                 onSuccess = {
                     if (!enabled) ReportSubscriptionRepository(getApplication()).unsubscribeAll()
-                    remote.publish(repository.consent.first())
+                    if (remote.publish(repository.consent.first()).isSuccess) repository.clearSyncPending()
                     SyncWorker.setPeriodicEnabled(getApplication(), enabled)
-                    if (enabled) SyncWorker.enqueue(getApplication())
+                    SyncWorker.enqueue(getApplication())
                     mutableMessage.value = if (enabled) "Cloud backup enabled. Pending records will sync when connected." else "Cloud backup disabled. Local data remains on this device."
                 },
                 onFailure = { mutableMessage.value = it.message },

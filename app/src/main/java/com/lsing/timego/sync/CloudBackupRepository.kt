@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.cloudBackupStore by preferencesDataStore("cloud_backup_consent")
@@ -22,14 +23,22 @@ class CloudBackupRepository(private val context: Context) {
         if (enabled && !backendAvailable) return Result.failure(IllegalStateException("Cloud backup is not configured in this build."))
         context.cloudBackupStore.edit {
             it[ENABLED] = enabled
+            it[SYNC_PENDING] = true
             if (enabled) it[CONSENTED_AT] = System.currentTimeMillis()
         }
         return Result.success(Unit)
+    }
+
+    suspend fun syncPending(): Boolean = context.cloudBackupStore.data.first()[SYNC_PENDING] ?: false
+
+    suspend fun clearSyncPending() {
+        context.cloudBackupStore.edit { it[SYNC_PENDING] = false }
     }
 
     companion object {
         const val CURRENT_CONSENT_VERSION = 1
         private val ENABLED = booleanPreferencesKey("enabled")
         private val CONSENTED_AT = longPreferencesKey("consented_at_epoch_millis")
+        private val SYNC_PENDING = booleanPreferencesKey("sync_pending")
     }
 }

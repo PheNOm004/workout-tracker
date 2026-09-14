@@ -25,10 +25,14 @@ class SyncWorker(context: Context, parameters: WorkerParameters) : CoroutineWork
         if (FirebaseApp.getApps(applicationContext).isEmpty()) return Result.success()
         val user = FirebaseAuth.getInstance().currentUser ?: return Result.success()
         if (!user.isEmailVerified) return Result.success()
-        val consent = CloudBackupRepository(applicationContext).consent.first()
+        val cloudBackup = CloudBackupRepository(applicationContext)
+        val consent = cloudBackup.consent.first()
+        if (cloudBackup.syncPending()) {
+            val consentUpload = CloudBackupRemote(applicationContext).publish(consent)
+            if (consentUpload.isFailure) return Result.retry()
+            cloudBackup.clearSyncPending()
+        }
         if (!consent.enabled) return Result.success()
-        val consentUpload = CloudBackupRemote(applicationContext).publish(consent)
-        if (consentUpload.isFailure) return Result.retry()
         val reportPreferences = ReportSubscriptionRepository(applicationContext)
         if (reportPreferences.syncPending()) {
             val reportUpload = ReportPreferencesRemote(applicationContext).publish(reportPreferences.subscription.first())
