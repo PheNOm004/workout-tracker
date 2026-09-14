@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 data class ReportUiState(
@@ -28,7 +29,10 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
     val state: StateFlow<ReportUiState> = mutableState.asStateFlow()
 
     init {
-        viewModelScope.launch { subscriptionRepository.subscription.collect { preferencesRemote.publish(it) } }
+        // Do not publish the initial local snapshot: on a fresh device it is the default
+        // (both cadences disabled) and must not overwrite an existing server preference.
+        // Deliberate changes made through this ViewModel emit after the initial snapshot.
+        viewModelScope.launch { subscriptionRepository.subscription.drop(1).collect { preferencesRemote.publish(it) } }
         viewModelScope.launch {
             combine(
                 workoutRepository.sessions,
