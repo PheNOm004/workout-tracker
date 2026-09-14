@@ -54,7 +54,7 @@ try {
         'docs/release/data-safety-matrix.md',
         'docs/release/play-console-checklist.md',
         'docs/release/account-deletion-page.md',
-        'docs/release/store-listing-draft.md'
+        'docs/release/store-listing-draft.md',
         'docs/release/LAUNCH_STATUS.md'
     )
     foreach ($relativePath in $requiredDocuments) {
@@ -86,6 +86,22 @@ try {
         Write-Host "Running Gradle $task..." -ForegroundColor Cyan
         & .\gradlew.bat $task
         Assert-LastExitCode "Gradle $task"
+    }
+
+    $functionsPath = Join-Path $repoRoot 'functions'
+    if (-not (Test-Path -LiteralPath (Join-Path $functionsPath 'package.json') -PathType Leaf)) {
+        throw 'Functions package manifest is missing; the report backend cannot be release-verified.'
+    }
+    Push-Location $functionsPath
+    try {
+        Write-Host 'Running Functions npm test...' -ForegroundColor Cyan
+        npm test
+        Assert-LastExitCode 'Functions npm test'
+        Write-Host 'Running Functions npm build...' -ForegroundColor Cyan
+        npm run build
+        Assert-LastExitCode 'Functions npm build'
+    } finally {
+        Pop-Location
     }
 
     if ($BundlePath) {
