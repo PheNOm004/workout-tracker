@@ -15,6 +15,15 @@ try {
     foreach ($path in @('firebase.json', 'firebase/firestore.rules', 'functions/package-lock.json')) {
         if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $path) -PathType Leaf)) { throw "Missing deployment input: $path" }
     }
+    if (-not (Test-Path -LiteralPath (Join-Path $repoRoot 'functions/node_modules') -PathType Container)) {
+        Push-Location (Join-Path $repoRoot 'functions')
+        try {
+            npm ci
+            if ($LASTEXITCODE -ne 0) { throw 'npm ci failed while preparing Functions dependencies.' }
+        } finally {
+            Pop-Location
+        }
+    }
     $args = @('deploy', '--project', $ProjectId, '--only', 'hosting,firestore,functions')
     & $firebase.Source @args
     if ($LASTEXITCODE -ne 0) { throw "Firebase deployment failed with exit code $LASTEXITCODE." }
