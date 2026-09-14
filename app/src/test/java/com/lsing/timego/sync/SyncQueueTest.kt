@@ -1,6 +1,7 @@
 package com.lsing.timego.sync
 
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -50,4 +51,5 @@ private class FakeSyncDao : SyncDao {
         rows[key] = row.copy(pending = false)
         return 1
     }
+    override fun observePendingCount() = flowOf(rows.values.count { it.pending })
 }

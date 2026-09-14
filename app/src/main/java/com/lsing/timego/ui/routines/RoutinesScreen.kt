@@ -64,6 +64,8 @@ import com.lsing.timego.ui.account.AccountScreen
 import com.lsing.timego.account.AuthState
 import com.lsing.timego.report.ReportViewModel
 import com.lsing.timego.ui.report.ReportSettingsScreen
+import com.lsing.timego.sync.CloudBackupViewModel
+import com.lsing.timego.ui.account.CloudBackupScreen
 
 private val SESSION_HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
@@ -85,24 +87,36 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     var showTrainingProfile by remember { mutableStateOf(false) }
     var showAccount by remember { mutableStateOf(false) }
     var showReports by remember { mutableStateOf(false) }
+    var showCloudBackup by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val accountRepository = remember(context) { FirebaseAuthRepository.createIfConfigured(context) }
     val accountViewModel: AccountViewModel = viewModel(key = "account", factory = AccountViewModel.factory(accountRepository))
+    val cloudBackupViewModel: CloudBackupViewModel = viewModel(key = "cloud_backup")
+    val cloudConsent by cloudBackupViewModel.consent.collectAsStateWithLifecycle()
+    val accountState by accountViewModel.uiState.collectAsStateWithLifecycle()
+
+    if (showCloudBackup) {
+        CloudBackupScreen(
+            viewModel = cloudBackupViewModel,
+            emailVerified = (accountState.authState as? AuthState.SignedIn)?.verified == true,
+            onBack = { showCloudBackup = false },
+        )
+        return
+    }
 
     if (showReports) {
-        val accountState by accountViewModel.uiState.collectAsStateWithLifecycle()
         val reportViewModel: ReportViewModel = viewModel(key = "reports")
         ReportSettingsScreen(
             viewModel = reportViewModel,
             emailVerified = (accountState.authState as? AuthState.SignedIn)?.verified == true,
-            cloudBackupEnabled = false,
+            cloudBackupEnabled = cloudConsent.enabled,
             onBack = { showReports = false },
         )
         return
     }
 
     if (showAccount) {
-        AccountScreen(accountViewModel, onOpenReports = { showReports = true }, onBack = { showAccount = false })
+        AccountScreen(accountViewModel, onOpenCloudBackup = { showCloudBackup = true }, onOpenReports = { showReports = true }, onBack = { showAccount = false })
         return
     }
 

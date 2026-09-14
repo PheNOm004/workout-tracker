@@ -38,7 +38,7 @@ import com.lsing.timego.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
 @Composable
-fun AccountScreen(viewModel: AccountViewModel, onOpenReports: () -> Unit, onBack: () -> Unit) {
+fun AccountScreen(viewModel: AccountViewModel, onOpenCloudBackup: () -> Unit, onOpenReports: () -> Unit, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var registering by rememberSaveable { mutableStateOf(false) }
@@ -85,6 +85,7 @@ fun AccountScreen(viewModel: AccountViewModel, onOpenReports: () -> Unit, onBack
             }
         }
         state.message?.let { Text(it, color = if (it.contains("requested") || it.contains("deleted")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error) }
+        OutlinedButton(onClick = onOpenCloudBackup, modifier = Modifier.fillMaxWidth()) { Text("Cloud backup") }
         OutlinedButton(onClick = onOpenReports, modifier = Modifier.fillMaxWidth()) { Text("Weekly and monthly reports") }
     }
 }

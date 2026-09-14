@@ -3,6 +3,7 @@ package com.lsing.timego.sync
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SyncDao {
@@ -17,4 +18,7 @@ interface SyncDao {
 
     @Query("UPDATE sync_metadata SET pending = 0, attemptCount = 0, lastErrorCategory = NULL WHERE domainType = :domainType AND localId = :localId AND revision = :revision")
     suspend fun acknowledge(domainType: String, localId: Long, revision: Long): Int
+
+    @Query("SELECT COUNT(*) FROM sync_metadata WHERE pending = 1")
+    fun observePendingCount(): Flow<Int>
 }
