@@ -150,6 +150,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val activeTimer by viewModel.activeTimer.collectAsStateWithLifecycle()
     var peekingLanding by rememberSaveable { mutableStateOf(false) }
     var expandedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
+    var pendingProgramSuggestionIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
     var librarySearchQuery by rememberSaveable { mutableStateOf("") }
     var exerciseListOrderName by rememberSaveable { mutableStateOf(ExerciseListOrder.CURRENT.name) }
     var draftSessionId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -161,6 +162,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
         if (sessionId != draftSessionId) {
             draftSessionId = sessionId
             expandedExerciseIds = emptyList()
+            pendingProgramSuggestionIds = emptyList()
             librarySearchQuery = ""
             peekingLanding = false
             activeLogPageName = ActiveLogPage.SESSION.name
@@ -185,6 +187,11 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 isSessionActive = false,
                 onStartOrContinue = viewModel::startSession,
                 onChooseAnother = viewModel::chooseAnotherSuggestion,
+                onStartProgramSession = { suggestion ->
+                    val ids = viewModel.startProgramSession(suggestion)
+                    expandedExerciseIds = ids.take(1)
+                    pendingProgramSuggestionIds = ids.drop(1)
+                },
                 routineLastCompleted = routineLastCompleted,
                 balanceTimeframe = landingBalanceTimeframe,
                 muscleBalance = landingMuscleBalance,
@@ -210,6 +217,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                                 isSessionActive = true,
                                 onStartOrContinue = { peekingLanding = false },
                                 onChooseAnother = {},
+                                onStartProgramSession = {},
                                 routineLastCompleted = routineLastCompleted,
                                 balanceTimeframe = landingBalanceTimeframe,
                                 muscleBalance = landingMuscleBalance,
@@ -240,6 +248,8 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                                 activeTimer = activeTimer,
                                 expandedExerciseIds = expandedExerciseIds,
                                 onExpandedExerciseIdsChange = { expandedExerciseIds = it },
+                                pendingProgramSuggestionIds = pendingProgramSuggestionIds,
+                                onConsumeProgramSuggestion = { id -> pendingProgramSuggestionIds = pendingProgramSuggestionIds.filterNot { it == id } },
                                 selectedExerciseIds = selectedExerciseIds,
                                 onOpenExercisePicker = { activeLogPageName = ActiveLogPage.EXERCISE_PICKER.name },
                                 onSelectExercise = { exerciseId ->
@@ -297,6 +307,7 @@ private fun LogLandingContent(
     isSessionActive: Boolean,
     onStartOrContinue: (routineId: Long?) -> Unit,
     onChooseAnother: () -> Unit,
+    onStartProgramSession: (ProgramDayTypeSuggestion) -> Unit,
     routineLastCompleted: Map<Long, LocalDate>,
     balanceTimeframe: ProgressTimeframe,
     muscleBalance: Map<String, Float>,
@@ -553,6 +564,26 @@ private fun LogLandingContent(
                                 modifier = Modifier.padding(vertical = Spacing.ExtraSmall),
                             )
                         }
+                        summary.programSuggestion?.let { suggestion ->
+                            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
+                            Text(
+                                suggestion.dayTypeName,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                suggestion.exercises.joinToString(", ") { it.name },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 2.dp, bottom = Spacing.Small),
+                            )
+                            Button(
+                                onClick = { onStartProgramSession(suggestion) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Start with this")
+                            }
+                        }
                         Button(
                             onClick = { onStartOrContinue(null) },
                             modifier = Modifier.fillMaxWidth().padding(top = Spacing.Small),
@@ -697,6 +728,8 @@ private fun LoggingContent(
     activeTimer: ActiveTimer?,
     expandedExerciseIds: List<Long>,
     onExpandedExerciseIdsChange: (List<Long>) -> Unit,
+    pendingProgramSuggestionIds: List<Long>,
+    onConsumeProgramSuggestion: (Long) -> Unit,
     selectedExerciseIds: List<Long>,
     onOpenExercisePicker: () -> Unit,
     onSelectExercise: (Long) -> Unit,
@@ -824,6 +857,24 @@ private fun LoggingContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = Spacing.Small),
                     )
+                }
+            }
+            if (pendingProgramSuggestionIds.isNotEmpty()) {
+                item(key = "programSuggestions") {
+                    SectionHeader("Suggested for this day", topPadding = Spacing.Small)
+                    FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
+                        pendingProgramSuggestionIds.mapNotNull { id -> libraryExercises.firstOrNull { it.id == id } }
+                            .forEach { exercise ->
+                                AnimatedAssistChip(
+                                    onClick = {
+                                        onSelectExercise(exercise.id)
+                                        onConsumeProgramSuggestion(exercise.id)
+                                    },
+                                    label = { Text(exercise.name) },
+                                    modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
+                                )
+                            }
+                    }
                 }
             }
             item(key = "quickAdd") {
