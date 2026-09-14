@@ -1,6 +1,7 @@
 name: TimeGo quality
 
 on:
+  workflow_dispatch:
   push:
     branches: [master, development/timego-public-foundation]
   pull_request:
