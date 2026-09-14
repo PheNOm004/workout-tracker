@@ -19,3 +19,19 @@ checks required files before invoking the CLI:
 ```
 
 Production deployment remains an explicit operator action and is not run by Android builds or CI.
+
+## Managed production inputs
+
+Configure these as Firebase Functions secrets or approved public configuration values; never commit
+their values:
+
+| Name | Purpose |
+| --- | --- |
+| `REPORT_EMAIL_ENDPOINT` | HTTPS endpoint for the selected transactional email provider |
+| `REPORT_EMAIL_API_KEY` | Provider credential, stored only as a managed secret |
+| `REPORT_EMAIL_FROM` | Verified sender address/domain supplied by the provider |
+| `REPORT_MANAGE_BASE_URL` | HTTPS base URL for report unsubscribe links |
+| `REPORT_MANAGE_TOKEN_SECRET` | Random 32+ character HMAC secret for unsubscribe tokens |
+
+Before enabling either scheduler, verify the sender domain, HTTPS manage URL, provider sandbox
+delivery, retry/complaint handling, and the production privacy-policy/account-deletion URLs.
