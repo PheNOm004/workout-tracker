@@ -61,4 +61,13 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun unsubscribeAll() { viewModelScope.launch { subscriptionRepository.unsubscribeAll() } }
+
+    fun setTimezone(timezoneId: String) {
+        viewModelScope.launch {
+            when (val result = subscriptionRepository.setTimezone(timezoneId.trim())) {
+                SubscriptionResult.Success -> mutableState.value = mutableState.value.copy(message = "Timezone saved.")
+                is SubscriptionResult.Failure -> mutableState.value = mutableState.value.copy(message = "Enter a valid IANA timezone, such as Australia/Sydney.")
+            }
+        }
+    }
 }
