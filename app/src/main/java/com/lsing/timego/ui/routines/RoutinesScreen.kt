@@ -57,6 +57,10 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import com.lsing.timego.ui.onboarding.OnboardingScreen
 import com.lsing.timego.ui.onboarding.OnboardingViewModel
+import androidx.compose.ui.platform.LocalContext
+import com.lsing.timego.account.AccountViewModel
+import com.lsing.timego.account.FirebaseAuthRepository
+import com.lsing.timego.ui.account.AccountScreen
 
 private val SESSION_HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
@@ -76,6 +80,15 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     var showSessionHistory by remember { mutableStateOf(false) }
     var pendingDeleteSessionId by remember { mutableStateOf<Long?>(null) }
     var showTrainingProfile by remember { mutableStateOf(false) }
+    var showAccount by remember { mutableStateOf(false) }
+
+    if (showAccount) {
+        val context = LocalContext.current
+        val repository = remember(context) { FirebaseAuthRepository.createIfConfigured(context) }
+        val accountViewModel: AccountViewModel = viewModel(key = "account", factory = AccountViewModel.factory(repository))
+        AccountScreen(accountViewModel, onBack = { showAccount = false })
+        return
+    }
 
     if (showTrainingProfile) {
         val profileViewModel: OnboardingViewModel = viewModel(key = "settings_onboarding")
@@ -152,6 +165,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             onEditTrainingProfile = {
                 showTrainingProfile = true
             },
+            onOpenAccount = { showAccount = true },
             sessionHistoryCount = sessionHistory.size,
             onViewSessionHistory = {
                 showSessionHistory = true

@@ -30,6 +30,7 @@
 *.jks
 *.keystore
 *.p12
+google-services.json
 keystore.properties
 
 # Jupyter server logs can include local session URLs and access tokens.

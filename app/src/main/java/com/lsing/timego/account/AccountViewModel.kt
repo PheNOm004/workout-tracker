@@ -1,6 +1,7 @@
 package com.lsing.timego.account
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,4 +56,11 @@ class AccountViewModel(private val repository: AuthRepository) : ViewModel() {
     }
 
     private fun validEmail(value: String): Boolean = value.trim().matches(Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"))
+
+    companion object {
+        fun factory(repository: AuthRepository): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T = AccountViewModel(repository) as T
+        }
+    }
 }

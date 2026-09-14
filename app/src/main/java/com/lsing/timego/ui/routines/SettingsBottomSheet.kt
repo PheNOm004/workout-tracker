@@ -51,6 +51,7 @@ fun SettingsBottomSheet(
     onExportBackup: () -> Unit,
     onRestoreBackup: () -> Unit,
     onEditTrainingProfile: () -> Unit,
+    onOpenAccount: () -> Unit,
     sessionHistoryCount: Int,
     onViewSessionHistory: () -> Unit,
     onDismiss: () -> Unit,
@@ -185,6 +186,17 @@ fun SettingsBottomSheet(
                 onClick = { dismissThen(onEditTrainingProfile) },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Edit training profile") }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
+
+            SectionHeader(title = "Account & Reports", topPadding = Spacing.Small)
+            Text(
+                "Optional email sign-in, cloud backup, and report preferences. Guest mode stays fully available.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = Spacing.Small),
+            )
+            OutlinedButton(onClick = { dismissThen(onOpenAccount) }, modifier = Modifier.fillMaxWidth()) { Text("Account and email reports") }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
 
