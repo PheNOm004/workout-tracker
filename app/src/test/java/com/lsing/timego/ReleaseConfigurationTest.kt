@@ -31,7 +31,7 @@ class ReleaseConfigurationTest {
     }
 
     private fun projectFile(relativePath: String): File {
-        var directory = File(System.getProperty("user.dir")).absoluteFile
+        var directory = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile
         while (!File(directory, "settings.gradle.kts").isFile) {
             directory = requireNotNull(directory.parentFile) { "Cannot locate project root" }
         }
