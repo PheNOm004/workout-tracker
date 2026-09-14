@@ -5,7 +5,7 @@ Normal development builds keep accounts unavailable and preserve full guest use.
 1. Register Android application `com.lsing.timego` in the Firebase Console.
 2. Enable Email/Password under Authentication sign-in methods.
 3. Download that app's `google-services.json` into `app/`. The file is ignored by Git.
-4. Build with `./gradlew bundleRelease -PtimegoFirebase=true` plus the documented `TIMEGO_UPLOAD_*` signing environment variables.
+4. Build with `.\gradlew.bat bundleRelease -PtimegoFirebase=true` plus the documented `TIMEGO_UPLOAD_*` signing environment variables.
 
 The opt-in property deliberately fails configuration when the JSON file is absent. Authentication does not enable Firestore backup or email reports; those require separate in-app consent and their own deployment gates.
 
