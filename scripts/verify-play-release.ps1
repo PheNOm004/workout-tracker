@@ -53,7 +53,8 @@ try {
         'docs/release/privacy-policy-draft.md',
         'docs/release/data-safety-matrix.md',
         'docs/release/play-console-checklist.md',
-        'docs/release/account-deletion-page.md'
+        'docs/release/account-deletion-page.md',
+        'docs/release/store-listing-draft.md'
     )
     foreach ($relativePath in $requiredDocuments) {
         if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $relativePath) -PathType Leaf)) {
