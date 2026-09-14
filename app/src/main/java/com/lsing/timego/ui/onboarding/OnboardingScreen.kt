@@ -146,6 +146,7 @@ private fun StepContent(
             }
         }
         OnboardingStep.PHYSICAL -> {
+            var imperialUnits by rememberSaveable { mutableStateOf(false) }
             OutlinedTextField(
                 value = draft.displayName.orEmpty(),
                 onValueChange = { value -> update { it.copy(displayName = value.take(60)) } },
@@ -154,8 +155,18 @@ private fun StepContent(
             )
             Text("Age range (optional)", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = Spacing.Medium))
             ChoiceFlow(AgeRange.entries, draft.ageRange) { update { p -> p.copy(ageRange = it) } }
-            NumericProfileField("Height in cm (optional)", draft.heightCm) { value -> update { it.copy(heightCm = value) } }
-            NumericProfileField("Weight in kg (optional)", draft.weightKg) { value -> update { it.copy(weightKg = value) } }
+            Text("Units", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = Spacing.Medium))
+            ChoiceFlow(listOf("Metric", "Imperial"), if (imperialUnits) "Imperial" else "Metric") {
+                imperialUnits = it == "Imperial"
+            }
+            NumericProfileField(
+                label = "Height in ${if (imperialUnits) "in" else "cm"} (optional)",
+                value = draft.heightCm?.let { if (imperialUnits) it / 2.54 else it },
+            ) { value -> update { it.copy(heightCm = value?.let { raw -> if (imperialUnits) raw * 2.54 else raw }) } }
+            NumericProfileField(
+                label = "Weight in ${if (imperialUnits) "lb" else "kg"} (optional)",
+                value = draft.weightKg?.let { if (imperialUnits) it / 0.45359237 else it },
+            ) { value -> update { it.copy(weightKg = value?.let { raw -> if (imperialUnits) raw * 0.45359237 else raw }) } }
         }
         OnboardingStep.LIMITATIONS -> {
             Text("Avoid suggesting movements that rely heavily on these areas. This is not medical advice.")
