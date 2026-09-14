@@ -61,6 +61,9 @@ import androidx.compose.ui.platform.LocalContext
 import com.lsing.timego.account.AccountViewModel
 import com.lsing.timego.account.FirebaseAuthRepository
 import com.lsing.timego.ui.account.AccountScreen
+import com.lsing.timego.account.AuthState
+import com.lsing.timego.report.ReportViewModel
+import com.lsing.timego.ui.report.ReportSettingsScreen
 
 private val SESSION_HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
@@ -81,12 +84,25 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     var pendingDeleteSessionId by remember { mutableStateOf<Long?>(null) }
     var showTrainingProfile by remember { mutableStateOf(false) }
     var showAccount by remember { mutableStateOf(false) }
+    var showReports by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val accountRepository = remember(context) { FirebaseAuthRepository.createIfConfigured(context) }
+    val accountViewModel: AccountViewModel = viewModel(key = "account", factory = AccountViewModel.factory(accountRepository))
+
+    if (showReports) {
+        val accountState by accountViewModel.uiState.collectAsStateWithLifecycle()
+        val reportViewModel: ReportViewModel = viewModel(key = "reports")
+        ReportSettingsScreen(
+            viewModel = reportViewModel,
+            emailVerified = (accountState.authState as? AuthState.SignedIn)?.verified == true,
+            cloudBackupEnabled = false,
+            onBack = { showReports = false },
+        )
+        return
+    }
 
     if (showAccount) {
-        val context = LocalContext.current
-        val repository = remember(context) { FirebaseAuthRepository.createIfConfigured(context) }
-        val accountViewModel: AccountViewModel = viewModel(key = "account", factory = AccountViewModel.factory(repository))
-        AccountScreen(accountViewModel, onBack = { showAccount = false })
+        AccountScreen(accountViewModel, onOpenReports = { showReports = true }, onBack = { showAccount = false })
         return
     }
 
