@@ -17,6 +17,9 @@ interface SessionDao {
     @Query("SELECT * FROM workout_sessions ORDER BY CASE WHEN endEpochMillis IS NULL THEN 1 ELSE 0 END, endEpochMillis, id")
     suspend fun allForShadowSnapshot(): List<WorkoutSession>
 
+    @Query("SELECT * FROM workout_sessions WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): WorkoutSession?
+
     @Query("UPDATE workout_sessions SET endEpochMillis = :endEpochMillis WHERE id = :sessionId")
     suspend fun closeSession(sessionId: Long, endEpochMillis: Long)
 
