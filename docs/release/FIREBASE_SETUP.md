@@ -10,3 +10,12 @@ Normal development builds keep accounts unavailable and preserve full guest use.
 The opt-in property deliberately fails configuration when the JSON file is absent. Authentication does not enable Firestore backup or email reports; those require separate in-app consent and their own deployment gates.
 
 For local auth verification, use the Firebase Emulator Suite and test accounts only. Do not use production workout records in emulator fixtures.
+
+For an authenticated operator, the repository deployment wrapper makes the target explicit and
+checks required files before invoking the CLI:
+
+```powershell
+.\scripts\deploy-firebase.ps1 -ProjectId '<firebase-project-id>'
+```
+
+Production deployment remains an explicit operator action and is not run by Android builds or CI.
