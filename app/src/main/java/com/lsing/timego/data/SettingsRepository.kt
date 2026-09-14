@@ -13,6 +13,8 @@ private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
 enum class TrainingLean { STRENGTH, BALANCED, CALISTHENICS }
 
+enum class CalisthenicsTier { BEGINNER, INTERMEDIATE, ADVANCED }
+
 /** Small app-wide settings, distinct from [TimeGoDatabase] -- a handful of simple preference
  *  values (currently just the hold-exercise start delay) don't need a Room table or migrations. */
 class SettingsRepository(private val context: Context) {
@@ -28,6 +30,16 @@ class SettingsRepository(private val context: Context) {
 
     val favoriteExerciseIds: Flow<Set<Long>> = context.settingsDataStore.data.map { prefs ->
         prefs[FAVORITE_EXERCISE_IDS_KEY].orEmpty().mapNotNull(String::toLongOrNull).toSet()
+    }
+
+    val activeProgramId: Flow<String?> = context.settingsDataStore.data.map { prefs ->
+        prefs[ACTIVE_PROGRAM_ID_KEY]
+    }
+
+    val calisthenicsTier: Flow<CalisthenicsTier> = context.settingsDataStore.data.map { prefs ->
+        prefs[CALISTHENICS_TIER_KEY]
+            ?.let { saved -> runCatching { CalisthenicsTier.valueOf(saved) }.getOrNull() }
+            ?: CalisthenicsTier.BEGINNER
     }
 
     suspend fun setHoldDelaySeconds(seconds: Int) {
@@ -46,10 +58,22 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
+    suspend fun setActiveProgramId(id: String?) {
+        context.settingsDataStore.edit { prefs ->
+            if (id == null) prefs.remove(ACTIVE_PROGRAM_ID_KEY) else prefs[ACTIVE_PROGRAM_ID_KEY] = id
+        }
+    }
+
+    suspend fun setCalisthenicsTier(tier: CalisthenicsTier) {
+        context.settingsDataStore.edit { prefs -> prefs[CALISTHENICS_TIER_KEY] = tier.name }
+    }
+
     companion object {
         const val DEFAULT_HOLD_DELAY_SECONDS = 5
         private val HOLD_DELAY_SECONDS_KEY = intPreferencesKey("hold_delay_seconds")
         private val TRAINING_LEAN_KEY = stringPreferencesKey("training_lean")
         private val FAVORITE_EXERCISE_IDS_KEY = stringSetPreferencesKey("favorite_exercise_ids")
+        private val ACTIVE_PROGRAM_ID_KEY = stringPreferencesKey("active_program_id")
+        private val CALISTHENICS_TIER_KEY = stringPreferencesKey("calisthenics_tier")
     }
 }

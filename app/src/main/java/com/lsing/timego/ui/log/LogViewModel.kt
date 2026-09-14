@@ -14,6 +14,8 @@ import com.lsing.timego.data.SEED_EXERCISES
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.SettingsRepository
 import com.lsing.timego.data.TimeGoDatabase
+import com.lsing.timego.data.CalisthenicsTier
+import com.lsing.timego.data.SEED_ROUTINES
 import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.DEFAULT_WEIGHT_INCREMENT_KG
@@ -179,6 +181,11 @@ class LogViewModel(
     private val _routines = MutableStateFlow<List<Routine>>(emptyList())
     val routines: StateFlow<List<Routine>> = _routines.asStateFlow()
 
+    /** Each routine's own exercises, in saved order -- lets the landing page pre-populate a
+     *  session's exercise list and diagram from a routine without a second query round-trip. */
+    private val _routineExercisesById = MutableStateFlow<Map<Long, List<Exercise>>>(emptyMap())
+    val routineExercisesById: StateFlow<Map<Long, List<Exercise>>> = _routineExercisesById.asStateFlow()
+
     private val _selectedRoutineId = MutableStateFlow<Long?>(null)
     val selectedRoutineId: StateFlow<Long?> = _selectedRoutineId.asStateFlow()
 
@@ -186,6 +193,11 @@ class LogViewModel(
     val latestBodyWeightKg: StateFlow<Double?> = _latestBodyWeightKg.asStateFlow()
 
     private val _trainingLean = MutableStateFlow(TrainingLean.BALANCED)
+    private val _activeProgramId = MutableStateFlow<String?>(null)
+    val activeProgramId: StateFlow<String?> = _activeProgramId.asStateFlow()
+
+    private val _calisthenicsTier = MutableStateFlow(CalisthenicsTier.BEGINNER)
+    val calisthenicsTier: StateFlow<CalisthenicsTier> = _calisthenicsTier.asStateFlow()
 
     private val _sessionState = MutableStateFlow<SessionUiState>(SessionUiState.Loading)
     val sessionState: StateFlow<SessionUiState> = _sessionState.asStateFlow()
@@ -231,6 +243,7 @@ class LogViewModel(
     init {
         viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
+            repository.seedMissingRoutines(SEED_ROUTINES)
             // This ViewModel is activity-scoped by the custom root-tab host. Its session state is
             // always collected while Log is STARTED, so subscriber presence is the lifecycle
             // signal that starts all Room/DataStore work and cancels it off-screen/backgrounded.
@@ -249,6 +262,18 @@ class LogViewModel(
                         launch {
                             settingsRepository.trainingLean.collect { lean ->
                                 _trainingLean.value = lean
+                                refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
+                            }
+                        }
+                        launch {
+                            settingsRepository.activeProgramId.collect { id ->
+                                _activeProgramId.value = id
+                                refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
+                            }
+                        }
+                        launch {
+                            settingsRepository.calisthenicsTier.collect { tier ->
+                                _calisthenicsTier.value = tier
                                 refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
                             }
                         }
@@ -307,8 +332,13 @@ class LogViewModel(
                             }
                         }
                         launch {
-                            repository.routineExercises.collect { members ->
-                                routineMemberExerciseIds = members.mapTo(mutableSetOf()) { it.exerciseId }
+                            combine(repository.routineExercises, repository.exercises) { members, exerciseList ->
+                                val exercisesById = exerciseList.associateBy { it.id }
+                                members.groupBy { it.routineId }
+                                    .mapValues { (_, list) -> list.sortedBy { it.orderIndex }.mapNotNull { exercisesById[it.exerciseId] } }
+                            }.collect { byRoutineId ->
+                                _routineExercisesById.value = byRoutineId
+                                routineMemberExerciseIds = byRoutineId.values.flatten().mapTo(mutableSetOf()) { it.id }
                                 refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
                             }
                         }
@@ -327,6 +357,14 @@ class LogViewModel(
     fun selectRoutine(routineId: Long?) {
         _selectedRoutineId.value = routineId
         viewModelScope.launch { refreshDisplayedExercises() }
+    }
+
+    fun setActiveProgramId(id: String?) {
+        viewModelScope.launch { settingsRepository.setActiveProgramId(id) }
+    }
+
+    fun setCalisthenicsTier(tier: CalisthenicsTier) {
+        viewModelScope.launch { settingsRepository.setCalisthenicsTier(tier) }
     }
 
     fun selectLandingBalanceTimeframe(timeframe: ProgressTimeframe) {

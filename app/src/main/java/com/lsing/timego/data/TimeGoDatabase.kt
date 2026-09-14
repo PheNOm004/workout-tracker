@@ -162,17 +162,27 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
 /** Shared with [com.lsing.timego.data.BackupManager], which opens a *separate* temporary Room
  *  instance against a restored backup file -- that copy needs the exact same migration path as the
  *  live database in case it was exported by an older app version. */
+/** Pure additive columns for the Program Templates feature -- see [SeedRoutines] and
+ *  [WorkoutRepository.seedMissingRoutines]. Existing user-created routines read back with both
+ *  columns null, which is exactly the "not part of a seeded program" state. */
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE routines ADD COLUMN programId TEXT")
+        db.execSQL("ALTER TABLE routines ADD COLUMN tier TEXT")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-    MIGRATION_13_14, MIGRATION_14_15,
+    MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
 )
 
 const val TIMEGO_DATABASE_FILE_NAME = "timego.db"
 
 @Database(
     entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class, ShadowSnapshotEntity::class, ShadowAuditEntity::class],
-    version = 15,
+    version = 16,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
