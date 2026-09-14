@@ -150,6 +150,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val landingMuscleBalance by viewModel.landingMuscleBalance.collectAsStateWithLifecycle()
     val routineLastCompleted by viewModel.routineLastCompleted.collectAsStateWithLifecycle()
     val activeTimer by viewModel.activeTimer.collectAsStateWithLifecycle()
+    val guidanceByKey by viewModel.guidanceByKey.collectAsStateWithLifecycle()
     var peekingLanding by rememberSaveable { mutableStateOf(false) }
     var expandedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
     var librarySearchQuery by rememberSaveable { mutableStateOf("") }
@@ -157,6 +158,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     var draftSessionId by rememberSaveable { mutableStateOf<Long?>(null) }
     var activeLogPageName by rememberSaveable { mutableStateOf(ActiveLogPage.SESSION.name) }
     var selectedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
+    var detailExercise by remember { mutableStateOf<com.lsing.timego.data.Exercise?>(null) }
 
     LaunchedEffect(sessionState) {
         val sessionId = (sessionState as? SessionUiState.Active)?.sessionId
@@ -187,6 +189,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 isSessionActive = false,
                 onStartOrContinue = viewModel::startSession,
                 onChooseAnother = viewModel::chooseAnotherSuggestion,
+                onOpenExerciseDetails = { detailExercise = it },
                 routineLastCompleted = routineLastCompleted,
                 balanceTimeframe = landingBalanceTimeframe,
                 muscleBalance = landingMuscleBalance,
@@ -212,6 +215,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                                 isSessionActive = true,
                                 onStartOrContinue = { peekingLanding = false },
                                 onChooseAnother = {},
+                                onOpenExerciseDetails = { detailExercise = it },
                                 routineLastCompleted = routineLastCompleted,
                                 balanceTimeframe = landingBalanceTimeframe,
                                 muscleBalance = landingMuscleBalance,
@@ -256,6 +260,19 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 }
             }
         }
+    }
+    detailExercise?.let { exercise ->
+        val guidance = exercise.catalogueKey?.let(guidanceByKey::get)
+        val model = buildExerciseDetail(exercise, guidance)
+        val easierExercise = model.easierVariationKey?.let { key ->
+            viewModel.exerciseLibrary.value.firstOrNull { it.catalogueKey == key }
+        }
+        ExerciseDetailSheet(
+            model = model,
+            easierName = easierExercise?.name,
+            onShowEasier = { easierExercise?.let { detailExercise = it } },
+            onDismiss = { detailExercise = null },
+        )
     }
 }
 
@@ -303,6 +320,7 @@ private fun LogLandingContent(
     balanceTimeframe: ProgressTimeframe,
     muscleBalance: Map<String, Float>,
     onSelectBalanceTimeframe: (ProgressTimeframe) -> Unit,
+    onOpenExerciseDetails: (com.lsing.timego.data.Exercise) -> Unit,
 ) {
     var showLastSessionDetail by remember { mutableStateOf(false) }
 
@@ -505,12 +523,11 @@ private fun LogLandingContent(
                                 modifier = Modifier.padding(top = 2.dp),
                             )
                             summary.suggestedExercise?.let { exercise ->
-                                Text(
-                                    "Try: ${exercise.name}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = Spacing.ExtraSmall),
-                                )
+                                TextButton(
+                                    onClick = { onOpenExerciseDetails(exercise) },
+                                    contentPadding = PaddingValues(0.dp),
+                                    modifier = Modifier.padding(top = Spacing.ExtraSmall).heightIn(min = 48.dp),
+                                ) { Text("Try: ${exercise.name}", style = MaterialTheme.typography.bodySmall) }
                                 summary.recommendationNote?.let { note ->
                                     Text(
                                         note,

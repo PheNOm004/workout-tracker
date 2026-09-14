@@ -16,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AllInclusive
@@ -47,6 +48,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.TIMEGO_BACKUP_MIME_TYPE
 import com.lsing.timego.data.Exercise
+import com.lsing.timego.data.TimeGoDatabase
+import com.lsing.timego.data.guidance.CatalogueRepository
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.RoutineCardSkeleton
@@ -66,6 +69,8 @@ import com.lsing.timego.report.ReportViewModel
 import com.lsing.timego.ui.report.ReportSettingsScreen
 import com.lsing.timego.sync.CloudBackupViewModel
 import com.lsing.timego.ui.account.CloudBackupScreen
+import com.lsing.timego.ui.exercise.ExerciseDetailSheet
+import com.lsing.timego.ui.exercise.buildExerciseDetail
 
 private val SESSION_HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
@@ -94,6 +99,9 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     val cloudBackupViewModel: CloudBackupViewModel = viewModel(key = "cloud_backup")
     val cloudConsent by cloudBackupViewModel.consent.collectAsStateWithLifecycle()
     val accountState by accountViewModel.uiState.collectAsStateWithLifecycle()
+    val catalogueRepository = remember(context) { CatalogueRepository(TimeGoDatabase.getInstance(context)) }
+    val guidanceByKey by catalogueRepository.guidanceByKey.collectAsStateWithLifecycle(initialValue = emptyMap())
+    var detailExercise by remember { mutableStateOf<Exercise?>(null) }
 
     if (showCloudBackup) {
         CloudBackupScreen(
@@ -382,17 +390,27 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                 }
                     val steps = routineExercisesById[routine.id].orEmpty()
                     if (steps.isNotEmpty()) {
-                        RoutineSteps(steps)
+                        RoutineSteps(steps, onOpenDetails = { detailExercise = it })
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = Spacing.ExtraSmall))
                 }
             }
         }
     }
+    detailExercise?.let { exercise ->
+        val model = buildExerciseDetail(exercise, exercise.catalogueKey?.let(guidanceByKey::get))
+        val easierExercise = model.easierVariationKey?.let { key -> exercises.firstOrNull { it.catalogueKey == key } }
+        ExerciseDetailSheet(
+            model = model,
+            easierName = easierExercise?.name,
+            onShowEasier = { easierExercise?.let { detailExercise = it } },
+            onDismiss = { detailExercise = null },
+        )
+    }
 }
 
 @Composable
-private fun RoutineSteps(exercises: List<Exercise>) {
+private fun RoutineSteps(exercises: List<Exercise>, onOpenDetails: (Exercise) -> Unit) {
     Column(modifier = Modifier.padding(Spacing.Medium, 0.dp, Spacing.Medium, Spacing.Medium)) {
         Text(
             "Workout order",
@@ -403,7 +421,11 @@ private fun RoutineSteps(exercises: List<Exercise>) {
         exercises.forEachIndexed { index, exercise ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = Spacing.ExtraSmall),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .clickable { onOpenDetails(exercise) }
+                    .padding(vertical = Spacing.ExtraSmall),
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
