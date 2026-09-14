@@ -42,6 +42,21 @@ Before upload, confirm the bundle certificate matches the Play Console upload ce
 Play processes the bundle, test the Play-distributed artifact because its app-signing certificate is
 different from the upload certificate.
 
+Run the repository-owned gate from a clean `master` or approved public-foundation branch:
+
+```powershell
+.\scripts\verify-play-release.ps1
+```
+
+After producing a signed AAB, supply its path to request signature and bundletool validation:
+
+```powershell
+.\scripts\verify-play-release.ps1 -BundlePath '.\app\build\outputs\bundle\release\app-release.aab'
+```
+
+The bundle check reports an incomplete gate rather than success if `jarsigner` or `bundletool` is
+not available.
+
 ## Play progression
 
 1. Upload to Internal testing and inspect App Bundle Explorer output.
