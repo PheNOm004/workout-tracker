@@ -13,6 +13,9 @@ import com.lsing.timego.data.Routine
 import com.lsing.timego.data.SEED_EXERCISES
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.SettingsRepository
+import com.lsing.timego.profile.ProfileRepository
+import com.lsing.timego.profile.TrainingProfile
+import com.lsing.timego.domain.filterCandidates
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.WorkoutRepository
@@ -130,6 +133,7 @@ class LogViewModel(
 ) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
     private val settingsRepository = SettingsRepository(application)
+    private val profileRepository = ProfileRepository(application)
     private val suggester: com.lsing.timego.domain.OverloadSuggester = AdaptiveOverloadSuggester()
     private val preferenceLearner = CategoryPreferenceLearner()
     private val progressionRecommender = ProgressionRecommender(preferenceLearner)
@@ -141,6 +145,7 @@ class LogViewModel(
     private var latestSessions: List<com.lsing.timego.data.WorkoutSession> = emptyList()
     private var exerciseUsageCounts: Map<Long, Int> = emptyMap()
     private var hasAutoSelectedTodaysRoutine = false
+    private var currentTrainingProfile = TrainingProfile()
 
     /** Exercise ids that appear in any saved routine, for ranking "Choose another" candidates. */
     private var routineMemberExerciseIds: Set<Long> = emptySet()
@@ -249,6 +254,12 @@ class LogViewModel(
                         launch {
                             settingsRepository.trainingLean.collect { lean ->
                                 _trainingLean.value = lean
+                                refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
+                            }
+                        }
+                        launch {
+                            profileRepository.profile.collect { profile ->
+                                currentTrainingProfile = profile
                                 refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
                             }
                         }
@@ -523,21 +534,28 @@ class LogViewModel(
             val exclusions = _suggestionExclusions.value
 
             val dominantLean = preferenceLearner.getDominantLean()
+            val explicitLean = currentTrainingProfile.modality ?: trainingLean
             val effectiveLean = when (dominantLean) {
                 ExerciseCategory.CALISTHENICS -> TrainingLean.CALISTHENICS
                 ExerciseCategory.STRENGTH -> TrainingLean.STRENGTH
-                else -> trainingLean
+                else -> explicitLean
             }
+
+            val profileCandidates = filterCandidates(
+                exercises = exercises,
+                profile = currentTrainingProfile,
+                metadataByCatalogueKey = emptyMap(),
+            ).candidates
 
             val baseSuggestion = suggestedExerciseFor(
                 targetGroups = exerciseTargetGroups,
-                exercises = exercises,
+                exercises = profileCandidates,
                 lean = effectiveLean,
                 usageCounts = usageCounts,
             )
             val alternatives = familiarAlternativesFor(
                 targetGroups = exerciseTargetGroups,
-                exercises = exercises,
+                exercises = profileCandidates,
                 lean = effectiveLean,
                 usageCounts = usageCounts,
                 loggedExerciseIds = allSets.mapTo(mutableSetOf()) { it.exerciseId },
