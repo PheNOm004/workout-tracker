@@ -13,8 +13,10 @@ export async function scheduleReports(args: { cadence: Cadence; now: Date; fires
   const snapshot = await args.firestore.collection("users").where(field, "==", true).where("emailVerified", "==", true).limit(200).get();
   let sent = 0;
   for (const user of snapshot.docs) {
-    const data = user.data() as { email?: string; timezoneId?: string };
-    if (!data.email || !data.timezoneId || !isDue(args.cadence, data.timezoneId, args.now)) continue;
+    const data = user.data() as { email?: string; timezoneId?: string; cloudBackupEnabled?: boolean };
+    // Reports are coupled to the user's explicit cloud-consent boundary. The Android client
+    // enforces this prerequisite, but the backend must re-check it before any email leaves.
+    if (!data.email || !data.timezoneId || data.cloudBackupEnabled !== true || !isDue(args.cadence, data.timezoneId, args.now)) continue;
     const period = reportPeriodKey(args.cadence, data.timezoneId, args.now);
     const rows = (await user.ref.collection("data").get()).docs.map((document) => document.data());
     const token = createManageToken({ uid: user.id, cadence: args.cadence, expiresAtEpochSeconds: Math.floor(args.now.getTime() / 1000) + 60 * 60 * 24 * 30 }, args.manageSecret);
