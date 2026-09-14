@@ -67,6 +67,8 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     val untrainedGroups by viewModel.untrainedGroups.collectAsStateWithLifecycle()
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
     val trainingLean by viewModel.trainingLean.collectAsStateWithLifecycle()
+    val activeProgramId by viewModel.activeProgramId.collectAsStateWithLifecycle()
+    val calisthenicsTier by viewModel.calisthenicsTier.collectAsStateWithLifecycle()
     val sessionHistory by viewModel.sessionHistory.collectAsStateWithLifecycle()
     val backupResult by viewModel.backupResult.collectAsStateWithLifecycle()
     var showRoutineForm by remember { mutableStateOf(false) }
@@ -131,6 +133,10 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             onSetHoldDelaySeconds = viewModel::setHoldDelaySeconds,
             trainingLean = trainingLean,
             onSetTrainingLean = viewModel::setTrainingLean,
+            activeProgramId = activeProgramId,
+            onSetActiveProgramId = viewModel::setActiveProgramId,
+            calisthenicsTier = calisthenicsTier,
+            onSetCalisthenicsTier = viewModel::setCalisthenicsTier,
             onExportBackup = {
                 exportLauncher.launch("timego-backup-${LocalDate.now()}.db")
             },

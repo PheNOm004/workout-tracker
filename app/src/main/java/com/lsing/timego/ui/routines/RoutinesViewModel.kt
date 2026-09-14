@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lsing.timego.data.BackupManager
+import com.lsing.timego.data.CalisthenicsTier
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.RestoreSummary
@@ -63,6 +64,12 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     private val _trainingLean = MutableStateFlow(TrainingLean.BALANCED)
     val trainingLean: StateFlow<TrainingLean> = _trainingLean.asStateFlow()
 
+    private val _activeProgramId = MutableStateFlow<String?>(null)
+    val activeProgramId: StateFlow<String?> = _activeProgramId.asStateFlow()
+
+    private val _calisthenicsTier = MutableStateFlow(CalisthenicsTier.BEGINNER)
+    val calisthenicsTier: StateFlow<CalisthenicsTier> = _calisthenicsTier.asStateFlow()
+
     private val _sessionHistory = MutableStateFlow<List<SessionHistoryEntry>>(emptyList())
     val sessionHistory: StateFlow<List<SessionHistoryEntry>> = _sessionHistory.asStateFlow()
 
@@ -119,6 +126,12 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
                         launch {
                             settingsRepository.trainingLean.collect { _trainingLean.value = it }
                         }
+                        launch {
+                            settingsRepository.activeProgramId.collect { _activeProgramId.value = it }
+                        }
+                        launch {
+                            settingsRepository.calisthenicsTier.collect { _calisthenicsTier.value = it }
+                        }
                     }
                 }
         }
@@ -130,6 +143,14 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
 
     fun setTrainingLean(lean: TrainingLean) {
         viewModelScope.launch { settingsRepository.setTrainingLean(lean) }
+    }
+
+    fun setActiveProgramId(id: String?) {
+        viewModelScope.launch { settingsRepository.setActiveProgramId(id) }
+    }
+
+    fun setCalisthenicsTier(tier: CalisthenicsTier) {
+        viewModelScope.launch { settingsRepository.setCalisthenicsTier(tier) }
     }
 
     private fun refreshUntrainedGroups(

@@ -35,8 +35,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.lsing.timego.data.CalisthenicsTier
 import com.lsing.timego.data.TrainingLean
+import com.lsing.timego.domain.programs.ProgramRegistry
 import com.lsing.timego.ui.common.SectionHeader
+import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.Spacing
 import kotlinx.coroutines.launch
@@ -48,6 +51,10 @@ fun SettingsBottomSheet(
     onSetHoldDelaySeconds: (Int) -> Unit,
     trainingLean: TrainingLean,
     onSetTrainingLean: (TrainingLean) -> Unit,
+    activeProgramId: String?,
+    onSetActiveProgramId: (String?) -> Unit,
+    calisthenicsTier: CalisthenicsTier,
+    onSetCalisthenicsTier: (CalisthenicsTier) -> Unit,
     onExportBackup: () -> Unit,
     onRestoreBackup: () -> Unit,
     sessionHistoryCount: Int,
@@ -140,6 +147,49 @@ fun SettingsBottomSheet(
                             )
                         },
                     )
+                }
+            }
+
+            // Program templates
+            Text(
+                "Program",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = Spacing.Small, bottom = Spacing.ExtraSmall),
+            )
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+            ) {
+                FilterChip(
+                    selected = activeProgramId == null,
+                    onClick = { onSetActiveProgramId(null) },
+                    label = { Text("None") },
+                )
+                ProgramRegistry.ALL.forEach { program ->
+                    FilterChip(
+                        selected = activeProgramId == program.id,
+                        onClick = { onSetActiveProgramId(program.id) },
+                        label = { Text(program.name) },
+                    )
+                }
+            }
+            if (activeProgramId == "calisthenics_progression") {
+                Text(
+                    "Calisthenics tier",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
+                )
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                ) {
+                    CalisthenicsTier.entries.forEach { tier ->
+                        FilterChip(
+                            selected = calisthenicsTier == tier,
+                            onClick = { onSetCalisthenicsTier(tier) },
+                            label = { Text(formatEnumLabel(tier.name)) },
+                        )
+                    }
                 }
             }
 
