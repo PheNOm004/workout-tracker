@@ -32,6 +32,7 @@ class AccountViewModel(private val repository: AuthRepository) : ViewModel() {
     }
 
     suspend fun sendVerification() = perform(successMessage = "Verification email requested.") { repository.sendVerification() }
+    suspend fun refreshVerification() = perform(successMessage = "Verification status refreshed.") { repository.refresh() }
     suspend fun signOut() { repository.signOut(); mutableUiState.value = AccountUiState(repository.authState.value) }
     suspend fun reauthenticate(password: String) = perform { repository.reauthenticate(password) }
     suspend fun deleteAccount() = perform(successMessage = "Account deleted.") { repository.deleteAccount() }

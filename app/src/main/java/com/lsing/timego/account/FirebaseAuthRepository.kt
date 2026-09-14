@@ -28,6 +28,12 @@ class FirebaseAuthRepository(
     override suspend fun register(email: String, password: String): AuthResult = mapTask(auth.createUserWithEmailAndPassword(email, password))
     override suspend fun signIn(email: String, password: String): AuthResult = mapTask(auth.signInWithEmailAndPassword(email, password))
     override suspend fun sendVerification(): AuthResult = auth.currentUser?.let { mapTask(it.sendEmailVerification()) } ?: AuthResult.Failure(AuthFailure.CREDENTIALS_REJECTED)
+    override suspend fun refresh(): AuthResult {
+        val user = auth.currentUser ?: return AuthResult.Failure(AuthFailure.CREDENTIALS_REJECTED)
+        val result = mapTask(user.reload())
+        if (result == AuthResult.Success) mutableState.value = auth.currentUser.toState()
+        return result
+    }
     override suspend fun resetPassword(email: String): AuthResult = mapTask(auth.sendPasswordResetEmail(email), hideCredentialFailure = true)
     override suspend fun signOut() { auth.signOut() }
     override suspend fun reauthenticate(password: String): AuthResult {
@@ -69,6 +75,7 @@ class UnavailableAuthRepository : AuthRepository {
     override suspend fun register(email: String, password: String) = unavailable()
     override suspend fun signIn(email: String, password: String) = unavailable()
     override suspend fun sendVerification() = unavailable()
+    override suspend fun refresh() = unavailable()
     override suspend fun resetPassword(email: String) = unavailable()
     override suspend fun signOut() = Unit
     override suspend fun reauthenticate(password: String) = unavailable()

@@ -23,6 +23,7 @@ class FakeAuthRepository(
         null
     }
     override suspend fun sendVerification() = resultOr { null }
+    override suspend fun refresh() = resultOr { null }
     override suspend fun resetPassword(email: String) = resultOr { null }
     override suspend fun signOut() { mutableState.value = AuthState.Guest; reauthenticated = false }
     override suspend fun reauthenticate(password: String) = resultOr {

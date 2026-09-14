@@ -80,7 +80,12 @@ fun AccountScreen(viewModel: AccountViewModel, onOpenCloudBackup: () -> Unit, on
             is AuthState.SignedIn -> {
                 Text(auth.email, style = MaterialTheme.typography.titleMedium)
                 Text(if (auth.verified) "Email verified" else "Email verification required", color = if (auth.verified) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-                if (!auth.verified) Button(onClick = { scope.launch { viewModel.sendVerification() } }) { Text("Send verification email") }
+                if (!auth.verified) {
+                    Button(onClick = { scope.launch { viewModel.sendVerification() } }) { Text("Send verification email") }
+                    OutlinedButton(onClick = { scope.launch { viewModel.refreshVerification() } }, enabled = !state.busy) {
+                        Text("I've verified — check again")
+                    }
+                }
                 OutlinedButton(onClick = { scope.launch { viewModel.signOut() } }, modifier = Modifier.fillMaxWidth()) { Text("Sign out") }
                 Text("Cloud backup and email reports require a verified email and separate opt-in. They are never enabled by account creation.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = { showDeletion = !showDeletion }) { Text(if (showDeletion) "Cancel account deletion" else "Delete account") }
