@@ -34,9 +34,10 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
                 workoutRepository.sessions,
                 workoutRepository.setLogs,
                 workoutRepository.exercises,
+                workoutRepository.bodyMetrics,
                 subscriptionRepository.subscription,
-            ) { sessions, sets, exercises, subscription ->
-                val input = ReportInput(sessions, sets, exercises)
+            ) { sessions, sets, exercises, bodyMetrics, subscription ->
+                val input = ReportInput(sessions, sets, exercises, bodyMetrics)
                 ReportUiState(
                     subscription = subscription,
                     weeklyPreview = buildWeeklyReport(input, LocalDate.now()),

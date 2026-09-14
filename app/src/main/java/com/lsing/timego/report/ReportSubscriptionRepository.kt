@@ -53,8 +53,10 @@ class ReportSubscriptionRepository(private val context: Context) {
         if (enabled && !cloudBackupEnabled) return SubscriptionResult.Failure(SubscriptionFailure.CLOUD_BACKUP_REQUIRED)
         context.reportSubscriptionStore.edit { preferences ->
             preferences[if (cadence == ReportCadence.WEEKLY) WEEKLY else MONTHLY] = enabled
-            preferences[CONSENT_VERSION] = CURRENT_CONSENT_VERSION
-            preferences[CONSENTED_AT] = nowEpochMillis
+            if (enabled) {
+                preferences[CONSENT_VERSION] = CURRENT_CONSENT_VERSION
+                preferences[CONSENTED_AT] = nowEpochMillis
+            }
         }
         return SubscriptionResult.Success
     }
