@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.lsing.timego.report.ReportSubscriptionRepository
@@ -22,13 +23,12 @@ class CloudBackupViewModel(application: Application) : AndroidViewModel(applicat
     private val mutableMessage = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = mutableMessage.asStateFlow()
 
-    init { viewModelScope.launch { repository.consent.collect { remote.publish(it) } } }
-
     fun setEnabled(enabled: Boolean, emailVerified: Boolean) {
         viewModelScope.launch {
             repository.setEnabled(enabled, emailVerified, backendAvailable).fold(
                 onSuccess = {
                     if (!enabled) ReportSubscriptionRepository(getApplication()).unsubscribeAll()
+                    remote.publish(repository.consent.first())
                     SyncWorker.setPeriodicEnabled(getApplication(), enabled)
                     if (enabled) SyncWorker.enqueue(getApplication())
                     mutableMessage.value = if (enabled) "Cloud backup enabled. Pending records will sync when connected." else "Cloud backup disabled. Local data remains on this device."
