@@ -23,10 +23,12 @@ data class ReportUiState(
 class ReportViewModel(application: Application) : AndroidViewModel(application) {
     private val workoutRepository = WorkoutRepository(TimeGoDatabase.getInstance(application))
     private val subscriptionRepository = ReportSubscriptionRepository(application)
+    private val preferencesRemote = ReportPreferencesRemote(application)
     private val mutableState = MutableStateFlow(ReportUiState())
     val state: StateFlow<ReportUiState> = mutableState.asStateFlow()
 
     init {
+        viewModelScope.launch { subscriptionRepository.subscription.collect { preferencesRemote.publish(it) } }
         viewModelScope.launch {
             combine(
                 workoutRepository.sessions,

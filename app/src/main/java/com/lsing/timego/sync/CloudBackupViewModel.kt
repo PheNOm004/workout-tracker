@@ -15,11 +15,14 @@ import com.lsing.timego.report.ReportSubscriptionRepository
 
 class CloudBackupViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = CloudBackupRepository(application)
+    private val remote = CloudBackupRemote(application)
     val consent = repository.consent.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CloudBackupConsent())
     val pendingCount = TimeGoDatabase.getInstance(application).syncDao().observePendingCount().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
     val backendAvailable = FirebaseApp.getApps(application).isNotEmpty()
     private val mutableMessage = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = mutableMessage.asStateFlow()
+
+    init { viewModelScope.launch { repository.consent.collect { remote.publish(it) } } }
 
     fun setEnabled(enabled: Boolean, emailVerified: Boolean) {
         viewModelScope.launch {
