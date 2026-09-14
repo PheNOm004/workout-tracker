@@ -12,6 +12,8 @@ import com.lsing.timego.data.adaptive.ShadowDao
 import com.lsing.timego.data.adaptive.ShadowSnapshotEntity
 import com.lsing.timego.data.guidance.ExerciseGuidance
 import com.lsing.timego.data.guidance.ExerciseGuidanceDao
+import com.lsing.timego.sync.SyncDao
+import com.lsing.timego.sync.SyncMetadata
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -177,20 +179,28 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
     }
 }
 
+val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `sync_metadata` (`domainType` TEXT NOT NULL, `localId` INTEGER NOT NULL, `stableUuid` TEXT NOT NULL, `operation` TEXT NOT NULL, `revision` INTEGER NOT NULL, `pending` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, `attemptCount` INTEGER NOT NULL, `nextAttemptAtEpochMillis` INTEGER NOT NULL, `lastErrorCategory` TEXT, PRIMARY KEY(`domainType`, `localId`))")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_sync_metadata_stableUuid` ON `sync_metadata` (`stableUuid`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_sync_metadata_pending_nextAttemptAtEpochMillis` ON `sync_metadata` (`pending`, `nextAttemptAtEpochMillis`)")
+    }
+}
+
 /** Shared with [com.lsing.timego.data.BackupManager], which opens a *separate* temporary Room
  *  instance against a restored backup file -- that copy needs the exact same migration path as the
  *  live database in case it was exported by an older app version. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-    MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
+    MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
 )
 
 const val TIMEGO_DATABASE_FILE_NAME = "timego.db"
 
 @Database(
-    entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class, ShadowSnapshotEntity::class, ShadowAuditEntity::class, ExerciseGuidance::class],
-    version = 16,
+    entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class, ShadowSnapshotEntity::class, ShadowAuditEntity::class, ExerciseGuidance::class, SyncMetadata::class],
+    version = 17,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -202,6 +212,7 @@ abstract class TimeGoDatabase : RoomDatabase() {
     abstract fun bodyMetricDao(): BodyMetricDao
     abstract fun shadowDao(): ShadowDao
     abstract fun exerciseGuidanceDao(): ExerciseGuidanceDao
+    abstract fun syncDao(): SyncDao
 
     companion object {
         @Volatile private var instance: TimeGoDatabase? = null

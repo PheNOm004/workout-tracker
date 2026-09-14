@@ -19,7 +19,7 @@ class TimeGoDatabaseMigration15Test {
         createSchema14Database(context, TEST_DATABASE)
 
         val migrated = Room.databaseBuilder(context, TimeGoDatabase::class.java, TEST_DATABASE)
-            .addMigrations(MIGRATION_14_15)
+            .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
             .allowMainThreadQueries()
             .build()
         try {
@@ -42,7 +42,7 @@ class TimeGoDatabaseMigration15Test {
     }
 
     @Test
-    fun migration15To16PreservesUserRowsAndAddsGuidanceTable() {
+    fun migration15To17PreservesUserRowsAndAddsFoundationTables() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         context.deleteDatabase(TEST_DATABASE_16)
         createSchema14Database(context, TEST_DATABASE_16)
@@ -54,7 +54,7 @@ class TimeGoDatabaseMigration15Test {
         }
 
         val migrated = Room.databaseBuilder(context, TimeGoDatabase::class.java, TEST_DATABASE_16)
-            .addMigrations(MIGRATION_15_16)
+            .addMigrations(MIGRATION_15_16, MIGRATION_16_17)
             .allowMainThreadQueries()
             .build()
         try {
@@ -63,6 +63,7 @@ class TimeGoDatabaseMigration15Test {
                 .query("SELECT name FROM sqlite_master WHERE type='table'")
                 .use { cursor -> buildSet { while (cursor.moveToNext()) add(cursor.getString(0)) } }
             assertTrue("Expected guidance table after migration", "exercise_guidance" in tables)
+            assertTrue("Expected sync metadata table after migration", "sync_metadata" in tables)
         } finally {
             migrated.close()
             context.deleteDatabase(TEST_DATABASE_16)
