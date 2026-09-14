@@ -148,6 +148,8 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val landingMuscleBalance by viewModel.landingMuscleBalance.collectAsStateWithLifecycle()
     val routineLastCompleted by viewModel.routineLastCompleted.collectAsStateWithLifecycle()
     val activeTimer by viewModel.activeTimer.collectAsStateWithLifecycle()
+    val activeProgramId by viewModel.activeProgramId.collectAsStateWithLifecycle()
+    val calisthenicsTier by viewModel.calisthenicsTier.collectAsStateWithLifecycle()
     var peekingLanding by rememberSaveable { mutableStateOf(false) }
     var expandedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
     var pendingProgramSuggestionIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
@@ -192,6 +194,10 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                     expandedExerciseIds = ids.take(1)
                     pendingProgramSuggestionIds = ids.drop(1)
                 },
+                activeProgramId = activeProgramId,
+                onSetActiveProgramId = viewModel::setActiveProgramId,
+                calisthenicsTier = calisthenicsTier,
+                onSetCalisthenicsTier = viewModel::setCalisthenicsTier,
                 routineLastCompleted = routineLastCompleted,
                 balanceTimeframe = landingBalanceTimeframe,
                 muscleBalance = landingMuscleBalance,
@@ -218,6 +224,10 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                                 onStartOrContinue = { peekingLanding = false },
                                 onChooseAnother = {},
                                 onStartProgramSession = {},
+                                activeProgramId = activeProgramId,
+                                onSetActiveProgramId = viewModel::setActiveProgramId,
+                                calisthenicsTier = calisthenicsTier,
+                                onSetCalisthenicsTier = viewModel::setCalisthenicsTier,
                                 routineLastCompleted = routineLastCompleted,
                                 balanceTimeframe = landingBalanceTimeframe,
                                 muscleBalance = landingMuscleBalance,
@@ -308,6 +318,10 @@ private fun LogLandingContent(
     onStartOrContinue: (routineId: Long?) -> Unit,
     onChooseAnother: () -> Unit,
     onStartProgramSession: (ProgramDayTypeSuggestion) -> Unit,
+    activeProgramId: String?,
+    onSetActiveProgramId: (String?) -> Unit,
+    calisthenicsTier: com.lsing.timego.data.CalisthenicsTier,
+    onSetCalisthenicsTier: (com.lsing.timego.data.CalisthenicsTier) -> Unit,
     routineLastCompleted: Map<Long, LocalDate>,
     balanceTimeframe: ProgressTimeframe,
     muscleBalance: Map<String, Float>,
@@ -611,6 +625,41 @@ private fun LogLandingContent(
                         OutlinedButton(onClick = { onStartOrContinue(routine.id) }) {
                             Text(routine.name)
                         }
+                    }
+                }
+            }
+
+            // Program -- optional, not required to follow; picking one only changes what the
+            // Recommended Focus card above suggests next.
+            SectionHeader("Program", topPadding = Spacing.Small)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+            ) {
+                FilterChip(
+                    selected = activeProgramId == null,
+                    onClick = { onSetActiveProgramId(null) },
+                    label = { Text("None") },
+                )
+                com.lsing.timego.domain.programs.ProgramRegistry.ALL.forEach { program ->
+                    FilterChip(
+                        selected = activeProgramId == program.id,
+                        onClick = { onSetActiveProgramId(program.id) },
+                        label = { Text(program.name) },
+                    )
+                }
+            }
+            if (activeProgramId == "calisthenics_progression") {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                ) {
+                    com.lsing.timego.data.CalisthenicsTier.entries.forEach { tier ->
+                        FilterChip(
+                            selected = calisthenicsTier == tier,
+                            onClick = { onSetCalisthenicsTier(tier) },
+                            label = { Text(formatEnumLabel(tier.name)) },
+                        )
                     }
                 }
             }

@@ -199,8 +199,11 @@ class LogViewModel(
     val latestBodyWeightKg: StateFlow<Double?> = _latestBodyWeightKg.asStateFlow()
 
     private val _trainingLean = MutableStateFlow(TrainingLean.BALANCED)
-    private var activeProgramId: String? = null
-    private var calisthenicsTier: CalisthenicsTier = CalisthenicsTier.BEGINNER
+    private val _activeProgramId = MutableStateFlow<String?>(null)
+    val activeProgramId: StateFlow<String?> = _activeProgramId.asStateFlow()
+
+    private val _calisthenicsTier = MutableStateFlow(CalisthenicsTier.BEGINNER)
+    val calisthenicsTier: StateFlow<CalisthenicsTier> = _calisthenicsTier.asStateFlow()
 
     private val _sessionState = MutableStateFlow<SessionUiState>(SessionUiState.Loading)
     val sessionState: StateFlow<SessionUiState> = _sessionState.asStateFlow()
@@ -269,13 +272,13 @@ class LogViewModel(
                         }
                         launch {
                             settingsRepository.activeProgramId.collect { id ->
-                                activeProgramId = id
+                                _activeProgramId.value = id
                                 refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
                             }
                         }
                         launch {
                             settingsRepository.calisthenicsTier.collect { tier ->
-                                calisthenicsTier = tier
+                                _calisthenicsTier.value = tier
                                 refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
                             }
                         }
@@ -354,6 +357,14 @@ class LogViewModel(
     fun selectRoutine(routineId: Long?) {
         _selectedRoutineId.value = routineId
         viewModelScope.launch { refreshDisplayedExercises() }
+    }
+
+    fun setActiveProgramId(id: String?) {
+        viewModelScope.launch { settingsRepository.setActiveProgramId(id) }
+    }
+
+    fun setCalisthenicsTier(tier: CalisthenicsTier) {
+        viewModelScope.launch { settingsRepository.setCalisthenicsTier(tier) }
     }
 
     fun selectLandingBalanceTimeframe(timeframe: ProgressTimeframe) {
@@ -580,11 +591,11 @@ class LogViewModel(
                 "Tailored to your $leanTitle preference"
             } else null
 
-            val program = ProgramRegistry.byId(activeProgramId)
+            val program = ProgramRegistry.byId(_activeProgramId.value)
             val candidateDayTypes = when {
                 program == null -> null
                 program.id == "calisthenics_progression" -> program.dayTypes.filter { dayType ->
-                    when (calisthenicsTier) {
+                    when (_calisthenicsTier.value) {
                         CalisthenicsTier.BEGINNER -> dayType.name.startsWith("Beginner")
                         CalisthenicsTier.INTERMEDIATE -> dayType.name.startsWith("Intermediate")
                         CalisthenicsTier.ADVANCED -> dayType.name.startsWith("Advanced")
