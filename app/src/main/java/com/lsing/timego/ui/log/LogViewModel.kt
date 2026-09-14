@@ -72,6 +72,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -135,6 +137,11 @@ class LogViewModel(
     private val database = TimeGoDatabase.getInstance(application)
     private val repository = WorkoutRepository(database)
     private val catalogueRepository = CatalogueRepository(database)
+    val guidanceByKey = catalogueRepository.guidanceByKey.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        emptyMap(),
+    )
     private val settingsRepository = SettingsRepository(application)
     private val profileRepository = ProfileRepository(application)
     private val suggester: com.lsing.timego.domain.OverloadSuggester = AdaptiveOverloadSuggester()

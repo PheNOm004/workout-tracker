@@ -135,6 +135,8 @@ import com.lsing.timego.ui.common.formatMuscleGroupList
 import com.lsing.timego.ui.common.timeframeLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.Spacing
+import com.lsing.timego.ui.exercise.ExerciseDetailSheet
+import com.lsing.timego.ui.exercise.buildExerciseDetail
 import java.time.LocalDate
 
 private enum class ActiveLogPage { SESSION, EXERCISE_PICKER }
@@ -956,6 +958,8 @@ private fun ExercisePickerContent(
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var expandedExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var detailExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val guidanceByKey by viewModel.guidanceByKey.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val holdSuggestions by viewModel.holdSuggestions.collectAsStateWithLifecycle()
     val lastWorkingSets by viewModel.lastWorkingSets.collectAsStateWithLifecycle()
@@ -974,6 +978,23 @@ private fun ExercisePickerContent(
                 showAddDialog = false
             },
         )
+    }
+    detailExerciseId?.let { id ->
+        val exercise = exercises.firstOrNull { it.id == id }
+        val guidance = exercise?.catalogueKey?.let(guidanceByKey::get)
+        if (exercise != null) {
+            val model = buildExerciseDetail(exercise, guidance)
+            val easier = model.easierVariationKey?.let(guidanceByKey::get)
+            ExerciseDetailSheet(
+                model = model,
+                easierName = easier?.name,
+                onShowEasier = {
+                    val easierExercise = easier?.catalogueKey?.let { key -> exercises.firstOrNull { it.catalogueKey == key } }
+                    detailExerciseId = easierExercise?.id
+                },
+                onDismiss = { detailExerciseId = null },
+            )
+        }
     }
 
     var showOrderMenu by remember { mutableStateOf(false) }
@@ -1064,6 +1085,7 @@ private fun ExercisePickerContent(
                         onToggle = {
                             expandedExerciseId = if (expandedExerciseId == exercise.id) null else exercise.id
                         },
+                        onShowDetails = { detailExerciseId = exercise.id },
                         onLogStrength = { weight, reps, target, isWarmup, addedWeightKg, rpe, provenance ->
                             viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg, rpe, provenance)
                         },
@@ -1132,12 +1154,14 @@ private fun ExercisePickerRow(
     pulseId: Long,
     onToggleFavorite: () -> Unit,
     onToggle: () -> Unit,
+    onShowDetails: () -> Unit,
     onLogStrength: (Double, Int, Int, Boolean, Double?, Int?, TargetProvenance) -> Unit,
     onLogCardio: (Double, Double?) -> Unit,
     onLogHold: (Int, Int, Boolean, TargetProvenance) -> Unit,
     onStartTimer: () -> Unit,
     onCancelTimer: () -> Unit,
 ) {
+    Column {
     when (exercise.loggingType) {
         LoggingType.HOLD.name -> HoldLogRow(
             exerciseId = exercise.id,
@@ -1187,6 +1211,10 @@ private fun ExercisePickerRow(
             onToggle = onToggle,
             onLog = onLogStrength,
         )
+    }
+    if (expanded) {
+        TextButton(onClick = onShowDetails, modifier = Modifier.align(Alignment.End)) { Text("Exercise details") }
+    }
     }
 }
 
