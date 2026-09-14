@@ -45,6 +45,8 @@ fun AccountScreen(viewModel: AccountViewModel, onOpenCloudBackup: () -> Unit, on
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var confirmation by rememberSaveable { mutableStateOf("") }
+    var showDeletion by rememberSaveable { mutableStateOf(false) }
+    var deletionPassword by rememberSaveable { mutableStateOf("") }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.Large),
@@ -81,7 +83,16 @@ fun AccountScreen(viewModel: AccountViewModel, onOpenCloudBackup: () -> Unit, on
                 if (!auth.verified) Button(onClick = { scope.launch { viewModel.sendVerification() } }) { Text("Send verification email") }
                 OutlinedButton(onClick = { scope.launch { viewModel.signOut() } }, modifier = Modifier.fillMaxWidth()) { Text("Sign out") }
                 Text("Cloud backup and email reports require a verified email and separate opt-in. They are never enabled by account creation.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Account deletion will be enabled only with the complete cloud-data deletion service.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = { showDeletion = !showDeletion }) { Text(if (showDeletion) "Cancel account deletion" else "Delete account") }
+                if (showDeletion) {
+                    Text("This deletes your cloud workout data, report subscriptions, and login. Local workout data stays on this device unless you separately remove it.", color = MaterialTheme.colorScheme.error)
+                    OutlinedTextField(deletionPassword, { deletionPassword = it }, label = { Text("Confirm password") }, visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Button(
+                        enabled = deletionPassword.isNotBlank() && !state.busy,
+                        onClick = { scope.launch { viewModel.reauthenticate(deletionPassword); if (viewModel.uiState.value.message == null) viewModel.deleteAccount() } },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Permanently delete cloud account") }
+                }
             }
         }
         state.message?.let { Text(it, color = if (it.contains("requested") || it.contains("deleted")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error) }

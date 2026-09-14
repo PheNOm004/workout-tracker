@@ -7,6 +7,9 @@
 /captures
 .externalNativeBuild
 .kotlin/
+functions/node_modules/
+functions/lib/
+.firebase/
 .cxx
 /.worktrees
 /.superpowers/

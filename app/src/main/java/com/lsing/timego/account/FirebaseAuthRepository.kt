@@ -6,6 +6,7 @@ import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
+import com.google.firebase.functions.FirebaseFunctions
 import com.google.android.gms.tasks.Task
 import android.content.Context
 import kotlin.coroutines.resume
@@ -14,7 +15,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class FirebaseAuthRepository(private val auth: FirebaseAuth) : AuthRepository {
+class FirebaseAuthRepository(
+    private val auth: FirebaseAuth,
+    private val functions: FirebaseFunctions = FirebaseFunctions.getInstance(),
+) : AuthRepository {
     private val mutableState = MutableStateFlow(auth.currentUser.toState())
     override val authState: StateFlow<AuthState> = mutableState.asStateFlow()
     private val listener = FirebaseAuth.AuthStateListener { updated -> mutableState.value = updated.currentUser.toState() }
@@ -31,7 +35,9 @@ class FirebaseAuthRepository(private val auth: FirebaseAuth) : AuthRepository {
         val email = user.email ?: return AuthResult.Failure(AuthFailure.CREDENTIALS_REJECTED)
         return mapTask(user.reauthenticate(EmailAuthProvider.getCredential(email, password)))
     }
-    override suspend fun deleteAccount(): AuthResult = auth.currentUser?.let { mapTask(it.delete()) } ?: AuthResult.Success
+    override suspend fun deleteAccount(): AuthResult =
+        if (auth.currentUser == null) AuthResult.Success
+        else mapTask(functions.getHttpsCallable("deleteAccount").call())
 
     private suspend fun mapTask(task: Task<*>, hideCredentialFailure: Boolean = false): AuthResult {
         val error = suspendCancellableCoroutine<Exception?> { continuation ->
