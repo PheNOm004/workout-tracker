@@ -151,6 +151,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val routineLastCompleted by viewModel.routineLastCompleted.collectAsStateWithLifecycle()
     val activeTimer by viewModel.activeTimer.collectAsStateWithLifecycle()
     val guidanceByKey by viewModel.guidanceByKey.collectAsStateWithLifecycle()
+    val exerciseLibrary by viewModel.exerciseLibrary.collectAsStateWithLifecycle()
     var peekingLanding by rememberSaveable { mutableStateOf(false) }
     var expandedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
     var librarySearchQuery by rememberSaveable { mutableStateOf("") }
@@ -265,7 +266,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
         val guidance = exercise.catalogueKey?.let(guidanceByKey::get)
         val model = buildExerciseDetail(exercise, guidance)
         val easierExercise = model.easierVariationKey?.let { key ->
-            viewModel.exerciseLibrary.value.firstOrNull { it.catalogueKey == key }
+            exerciseLibrary.firstOrNull { it.catalogueKey == key }
         }
         ExerciseDetailSheet(
             model = model,
