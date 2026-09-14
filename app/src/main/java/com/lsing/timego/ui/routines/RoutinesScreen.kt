@@ -61,7 +61,10 @@ private val SESSION_HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d,
 @Composable
 fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     val isHydrated by viewModel.isHydrated.collectAsStateWithLifecycle()
-    val routines by viewModel.routines.collectAsStateWithLifecycle()
+    // Program routines (seeded, programId != null) are managed from the landing page's Program
+    // filter, not here -- this page is for the user's own routines, and listing every seeded
+    // program routine alongside them would make "Your routines" unreadable.
+    val routines = viewModel.routines.collectAsStateWithLifecycle().value.filter { it.programId == null }
     val routineExercisesById by viewModel.routineExercisesById.collectAsStateWithLifecycle()
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
     val untrainedGroups by viewModel.untrainedGroups.collectAsStateWithLifecycle()

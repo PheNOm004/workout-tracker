@@ -301,15 +301,30 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
     /** Inserts any [seed] routine not already present (matched by `(programId, name)`, mirroring
      *  [seedMissingExercises]'s name-matching convention) -- run once at startup, not gated on the
      *  table being empty, so a future SEED_ROUTINES expansion still reaches an already-used install.
-     *  Resolves each [SeedRoutine.exerciseNames] entry against the already-seeded exercise catalogue
-     *  by exact name; a name with no catalogue match is skipped (not a hard failure) so a future
-     *  catalogue rename can't brick every program's seeding in one go. Never touches user-created
-     *  routines (programId == null). */
+     *  Also repairs any existing seeded routine that has zero exercises (e.g. an earlier install hit
+     *  the exercise-lookup race this function used to have) by inserting its exercises now, without
+     *  touching the routine row itself. Resolves each [SeedRoutine.exerciseNames] entry against the
+     *  already-seeded exercise catalogue by exact name; a name with no catalogue match is skipped
+     *  (not a hard failure) so a future catalogue rename can't brick every program's seeding in one
+     *  go. Never touches user-created routines (programId == null). */
     suspend fun seedMissingRoutines(seed: List<SeedRoutine>) {
-        val existingKeys = routines.first().mapTo(mutableSetOf()) { it.programId to it.name }
-        val missing = seed.filter { (it.programId to it.name) !in existingKeys }
-        if (missing.isEmpty()) return
-        val exerciseIdsByName = exercises.first().associate { it.name to it.id }
+        // Direct one-shot DAO reads, not the exposed Flows -- seeding needs a guaranteed-fresh view
+        // immediately after seedMissingExercises's transaction commits, not whatever the Flow has
+        // invalidated to by the time it's collected (no synchronous guarantee on Room Flow
+        // invalidation timing relative to the write that triggered it).
+        val existingRoutines = db.routineDao().allRoutinesOnce()
+        val existingByKey = existingRoutines.associateBy { it.programId to it.name }
+        val exerciseCountByRoutineId = db.routineDao().allRoutineExercisesOnce().groupingBy { it.routineId }.eachCount()
+
+        val missing = seed.filter { (it.programId to it.name) !in existingByKey }
+        val brokenExisting = seed.mapNotNull { seedRoutine ->
+            val existing = existingByKey[seedRoutine.programId to seedRoutine.name] ?: return@mapNotNull null
+            if ((exerciseCountByRoutineId[existing.id] ?: 0) > 0) return@mapNotNull null
+            seedRoutine to existing.id
+        }
+        if (missing.isEmpty() && brokenExisting.isEmpty()) return
+
+        val exerciseIdsByName = db.exerciseDao().allForShadowSnapshot().associate { it.name to it.id }
         db.withTransaction {
             missing.forEach { seedRoutine ->
                 val exerciseIds = seedRoutine.exerciseNames.mapNotNull { exerciseIdsByName[it] }
@@ -317,6 +332,12 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                 val routineId = db.routineDao().insertRoutine(
                     Routine(name = seedRoutine.name, programId = seedRoutine.programId, tier = seedRoutine.tier),
                 )
+                exerciseIds.forEachIndexed { index, exerciseId ->
+                    db.routineDao().insertRoutineExercise(RoutineExercise(routineId = routineId, exerciseId = exerciseId, orderIndex = index))
+                }
+            }
+            brokenExisting.forEach { (seedRoutine, routineId) ->
+                val exerciseIds = seedRoutine.exerciseNames.mapNotNull { exerciseIdsByName[it] }
                 exerciseIds.forEachIndexed { index, exerciseId ->
                     db.routineDao().insertRoutineExercise(RoutineExercise(routineId = routineId, exerciseId = exerciseId, orderIndex = index))
                 }
