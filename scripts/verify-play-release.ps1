@@ -55,6 +55,7 @@ try {
         'docs/release/play-console-checklist.md',
         'docs/release/account-deletion-page.md',
         'docs/release/store-listing-draft.md'
+        'docs/release/LAUNCH_STATUS.md'
     )
     foreach ($relativePath in $requiredDocuments) {
         if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $relativePath) -PathType Leaf)) {
