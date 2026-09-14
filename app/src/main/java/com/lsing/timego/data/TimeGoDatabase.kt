@@ -10,6 +10,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.lsing.timego.data.adaptive.ShadowAuditEntity
 import com.lsing.timego.data.adaptive.ShadowDao
 import com.lsing.timego.data.adaptive.ShadowSnapshotEntity
+import com.lsing.timego.data.guidance.ExerciseGuidance
+import com.lsing.timego.data.guidance.ExerciseGuidanceDao
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -159,20 +161,36 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
     }
 }
 
+/** Adds bundled guidance beside exercises. Existing exercise IDs, user history, routines, and
+ * custom rows are untouched; catalogueKey is the only relationship. */
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `exercise_guidance` (" +
+                "`catalogueKey` TEXT NOT NULL, `name` TEXT NOT NULL, `catalogueVersion` INTEGER NOT NULL, " +
+                "`aliases` TEXT NOT NULL, `muscleGroups` TEXT NOT NULL, `equipment` TEXT NOT NULL, " +
+                "`difficulty` TEXT NOT NULL, `complexity` TEXT NOT NULL, `purpose` TEXT NOT NULL, " +
+                "`setup` TEXT NOT NULL, `steps` TEXT NOT NULL, `cues` TEXT NOT NULL, `mistakes` TEXT NOT NULL, " +
+                "`easierVariationKey` TEXT, `harderVariationKeys` TEXT NOT NULL, `reviewStatus` TEXT NOT NULL, " +
+                "PRIMARY KEY(`catalogueKey`))",
+        )
+    }
+}
+
 /** Shared with [com.lsing.timego.data.BackupManager], which opens a *separate* temporary Room
  *  instance against a restored backup file -- that copy needs the exact same migration path as the
  *  live database in case it was exported by an older app version. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-    MIGRATION_13_14, MIGRATION_14_15,
+    MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
 )
 
 const val TIMEGO_DATABASE_FILE_NAME = "timego.db"
 
 @Database(
-    entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class, ShadowSnapshotEntity::class, ShadowAuditEntity::class],
-    version = 15,
+    entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class, ShadowSnapshotEntity::class, ShadowAuditEntity::class, ExerciseGuidance::class],
+    version = 16,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -183,6 +201,7 @@ abstract class TimeGoDatabase : RoomDatabase() {
     abstract fun routineDao(): RoutineDao
     abstract fun bodyMetricDao(): BodyMetricDao
     abstract fun shadowDao(): ShadowDao
+    abstract fun exerciseGuidanceDao(): ExerciseGuidanceDao
 
     companion object {
         @Volatile private var instance: TimeGoDatabase? = null

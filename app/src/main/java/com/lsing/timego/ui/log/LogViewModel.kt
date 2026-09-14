@@ -19,6 +19,7 @@ import com.lsing.timego.domain.filterCandidates
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.WorkoutRepository
+import com.lsing.timego.data.guidance.CatalogueRepository
 import com.lsing.timego.domain.DEFAULT_WEIGHT_INCREMENT_KG
 import com.lsing.timego.domain.HoldPerformance
 import com.lsing.timego.domain.HoldSuggestion
@@ -131,7 +132,9 @@ class LogViewModel(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
 ) : AndroidViewModel(application) {
-    private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
+    private val database = TimeGoDatabase.getInstance(application)
+    private val repository = WorkoutRepository(database)
+    private val catalogueRepository = CatalogueRepository(database)
     private val settingsRepository = SettingsRepository(application)
     private val profileRepository = ProfileRepository(application)
     private val suggester: com.lsing.timego.domain.OverloadSuggester = AdaptiveOverloadSuggester()
@@ -236,6 +239,7 @@ class LogViewModel(
     init {
         viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
+            catalogueRepository.ensureBundledImported()
             // This ViewModel is activity-scoped by the custom root-tab host. Its session state is
             // always collected while Log is STARTED, so subscriber presence is the lifecycle
             // signal that starts all Room/DataStore work and cancels it off-screen/backgrounded.

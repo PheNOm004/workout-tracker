@@ -16,7 +16,7 @@ class TimeGoDatabaseMigration15Test {
     fun migration14To15PreservesRowsAndAddsChronologicalSetIndex() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         context.deleteDatabase(TEST_DATABASE)
-        createSchema14Database(context)
+        createSchema14Database(context, TEST_DATABASE)
 
         val migrated = Room.databaseBuilder(context, TimeGoDatabase::class.java, TEST_DATABASE)
             .addMigrations(MIGRATION_14_15)
@@ -41,8 +41,36 @@ class TimeGoDatabaseMigration15Test {
         }
     }
 
-    private fun createSchema14Database(context: Context) {
-        context.openOrCreateDatabase(TEST_DATABASE, Context.MODE_PRIVATE, null).use { database ->
+    @Test
+    fun migration15To16PreservesUserRowsAndAddsGuidanceTable() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.deleteDatabase(TEST_DATABASE_16)
+        createSchema14Database(context, TEST_DATABASE_16)
+        context.openOrCreateDatabase(TEST_DATABASE_16, Context.MODE_PRIVATE, null).use { database ->
+            database.execSQL("CREATE INDEX index_set_logs_loggedAtEpochMillis ON set_logs (loggedAtEpochMillis)")
+            database.execSQL("UPDATE room_master_table SET identity_hash = '6603d299a10b5743a8d40a27408c2028' WHERE id = 42")
+            database.execSQL("INSERT INTO exercises (name, catalogueKey, muscleGroups, isCustom, category, loggingType, muscleWeights) VALUES ('My custom move', NULL, 'FULL_BODY', 1, 'STRENGTH', 'WEIGHT_REPS', '')")
+            database.execSQL("PRAGMA user_version = 15")
+        }
+
+        val migrated = Room.databaseBuilder(context, TimeGoDatabase::class.java, TEST_DATABASE_16)
+            .addMigrations(MIGRATION_15_16)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            runBlocking { assertEquals(2, migrated.exerciseDao().allForShadowSnapshot().size) }
+            val tables = migrated.openHelper.readableDatabase
+                .query("SELECT name FROM sqlite_master WHERE type='table'")
+                .use { cursor -> buildSet { while (cursor.moveToNext()) add(cursor.getString(0)) } }
+            assertTrue("Expected guidance table after migration", "exercise_guidance" in tables)
+        } finally {
+            migrated.close()
+            context.deleteDatabase(TEST_DATABASE_16)
+        }
+    }
+
+    private fun createSchema14Database(context: Context, databaseName: String) {
+        context.openOrCreateDatabase(databaseName, Context.MODE_PRIVATE, null).use { database ->
             database.execSQL("CREATE TABLE exercises (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, catalogueKey TEXT, muscleGroups TEXT NOT NULL, isCustom INTEGER NOT NULL, category TEXT NOT NULL, loggingType TEXT NOT NULL, muscleWeights TEXT NOT NULL)")
             database.execSQL("CREATE TABLE workout_sessions (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, date INTEGER NOT NULL, routineId INTEGER, startEpochMillis INTEGER NOT NULL, endEpochMillis INTEGER)")
             database.execSQL("CREATE TABLE set_logs (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, sessionId INTEGER NOT NULL, exerciseId INTEGER NOT NULL, weightKg REAL NOT NULL, reps INTEGER NOT NULL, targetReps INTEGER NOT NULL, loggedAtEpochMillis INTEGER NOT NULL, durationMinutes REAL, distanceKm REAL, holdSeconds INTEGER, targetHoldSeconds INTEGER, isWarmup INTEGER NOT NULL, addedWeightKg REAL, rpe INTEGER, targetProvenance TEXT NOT NULL)")
@@ -65,5 +93,6 @@ class TimeGoDatabaseMigration15Test {
 
     private companion object {
         const val TEST_DATABASE = "timego-migration-15-test"
+        const val TEST_DATABASE_16 = "timego-migration-16-test"
     }
 }
