@@ -21,10 +21,12 @@ export async function scheduleReports(args: { cadence: Cadence; now: Date; fires
     // Reports are coupled to the user's explicit cloud-consent boundary. The Android client
     // enforces this prerequisite, but the backend must re-check it before any email leaves.
     if (!hasReportDeliveryConsent(data) || !isDue(args.cadence, data.timezoneId!, args.now)) continue;
-    const period = reportPeriodKey(args.cadence, data.timezoneId, args.now);
+    const timezoneId = data.timezoneId!;
+    const email = data.email!;
+    const period = reportPeriodKey(args.cadence, timezoneId, args.now);
     const rows = (await user.ref.collection("data").get()).docs.map((document) => document.data());
     const token = createManageToken({ uid: user.id, cadence: args.cadence, expiresAtEpochSeconds: Math.floor(args.now.getTime() / 1000) + 60 * 60 * 24 * 30 }, args.manageSecret);
-    const result = await sendReport({ key: deliveryKey(user.id, args.cadence, period), email: data.email, report: buildServerReport(args.cadence, period, rows), manageUrl: `${args.manageBaseUrl}?token=${encodeURIComponent(token)}`, provider: args.provider, ledger: args.ledger });
+    const result = await sendReport({ key: deliveryKey(user.id, args.cadence, period), email, report: buildServerReport(args.cadence, period, rows), manageUrl: `${args.manageBaseUrl}?token=${encodeURIComponent(token)}`, provider: args.provider, ledger: args.ledger });
     if (result === "sent") sent++;
   }
   return sent;
