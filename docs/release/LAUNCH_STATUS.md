@@ -16,6 +16,13 @@
 
 ## External release inputs still required
 
+### Recommended first release scope
+
+Ship the local-first artifact without `-PtimegoFirebase=true`. This keeps account creation, cloud
+backup, and email reports unavailable until their production services have been independently
+configured and tested. Reopen the Firebase items below for a later update rather than blocking the
+first internal test on unfinished infrastructure.
+
 1. Create the Firebase project and supply its uncommitted `app/google-services.json`.
 2. Configure Email/Password Auth, Firestore rules, Functions secrets, sender-domain/DNS, and an
    email-provider sandbox test.
