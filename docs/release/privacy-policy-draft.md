@@ -1,9 +1,9 @@
 # TimeGo Privacy Policy — Publication Draft
 
 **Application:** TimeGo (`com.lsing.timego`)
-**Effective date:** [PUBLICATION INPUT: EFFECTIVE DATE]
-**Developer:** [PUBLICATION INPUT: PUBLIC DEVELOPER NAME]
-**Privacy contact:** [PUBLICATION INPUT: SUPPORT EMAIL]
+**Effective date:** 15 September 2026
+**Developer:** Phenom
+**Privacy contact:** foresaken0004@gmail.com
 
 This draft must be reconciled with the exact release artifact and deployed at a stable public HTTPS
 URL before publication. It is not a statement that unfinished cloud features are currently live.
@@ -55,7 +55,7 @@ publication: [PUBLICATION INPUT: CONFIRMED RETENTION EXCEPTIONS OR "NONE"].
 Users can edit or reset training preferences, disable cloud backup, unsubscribe from weekly or
 monthly reports independently, export local data, and delete an account and associated cloud data
 from Account settings. A public account deletion route is available at
-[PUBLICATION INPUT: ACCOUNT DELETION HTTPS URL]. Deleting the cloud account does not silently erase
+https://thisphnmm.com/delete-account.html. Deleting the cloud account does not silently erase
 local workout history; the user receives a separate local-deletion choice.
 
 ## Children, medical use, and changes

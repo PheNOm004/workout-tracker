@@ -16,8 +16,8 @@ TimeGo offers a separate, explicit local-data deletion choice.
 
 ## Request deletion without the app
 
-Use [PUBLICATION INPUT: AUTHENTICATED DELETION FORM URL] or contact
-[PUBLICATION INPUT: SUPPORT EMAIL] with the subject `TimeGo account deletion`. The support process
+Use the public deletion page at https://thisphnmm.com/delete-account.html or contact
+foresaken0004@gmail.com with the subject `TimeGo account deletion`. The support process
 must verify control of the account email without asking for a password. Do not send workout details,
 passwords, authentication tokens, or identity documents by ordinary email.
 

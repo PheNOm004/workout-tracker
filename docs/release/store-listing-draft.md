@@ -17,8 +17,8 @@
   or guaranteed results. Stop if a movement causes pain, dizziness, or loss of control.
 
 - **Category:** Health & Fitness
-- **Ads:** [PUBLICATION INPUT: ADS DECLARATION]
-- **Support contact:** [PUBLICATION INPUT: MONITORED SUPPORT EMAIL]
+- **Ads:** No ads are included in the current build.
+- **Support contact:** foresaken0004@gmail.com
 
 ## Reviewer access
 

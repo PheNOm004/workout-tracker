@@ -19,8 +19,9 @@
 1. Create the Firebase project and supply its uncommitted `app/google-services.json`.
 2. Configure Email/Password Auth, Firestore rules, Functions secrets, sender-domain/DNS, and an
    email-provider sandbox test.
-3. Replace all policy, support, screenshot, feature-graphic, and deletion-page placeholders, then
-   deploy Hosting only after reviewing them.
+3. Policy and deletion pages are published at `https://thisphnmm.com/privacy.html` and
+   `https://thisphnmm.com/delete-account.html`; support contact is `foresaken0004@gmail.com`.
+   Remaining listing inputs are screenshots and the feature graphic.
 4. Create the Play Console app, enroll Play App Signing, create the private upload keystore, and
    build the signed AAB with `scripts/build-play-aab.ps1`.
 5. Complete internal/closed testing, declarations, data-safety answers, account-deletion review,
