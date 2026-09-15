@@ -314,17 +314,25 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         // invalidation timing relative to the write that triggered it).
         val existingRoutines = db.routineDao().allRoutinesOnce()
         val existingByKey = existingRoutines.associateBy { it.programId to it.name }
-        val exerciseCountByRoutineId = db.routineDao().allRoutineExercisesOnce().groupingBy { it.routineId }.eachCount()
-
-        val missing = seed.filter { (it.programId to it.name) !in existingByKey }
-        val brokenExisting = seed.mapNotNull { seedRoutine ->
-            val existing = existingByKey[seedRoutine.programId to seedRoutine.name] ?: return@mapNotNull null
-            if ((exerciseCountByRoutineId[existing.id] ?: 0) > 0) return@mapNotNull null
-            seedRoutine to existing.id
-        }
-        if (missing.isEmpty() && brokenExisting.isEmpty()) return
+        val existingExerciseIdsByRoutineId = db.routineDao().allRoutineExercisesOnce()
+            .groupingBy { it.routineId }
+            .fold(emptySet<Long>()) { acc, re -> acc + re.exerciseId }
 
         val exerciseIdsByName = db.exerciseDao().allForShadowSnapshot().associate { it.name to it.id }
+
+        val missing = seed.filter { (it.programId to it.name) !in existingByKey }
+        // A seeded routine is out of sync with its source (empty from the old seed/read-race bug, or
+        // simply edited in SEED_ROUTINES since it was first seeded) whenever its stored exercise set no
+        // longer matches what the current seed defines -- resync rather than only patching emptiness, so
+        // a SEED_ROUTINES content change actually reaches devices that seeded before the change.
+        val outOfSync = seed.mapNotNull { seedRoutine ->
+            val existing = existingByKey[seedRoutine.programId to seedRoutine.name] ?: return@mapNotNull null
+            val seedExerciseIds = seedRoutine.exerciseNames.mapNotNull { exerciseIdsByName[it] }.toSet()
+            if (existingExerciseIdsByRoutineId[existing.id].orEmpty() == seedExerciseIds) return@mapNotNull null
+            seedRoutine to existing.id
+        }
+        if (missing.isEmpty() && outOfSync.isEmpty()) return
+
         db.withTransaction {
             missing.forEach { seedRoutine ->
                 val exerciseIds = seedRoutine.exerciseNames.mapNotNull { exerciseIdsByName[it] }
@@ -336,7 +344,8 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                     db.routineDao().insertRoutineExercise(RoutineExercise(routineId = routineId, exerciseId = exerciseId, orderIndex = index))
                 }
             }
-            brokenExisting.forEach { (seedRoutine, routineId) ->
+            outOfSync.forEach { (seedRoutine, routineId) ->
+                db.routineDao().deleteRoutineExercises(routineId)
                 val exerciseIds = seedRoutine.exerciseNames.mapNotNull { exerciseIdsByName[it] }
                 exerciseIds.forEachIndexed { index, exerciseId ->
                     db.routineDao().insertRoutineExercise(RoutineExercise(routineId = routineId, exerciseId = exerciseId, orderIndex = index))
