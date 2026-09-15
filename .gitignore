@@ -14,6 +14,7 @@ functions/lib/
 /.worktrees
 /.superpowers/
 /.claude/
+/.wrangler/
 
 # Personal workout records stay local: never commit Room database copies, WAL files, or exports.
 *.db
