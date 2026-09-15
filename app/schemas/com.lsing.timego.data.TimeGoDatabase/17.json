@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 17,
-    "identityHash": "e5ac863bda8b6801946f1aed084ff78d",
+    "identityHash": "9ad5ec4ed0bd1d24248fdf108b42bef0",
     "entities": [
       {
         "tableName": "exercises",
@@ -230,7 +230,7 @@
       },
       {
         "tableName": "routines",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `daysOfWeek` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `daysOfWeek` TEXT NOT NULL, `programId` TEXT, `tier` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -249,6 +249,16 @@
             "columnName": "daysOfWeek",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "programId",
+            "columnName": "programId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tier",
+            "columnName": "tier",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -697,7 +707,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e5ac863bda8b6801946f1aed084ff78d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9ad5ec4ed0bd1d24248fdf108b42bef0')"
     ]
   }
 }

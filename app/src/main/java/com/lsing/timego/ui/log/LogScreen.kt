@@ -105,6 +105,7 @@ import com.lsing.timego.domain.MET_WARMUP
 import com.lsing.timego.domain.ProgressTimeframe
 import com.lsing.timego.domain.averagePaceMinPerKm
 import com.lsing.timego.domain.diagramGroupsForBodyRegionCrop
+import com.lsing.timego.domain.expandMuscleGroupRegions
 import com.lsing.timego.domain.estimatedCalorieBurn
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.domain.formatDaysSince
@@ -146,12 +147,15 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
     val landingSummary by viewModel.landingSummary.collectAsStateWithLifecycle()
     val routines by viewModel.routines.collectAsStateWithLifecycle()
+    val routineExercisesById by viewModel.routineExercisesById.collectAsStateWithLifecycle()
     val landingBalanceTimeframe by viewModel.landingBalanceTimeframe.collectAsStateWithLifecycle()
     val landingMuscleBalance by viewModel.landingMuscleBalance.collectAsStateWithLifecycle()
     val routineLastCompleted by viewModel.routineLastCompleted.collectAsStateWithLifecycle()
     val activeTimer by viewModel.activeTimer.collectAsStateWithLifecycle()
     val guidanceByKey by viewModel.guidanceByKey.collectAsStateWithLifecycle()
     val exerciseLibrary by viewModel.exerciseLibrary.collectAsStateWithLifecycle()
+    val activeProgramId by viewModel.activeProgramId.collectAsStateWithLifecycle()
+    val calisthenicsTier by viewModel.calisthenicsTier.collectAsStateWithLifecycle()
     var peekingLanding by rememberSaveable { mutableStateOf(false) }
     var expandedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
     var librarySearchQuery by rememberSaveable { mutableStateOf("") }
@@ -160,6 +164,10 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     var activeLogPageName by rememberSaveable { mutableStateOf(ActiveLogPage.SESSION.name) }
     var selectedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
     var detailExercise by remember { mutableStateOf<com.lsing.timego.data.Exercise?>(null) }
+    // Set just before starting a routine session (see onStartOrContinue below) and consumed by the
+    // LaunchedEffect once the new session actually exists -- setting selectedExerciseIds directly in
+    // the click handler would be clobbered by this same effect's own reset when sessionState updates.
+    var pendingRoutineExerciseIds by remember { mutableStateOf<List<Long>?>(null) }
 
     LaunchedEffect(sessionState) {
         val sessionId = (sessionState as? SessionUiState.Active)?.sessionId
@@ -169,7 +177,8 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
             librarySearchQuery = ""
             peekingLanding = false
             activeLogPageName = ActiveLogPage.SESSION.name
-            selectedExerciseIds = emptyList()
+            selectedExerciseIds = pendingRoutineExerciseIds ?: emptyList()
+            pendingRoutineExerciseIds = null
         }
     }
 
@@ -187,9 +196,17 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
             is SessionUiState.NoActiveSession -> LogLandingContent(
                 summary = landingSummary,
                 routines = routines,
+                routineExercisesById = routineExercisesById,
                 isSessionActive = false,
-                onStartOrContinue = viewModel::startSession,
+                onStartOrContinue = { routineId ->
+                    pendingRoutineExerciseIds = routineId?.let { id -> routineExercisesById[id]?.map { it.id } }.orEmpty()
+                    viewModel.startSession(routineId)
+                },
                 onChooseAnother = viewModel::chooseAnotherSuggestion,
+                activeProgramId = activeProgramId,
+                onSetActiveProgramId = viewModel::setActiveProgramId,
+                calisthenicsTier = calisthenicsTier,
+                onSetCalisthenicsTier = viewModel::setCalisthenicsTier,
                 onOpenExerciseDetails = { detailExercise = it },
                 routineLastCompleted = routineLastCompleted,
                 balanceTimeframe = landingBalanceTimeframe,
@@ -213,9 +230,14 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                             LogLandingContent(
                                 summary = landingSummary,
                                 routines = routines,
+                                routineExercisesById = routineExercisesById,
                                 isSessionActive = true,
                                 onStartOrContinue = { peekingLanding = false },
                                 onChooseAnother = {},
+                                activeProgramId = activeProgramId,
+                                onSetActiveProgramId = viewModel::setActiveProgramId,
+                                calisthenicsTier = calisthenicsTier,
+                                onSetCalisthenicsTier = viewModel::setCalisthenicsTier,
                                 onOpenExerciseDetails = { detailExercise = it },
                                 routineLastCompleted = routineLastCompleted,
                                 balanceTimeframe = landingBalanceTimeframe,
@@ -314,9 +336,14 @@ private fun LogLoadingContent() {
 private fun LogLandingContent(
     summary: LandingSummary,
     routines: List<com.lsing.timego.data.Routine>,
+    routineExercisesById: Map<Long, List<com.lsing.timego.data.Exercise>>,
     isSessionActive: Boolean,
     onStartOrContinue: (routineId: Long?) -> Unit,
     onChooseAnother: () -> Unit,
+    activeProgramId: String?,
+    onSetActiveProgramId: (String?) -> Unit,
+    calisthenicsTier: com.lsing.timego.data.CalisthenicsTier,
+    onSetCalisthenicsTier: (com.lsing.timego.data.CalisthenicsTier) -> Unit,
     routineLastCompleted: Map<Long, LocalDate>,
     balanceTimeframe: ProgressTimeframe,
     muscleBalance: Map<String, Float>,
@@ -336,11 +363,24 @@ private fun LogLandingContent(
         )
     }
 
-    val todaysScheduledRoutine = remember(routines) {
-        routinesForToday(routines, LocalDate.now().dayOfWeek).firstOrNull()
+    // Program picker is a filter over already-seeded routines (see SeedRoutines.kt), not a live
+    // recommender: "None" shows only user-created routines (programId == null); a seeded program
+    // shows just its own routines, narrowed to the selected tier for Calisthenics Progression.
+    val filteredRoutines = remember(routines, activeProgramId, calisthenicsTier) {
+        routines.filter { routine ->
+            when {
+                activeProgramId == null -> routine.programId == null
+                routine.programId != activeProgramId -> false
+                activeProgramId == "calisthenics_progression" -> routine.tier == calisthenicsTier.name
+                else -> true
+            }
+        }
     }
-    val flexibleRoutinesList = remember(routines) {
-        flexibleRoutines(routines)
+    val todaysScheduledRoutine = remember(filteredRoutines) {
+        routinesForToday(filteredRoutines, LocalDate.now().dayOfWeek).firstOrNull()
+    }
+    val flexibleRoutinesList = remember(filteredRoutines) {
+        flexibleRoutines(filteredRoutines)
     }
     val defaultSuggestedFlexibleRoutine = remember(flexibleRoutinesList, routineLastCompleted) {
         nextFlexibleRoutineInRotation(flexibleRoutinesList, routineLastCompleted)
@@ -352,6 +392,11 @@ private fun LogLandingContent(
         userSelectedFlexibleRoutineId?.let { id -> flexibleRoutinesList.firstOrNull { it.id == id } }
             ?: defaultSuggestedFlexibleRoutine
     }
+
+    // A routine's own exercises are the ground truth for its target muscles -- no recommender
+    // needed, unlike the generic Recommended Focus diagram below.
+    fun regionsForRoutine(routineId: Long): Set<String> =
+        expandMuscleGroupRegions(routineExercisesById[routineId].orEmpty().flatMap { it.muscleGroups }.toSet())
 
     Column(
         modifier = Modifier
@@ -414,8 +459,18 @@ private fun LogLandingContent(
                             "Last completed: $lastTrainedStr",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = Spacing.Medium),
+                            modifier = Modifier.padding(bottom = Spacing.Small),
                         )
+                        val scheduledRegions = regionsForRoutine(todaysScheduledRoutine.id)
+                        if (scheduledRegions.isNotEmpty()) {
+                            CroppedMuscleDiagram(
+                                muscleGroups = diagramGroupsForBodyRegionCrop(scheduledRegions),
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                highlightGroups = scheduledRegions,
+                                showNeutralContext = true,
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(bottom = Spacing.Small),
+                            )
+                        }
                         Button(
                             onClick = { onStartOrContinue(todaysScheduledRoutine.id) },
                             modifier = Modifier.fillMaxWidth(),
@@ -462,8 +517,18 @@ private fun LogLandingContent(
                             "Last completed: $lastTrainedStr",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = if (flexibleRoutinesList.size > 1) Spacing.Small else Spacing.Medium),
+                            modifier = Modifier.padding(bottom = Spacing.Small),
                         )
+                        val flexibleRegions = regionsForRoutine(activeFlexibleRoutine.id)
+                        if (flexibleRegions.isNotEmpty()) {
+                            CroppedMuscleDiagram(
+                                muscleGroups = diagramGroupsForBodyRegionCrop(flexibleRegions),
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                highlightGroups = flexibleRegions,
+                                showNeutralContext = true,
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(bottom = Spacing.Small),
+                            )
+                        }
                         if (flexibleRoutinesList.size > 1) {
                             Row(
                                 modifier = Modifier
@@ -583,9 +648,44 @@ private fun LogLandingContent(
                 }
             }
 
-            // Quick Routines Carousel
-            if (routines.isNotEmpty()) {
-                SectionHeader("Your Routines", topPadding = Spacing.Small)
+            // Program -- filters which routines the carousel below shows; "None" shows only your
+            // own user-created routines. Not required to follow; freeform stays reachable either way.
+            SectionHeader("Program", topPadding = Spacing.Small)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+            ) {
+                FilterChip(
+                    selected = activeProgramId == null,
+                    onClick = { onSetActiveProgramId(null) },
+                    label = { Text("None") },
+                )
+                com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.forEach { (programId, name) ->
+                    FilterChip(
+                        selected = activeProgramId == programId,
+                        onClick = { onSetActiveProgramId(programId) },
+                        label = { Text(name) },
+                    )
+                }
+            }
+            if (activeProgramId == "calisthenics_progression") {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                ) {
+                    com.lsing.timego.data.CalisthenicsTier.entries.forEach { tier ->
+                        FilterChip(
+                            selected = calisthenicsTier == tier,
+                            onClick = { onSetCalisthenicsTier(tier) },
+                            label = { Text(formatEnumLabel(tier.name)) },
+                        )
+                    }
+                }
+            }
+
+            // Quick Routines Carousel -- filtered to the selected Program above.
+            if (filteredRoutines.isNotEmpty()) {
+                SectionHeader(if (activeProgramId == null) "Your Routines" else "Routines", topPadding = Spacing.Small)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -596,7 +696,7 @@ private fun LogLandingContent(
                     Button(onClick = { onStartOrContinue(null) }) {
                         Text("Freeform")
                     }
-                    routines.forEach { routine ->
+                    filteredRoutines.forEach { routine ->
                         OutlinedButton(onClick = { onStartOrContinue(routine.id) }) {
                             Text(routine.name)
                         }
@@ -730,8 +830,6 @@ private fun LoggingContent(
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val holdSuggestions by viewModel.holdSuggestions.collectAsStateWithLifecycle()
     val lastWorkingSets by viewModel.lastWorkingSets.collectAsStateWithLifecycle()
-    val routines by viewModel.routines.collectAsStateWithLifecycle()
-    val selectedRoutineId by viewModel.selectedRoutineId.collectAsStateWithLifecycle()
     val latestBodyWeightKg by viewModel.latestBodyWeightKg.collectAsStateWithLifecycle()
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
     val setLoggedPulse by viewModel.setLoggedPulse.collectAsStateWithLifecycle()
@@ -793,22 +891,6 @@ private fun LoggingContent(
                         }
                     },
                 )
-                Row(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small).horizontalScroll(rememberScrollState())) {
-                    FilterChip(
-                        selected = selectedRoutineId == null,
-                        onClick = { viewModel.selectRoutine(null) },
-                        label = { Text("Freeform") },
-                        modifier = Modifier.padding(end = Spacing.Small),
-                    )
-                    routines.forEach { routine ->
-                        FilterChip(
-                            selected = selectedRoutineId == routine.id,
-                            onClick = { viewModel.selectRoutine(routine.id) },
-                            label = { Text(routine.name) },
-                            modifier = Modifier.padding(end = Spacing.Small),
-                        )
-                    }
-                }
             }
             item(key = "activeSummary") {
                 // Live in-session summary of completed sets

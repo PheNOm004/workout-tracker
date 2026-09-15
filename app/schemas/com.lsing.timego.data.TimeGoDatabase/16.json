@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 16,
-    "identityHash": "22b53aa6b8dedc024b5509ddfad4e124",
+    "identityHash": "fafbafc47cda0b6f858e2eb99085c79f",
     "entities": [
       {
         "tableName": "exercises",
@@ -230,7 +230,7 @@
       },
       {
         "tableName": "routines",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `daysOfWeek` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `daysOfWeek` TEXT NOT NULL, `programId` TEXT, `tier` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -249,6 +249,16 @@
             "columnName": "daysOfWeek",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "programId",
+            "columnName": "programId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tier",
+            "columnName": "tier",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -493,118 +503,11 @@
             "id"
           ]
         }
-      },
-      {
-        "tableName": "exercise_guidance",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`catalogueKey` TEXT NOT NULL, `name` TEXT NOT NULL, `catalogueVersion` INTEGER NOT NULL, `aliases` TEXT NOT NULL, `muscleGroups` TEXT NOT NULL, `equipment` TEXT NOT NULL, `difficulty` TEXT NOT NULL, `complexity` TEXT NOT NULL, `purpose` TEXT NOT NULL, `setup` TEXT NOT NULL, `steps` TEXT NOT NULL, `cues` TEXT NOT NULL, `mistakes` TEXT NOT NULL, `easierVariationKey` TEXT, `harderVariationKeys` TEXT NOT NULL, `reviewStatus` TEXT NOT NULL, PRIMARY KEY(`catalogueKey`))",
-        "fields": [
-          {
-            "fieldPath": "catalogueKey",
-            "columnName": "catalogueKey",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "name",
-            "columnName": "name",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "catalogueVersion",
-            "columnName": "catalogueVersion",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "aliases",
-            "columnName": "aliases",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "muscleGroups",
-            "columnName": "muscleGroups",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "equipment",
-            "columnName": "equipment",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "difficulty",
-            "columnName": "difficulty",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "complexity",
-            "columnName": "complexity",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "purpose",
-            "columnName": "purpose",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "setup",
-            "columnName": "setup",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "steps",
-            "columnName": "steps",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "cues",
-            "columnName": "cues",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "mistakes",
-            "columnName": "mistakes",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "easierVariationKey",
-            "columnName": "easierVariationKey",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "harderVariationKeys",
-            "columnName": "harderVariationKeys",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "reviewStatus",
-            "columnName": "reviewStatus",
-            "affinity": "TEXT",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "catalogueKey"
-          ]
-        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '22b53aa6b8dedc024b5509ddfad4e124')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fafbafc47cda0b6f858e2eb99085c79f')"
     ]
   }
 }

@@ -163,10 +163,21 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
     }
 }
 
-/** Adds bundled guidance beside exercises. Existing exercise IDs, user history, routines, and
- * custom rows are untouched; catalogueKey is the only relationship. */
-val MIGRATION_15_16 = object : Migration(15, 16) {
+val MIGRATION_16_17 = object : Migration(16, 17) {
     override fun migrate(db: SupportSQLiteDatabase) {
+        var hasProgramId = false
+        var hasTier = false
+        db.query("PRAGMA table_info(`routines`)").use { cursor ->
+            val nameColumn = cursor.getColumnIndex("name")
+            while (cursor.moveToNext()) {
+                when (cursor.getString(nameColumn)) {
+                    "programId" -> hasProgramId = true
+                    "tier" -> hasTier = true
+                }
+            }
+        }
+        if (!hasProgramId) db.execSQL("ALTER TABLE routines ADD COLUMN programId TEXT")
+        if (!hasTier) db.execSQL("ALTER TABLE routines ADD COLUMN tier TEXT")
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS `exercise_guidance` (" +
                 "`catalogueKey` TEXT NOT NULL, `name` TEXT NOT NULL, `catalogueVersion` INTEGER NOT NULL, " +
@@ -176,11 +187,6 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
                 "`easierVariationKey` TEXT, `harderVariationKeys` TEXT NOT NULL, `reviewStatus` TEXT NOT NULL, " +
                 "PRIMARY KEY(`catalogueKey`))",
         )
-    }
-}
-
-val MIGRATION_16_17 = object : Migration(16, 17) {
-    override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("CREATE TABLE IF NOT EXISTS `sync_metadata` (`domainType` TEXT NOT NULL, `localId` INTEGER NOT NULL, `stableUuid` TEXT NOT NULL, `operation` TEXT NOT NULL, `revision` INTEGER NOT NULL, `pending` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, `attemptCount` INTEGER NOT NULL, `nextAttemptAtEpochMillis` INTEGER NOT NULL, `lastErrorCategory` TEXT, PRIMARY KEY(`domainType`, `localId`))")
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_sync_metadata_stableUuid` ON `sync_metadata` (`stableUuid`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_sync_metadata_pending_nextAttemptAtEpochMillis` ON `sync_metadata` (`pending`, `nextAttemptAtEpochMillis`)")
@@ -190,6 +196,16 @@ val MIGRATION_16_17 = object : Migration(16, 17) {
 /** Shared with [com.lsing.timego.data.BackupManager], which opens a *separate* temporary Room
  *  instance against a restored backup file -- that copy needs the exact same migration path as the
  *  live database in case it was exported by an older app version. */
+/** Pure additive columns for the Program Templates feature -- see [SeedRoutines] and
+ *  [WorkoutRepository.seedMissingRoutines]. Existing user-created routines read back with both
+ *  columns null, which is exactly the "not part of a seeded program" state. */
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE routines ADD COLUMN programId TEXT")
+        db.execSQL("ALTER TABLE routines ADD COLUMN tier TEXT")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
