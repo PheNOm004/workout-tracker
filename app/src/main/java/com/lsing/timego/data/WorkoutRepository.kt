@@ -17,14 +17,31 @@ import com.lsing.timego.data.adaptive.ShadowSourceFingerprint
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
+import com.lsing.timego.sync.SyncRepository
 
 class WorkoutRepository(private val db: TimeGoDatabase) {
+    private val syncRepository = SyncRepository(db)
     val exercises: Flow<List<Exercise>> = db.exerciseDao().observeAll()
     val sessions: Flow<List<WorkoutSession>> = db.sessionDao().observeAll()
     val bodyMetrics: Flow<List<BodyMetric>> = db.bodyMetricDao().observeAll()
     val routines: Flow<List<Routine>> = db.routineDao().observeRoutines()
     val routineExercises: Flow<List<RoutineExercise>> = db.routineDao().observeRoutineExercises()
     val setLogs: Flow<List<SetLog>> = db.setLogDao().observeAll()
+
+    /** Permanently removes local workout content after the user explicitly chooses that option
+     * during account deletion. Cloud deletion is performed first by the caller; this method only
+     * touches the local Room database and deliberately leaves bundled guidance available. */
+    suspend fun clearLocalWorkoutData() {
+        db.withTransaction {
+            db.openHelper.writableDatabase.execSQL("DELETE FROM set_logs")
+            db.openHelper.writableDatabase.execSQL("DELETE FROM workout_sessions")
+            db.openHelper.writableDatabase.execSQL("DELETE FROM routine_exercises")
+            db.openHelper.writableDatabase.execSQL("DELETE FROM routines")
+            db.openHelper.writableDatabase.execSQL("DELETE FROM body_metrics")
+            db.openHelper.writableDatabase.execSQL("DELETE FROM exercises WHERE isCustom = 1")
+            db.openHelper.writableDatabase.execSQL("DELETE FROM sync_metadata")
+        }
+    }
 
     /** Inserts any [seed] exercise whose name isn't already present -- NOT gated on the table
      *  being totally empty, since expanding the seed list (Update 1.1: 12 -> 119) must still
@@ -63,17 +80,28 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         } else {
             LoggingType.WEIGHT_REPS.name
         }
-        return db.exerciseDao().insert(Exercise(name = name, muscleGroups = muscleGroups, isCustom = true, category = category, loggingType = loggingType))
+        return db.withTransaction {
+            val id = db.exerciseDao().insert(Exercise(name = name, muscleGroups = muscleGroups, isCustom = true, category = category, loggingType = loggingType))
+            syncRepository.markPending("exercise", id)
+            id
+        }
     }
 
     suspend fun startSession(routineId: Long?): WorkoutSession {
         val now = System.currentTimeMillis()
         val session = WorkoutSession(date = LocalDate.now(), routineId = routineId, startEpochMillis = now, endEpochMillis = null)
-        return session.copy(id = db.sessionDao().insert(session))
+        return db.withTransaction {
+            val id = db.sessionDao().insert(session)
+            syncRepository.markPending("session", id)
+            session.copy(id = id)
+        }
     }
 
     suspend fun endSession(sessionId: Long, endEpochMillis: Long) {
-        db.sessionDao().closeSession(sessionId, endEpochMillis)
+        db.withTransaction {
+            db.sessionDao().closeSession(sessionId, endEpochMillis)
+            syncRepository.markPending("session", sessionId)
+        }
     }
 
     /** Deletes a closed session and every set logged into it. No FK cascade exists on
@@ -83,8 +111,10 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
      *  under an in-progress Log screen isn't a case this repository guards against. */
     suspend fun deleteSession(sessionId: Long) {
         db.withTransaction {
+            db.setLogDao().idsForSession(sessionId).forEach { syncRepository.markDeleted("set_log", it) }
             db.setLogDao().deleteForSession(sessionId)
             db.sessionDao().delete(sessionId)
+            syncRepository.markDeleted("session", sessionId)
         }
     }
 
@@ -109,7 +139,8 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
             rpe = rpe,
             targetProvenance = targetProvenance,
         )
-        db.setLogDao().insert(
+        db.withTransaction {
+        val id = db.setLogDao().insert(
             SetLog(
                 sessionId = sessionId,
                 exerciseId = exerciseId,
@@ -123,11 +154,14 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                 targetProvenance = targetProvenance,
             ),
         )
+        syncRepository.markPending("set_log", id)
+        }
     }
 
     suspend fun logCardioSet(sessionId: Long, exerciseId: Long, durationMinutes: Double, distanceKm: Double?) {
         requireValidCardioLog(sessionId, exerciseId, durationMinutes, distanceKm)
-        db.setLogDao().insert(
+        db.withTransaction {
+        val id = db.setLogDao().insert(
             SetLog(
                 sessionId = sessionId,
                 exerciseId = exerciseId,
@@ -139,6 +173,8 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                 distanceKm = distanceKm,
             ),
         )
+        syncRepository.markPending("set_log", id)
+        }
     }
 
     suspend fun logHoldSet(
@@ -150,7 +186,8 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         targetProvenance: String = TargetProvenance.UNKNOWN.name,
     ) {
         requireValidHoldLog(sessionId, exerciseId, durationSeconds, targetDurationSeconds, targetProvenance)
-        db.setLogDao().insert(
+        db.withTransaction {
+        val id = db.setLogDao().insert(
             SetLog(
                 sessionId = sessionId,
                 exerciseId = exerciseId,
@@ -164,6 +201,8 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                 targetProvenance = targetProvenance,
             ),
         )
+        syncRepository.markPending("set_log", id)
+        }
     }
 
     /**
@@ -295,7 +334,10 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
 
     suspend fun logBodyMetric(date: LocalDate, weightKg: Double?, waistCm: Double?, heightCm: Double?) {
         requireValidBodyMetric(weightKg, waistCm, heightCm)
-        db.bodyMetricDao().insert(BodyMetric(date = date, weightKg = weightKg, waistCm = waistCm, heightCm = heightCm))
+        db.withTransaction {
+            val id = db.bodyMetricDao().insert(BodyMetric(date = date, weightKg = weightKg, waistCm = waistCm, heightCm = heightCm))
+            syncRepository.markPending("body_metric", id)
+        }
     }
 
     /** Inserts any [seed] routine not already present (matched by `(programId, name)`, mirroring
@@ -359,12 +401,14 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         exerciseIds.forEachIndexed { index, exerciseId ->
             db.routineDao().insertRoutineExercise(RoutineExercise(routineId = routineId, exerciseId = exerciseId, orderIndex = index))
         }
+        syncRepository.markPending("routine", routineId)
         routineId
     }
 
     suspend fun deleteRoutine(routineId: Long) = db.withTransaction {
         db.routineDao().deleteRoutineExercises(routineId)
         db.routineDao().deleteRoutine(routineId)
+        syncRepository.markDeleted("routine", routineId)
     }
 
     suspend fun exercisesForRoutine(routineId: Long): List<RoutineExercise> = db.routineDao().exercisesForRoutine(routineId)

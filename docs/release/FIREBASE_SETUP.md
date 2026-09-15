@@ -1,0 +1,44 @@
+# TimeGo Firebase setup
+
+Normal development builds keep accounts unavailable and preserve full guest use. To build with the configured Firebase project:
+
+1. Register Android application `com.lsing.timego` in the Firebase Console.
+2. Enable Email/Password under Authentication sign-in methods.
+3. Download that app's `google-services.json` into `app/`. The file is ignored by Git.
+4. Build with `.\gradlew.bat bundleRelease -PtimegoFirebase=true` plus the documented `TIMEGO_UPLOAD_*` signing environment variables.
+
+The opt-in property deliberately fails configuration when the JSON file is absent. Authentication does not enable Firestore backup or email reports; those require separate in-app consent and their own deployment gates.
+
+For local auth verification, use the Firebase Emulator Suite and test accounts only. Do not use production workout records in emulator fixtures.
+
+For an authenticated operator, the repository deployment wrapper makes the target explicit and
+checks required files before invoking the CLI:
+
+```powershell
+.\scripts\deploy-firebase.ps1 -ProjectId '<firebase-project-id>'
+```
+
+If Firebase CLI is not installed globally, the guarded wrapper also supports the reviewed npm
+package invocation:
+
+```powershell
+.\scripts\deploy-firebase.ps1 -ProjectId '<firebase-project-id>' -UseNpx
+```
+
+Production deployment remains an explicit operator action and is not run by Android builds or CI.
+
+## Managed production inputs
+
+Configure these as Firebase Functions secrets or approved public configuration values; never commit
+their values:
+
+| Name | Purpose |
+| --- | --- |
+| `REPORT_EMAIL_ENDPOINT` | HTTPS endpoint for the selected transactional email provider |
+| `REPORT_EMAIL_API_KEY` | Provider credential, stored only as a managed secret |
+| `REPORT_EMAIL_FROM` | Verified sender address/domain supplied by the provider |
+| `REPORT_MANAGE_BASE_URL` | HTTPS base URL for report unsubscribe links |
+| `REPORT_MANAGE_TOKEN_SECRET` | Random 32+ character HMAC secret for unsubscribe tokens |
+
+Before enabling either scheduler, verify the sender domain, HTTPS manage URL, provider sandbox
+delivery, retry/complaint handling, and the production privacy-policy/account-deletion URLs.

@@ -25,6 +25,9 @@ interface RoutineDao {
     @Query("SELECT * FROM routine_exercises ORDER BY routineId, orderIndex")
     fun observeRoutineExercises(): Flow<List<RoutineExercise>>
 
+    @Query("SELECT * FROM routines WHERE id = :id LIMIT 1")
+    suspend fun getRoutineById(id: Long): Routine?
+
     /** Read once inside [WorkoutRepository.seedMissingRoutines] -- see [allRoutinesOnce]. */
     @Query("SELECT * FROM routine_exercises")
     suspend fun allRoutineExercisesOnce(): List<RoutineExercise>

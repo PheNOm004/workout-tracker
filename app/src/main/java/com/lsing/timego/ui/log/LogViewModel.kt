@@ -13,11 +13,17 @@ import com.lsing.timego.data.Routine
 import com.lsing.timego.data.SEED_EXERCISES
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.SettingsRepository
+import com.lsing.timego.profile.ProfileRepository
+import com.lsing.timego.profile.TrainingProfile
+import com.lsing.timego.profile.Equipment
+import com.lsing.timego.domain.filterCandidates
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.CalisthenicsTier
 import com.lsing.timego.data.SEED_ROUTINES
 import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.WorkoutRepository
+import com.lsing.timego.data.guidance.CatalogueRepository
+import com.lsing.timego.domain.CandidateMetadata
 import com.lsing.timego.domain.DEFAULT_WEIGHT_INCREMENT_KG
 import com.lsing.timego.domain.HoldPerformance
 import com.lsing.timego.domain.HoldSuggestion
@@ -70,6 +76,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -130,8 +138,16 @@ class LogViewModel(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
 ) : AndroidViewModel(application) {
-    private val repository = WorkoutRepository(TimeGoDatabase.getInstance(application))
+    private val database = TimeGoDatabase.getInstance(application)
+    private val repository = WorkoutRepository(database)
+    private val catalogueRepository = CatalogueRepository(database)
+    val guidanceByKey = catalogueRepository.guidanceByKey.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        emptyMap(),
+    )
     private val settingsRepository = SettingsRepository(application)
+    private val profileRepository = ProfileRepository(application)
     private val suggester: com.lsing.timego.domain.OverloadSuggester = AdaptiveOverloadSuggester()
     private val preferenceLearner = CategoryPreferenceLearner()
     private val progressionRecommender = ProgressionRecommender(preferenceLearner)
@@ -143,6 +159,8 @@ class LogViewModel(
     private var latestSessions: List<com.lsing.timego.data.WorkoutSession> = emptyList()
     private var exerciseUsageCounts: Map<Long, Int> = emptyMap()
     private var hasAutoSelectedTodaysRoutine = false
+    private var currentTrainingProfile = TrainingProfile()
+    private var latestGuidanceByKey: Map<String, com.lsing.timego.data.guidance.ExerciseGuidance> = emptyMap()
 
     /** Exercise ids that appear in any saved routine, for ranking "Choose another" candidates. */
     private var routineMemberExerciseIds: Set<Long> = emptySet()
@@ -243,6 +261,7 @@ class LogViewModel(
     init {
         viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
+            catalogueRepository.ensureBundledImported()
             repository.seedMissingRoutines(SEED_ROUTINES)
             // This ViewModel is activity-scoped by the custom root-tab host. Its session state is
             // always collected while Log is STARTED, so subscriber presence is the lifecycle
@@ -266,8 +285,20 @@ class LogViewModel(
                             }
                         }
                         launch {
+                            profileRepository.profile.collect { profile ->
+                                currentTrainingProfile = profile
+                                refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
+                            }
+                        }
+                        launch {
                             settingsRepository.activeProgramId.collect { id ->
                                 _activeProgramId.value = id
+                                refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
+                            }
+                        }
+                        launch {
+                            catalogueRepository.guidanceByKey.collect { guidance ->
+                                latestGuidanceByKey = guidance
                                 refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
                             }
                         }
@@ -561,21 +592,30 @@ class LogViewModel(
             val exclusions = _suggestionExclusions.value
 
             val dominantLean = preferenceLearner.getDominantLean()
+            val explicitLean = currentTrainingProfile.modality ?: trainingLean
             val effectiveLean = when (dominantLean) {
                 ExerciseCategory.CALISTHENICS -> TrainingLean.CALISTHENICS
                 ExerciseCategory.STRENGTH -> TrainingLean.STRENGTH
-                else -> trainingLean
+                else -> explicitLean
             }
+
+            val profileCandidates = filterCandidates(
+                exercises = exercises,
+                profile = currentTrainingProfile,
+                metadataByCatalogueKey = latestGuidanceByKey.mapValues { (_, guidance) ->
+                    CandidateMetadata(equipment = guidance.equipment.mapNotNull(::equipmentFromCatalogue).toSet())
+                },
+            ).candidates
 
             val baseSuggestion = suggestedExerciseFor(
                 targetGroups = exerciseTargetGroups,
-                exercises = exercises,
+                exercises = profileCandidates,
                 lean = effectiveLean,
                 usageCounts = usageCounts,
             )
             val alternatives = familiarAlternativesFor(
                 targetGroups = exerciseTargetGroups,
-                exercises = exercises,
+                exercises = profileCandidates,
                 lean = effectiveLean,
                 usageCounts = usageCounts,
                 loggedExerciseIds = allSets.mapTo(mutableSetOf()) { it.exerciseId },
@@ -602,6 +642,21 @@ class LogViewModel(
             )
         }
         _landingSummary.value = landingSummary
+    }
+
+    private fun equipmentFromCatalogue(value: String): Equipment? = when (value.trim().lowercase()) {
+        "bodyweight" -> Equipment.BODYWEIGHT
+        "barbell" -> Equipment.BARBELL
+        "dumbbell", "dumbbells" -> Equipment.DUMBBELL
+        "kettlebell", "kettlebells" -> Equipment.KETTLEBELL
+        "cable", "cables" -> Equipment.CABLE
+        "resistance band", "resistance bands", "band" -> Equipment.RESISTANCE_BAND
+        "machine", "machines" -> Equipment.MACHINE
+        "pull-up bar", "pull up bar", "pullup bar" -> Equipment.PULL_UP_BAR
+        "bench" -> Equipment.BENCH
+        "cardio machine", "cardio machines" -> Equipment.CARDIO_MACHINE
+        "pool" -> Equipment.POOL
+        else -> null
     }
 
     /** Coach Memory Phase 1: rotate the landing recommendation to a different familiar exercise for

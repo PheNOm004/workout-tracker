@@ -136,6 +136,8 @@ import com.lsing.timego.ui.common.formatMuscleGroupList
 import com.lsing.timego.ui.common.timeframeLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.Spacing
+import com.lsing.timego.ui.exercise.ExerciseDetailSheet
+import com.lsing.timego.ui.exercise.buildExerciseDetail
 import java.time.LocalDate
 
 private enum class ActiveLogPage { SESSION, EXERCISE_PICKER }
@@ -150,6 +152,8 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val landingMuscleBalance by viewModel.landingMuscleBalance.collectAsStateWithLifecycle()
     val routineLastCompleted by viewModel.routineLastCompleted.collectAsStateWithLifecycle()
     val activeTimer by viewModel.activeTimer.collectAsStateWithLifecycle()
+    val guidanceByKey by viewModel.guidanceByKey.collectAsStateWithLifecycle()
+    val exerciseLibrary by viewModel.exerciseLibrary.collectAsStateWithLifecycle()
     val activeProgramId by viewModel.activeProgramId.collectAsStateWithLifecycle()
     val calisthenicsTier by viewModel.calisthenicsTier.collectAsStateWithLifecycle()
     var peekingLanding by rememberSaveable { mutableStateOf(false) }
@@ -159,6 +163,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     var draftSessionId by rememberSaveable { mutableStateOf<Long?>(null) }
     var activeLogPageName by rememberSaveable { mutableStateOf(ActiveLogPage.SESSION.name) }
     var selectedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
+    var detailExercise by remember { mutableStateOf<com.lsing.timego.data.Exercise?>(null) }
     // Set just before starting a routine session (see onStartOrContinue below) and consumed by the
     // LaunchedEffect once the new session actually exists -- setting selectedExerciseIds directly in
     // the click handler would be clobbered by this same effect's own reset when sessionState updates.
@@ -202,6 +207,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 onSetActiveProgramId = viewModel::setActiveProgramId,
                 calisthenicsTier = calisthenicsTier,
                 onSetCalisthenicsTier = viewModel::setCalisthenicsTier,
+                onOpenExerciseDetails = { detailExercise = it },
                 routineLastCompleted = routineLastCompleted,
                 balanceTimeframe = landingBalanceTimeframe,
                 muscleBalance = landingMuscleBalance,
@@ -232,6 +238,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                                 onSetActiveProgramId = viewModel::setActiveProgramId,
                                 calisthenicsTier = calisthenicsTier,
                                 onSetCalisthenicsTier = viewModel::setCalisthenicsTier,
+                                onOpenExerciseDetails = { detailExercise = it },
                                 routineLastCompleted = routineLastCompleted,
                                 balanceTimeframe = landingBalanceTimeframe,
                                 muscleBalance = landingMuscleBalance,
@@ -276,6 +283,19 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 }
             }
         }
+    }
+    detailExercise?.let { exercise ->
+        val guidance = exercise.catalogueKey?.let(guidanceByKey::get)
+        val model = buildExerciseDetail(exercise, guidance)
+        val easierExercise = model.easierVariationKey?.let { key ->
+            exerciseLibrary.firstOrNull { it.catalogueKey == key }
+        }
+        ExerciseDetailSheet(
+            model = model,
+            easierName = easierExercise?.name,
+            onShowEasier = { easierExercise?.let { detailExercise = it } },
+            onDismiss = { detailExercise = null },
+        )
     }
 }
 
@@ -328,6 +348,7 @@ private fun LogLandingContent(
     balanceTimeframe: ProgressTimeframe,
     muscleBalance: Map<String, Float>,
     onSelectBalanceTimeframe: (ProgressTimeframe) -> Unit,
+    onOpenExerciseDetails: (com.lsing.timego.data.Exercise) -> Unit,
 ) {
     var showLastSessionDetail by remember { mutableStateOf(false) }
 
@@ -568,12 +589,11 @@ private fun LogLandingContent(
                                 modifier = Modifier.padding(top = 2.dp),
                             )
                             summary.suggestedExercise?.let { exercise ->
-                                Text(
-                                    "Try: ${exercise.name}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = Spacing.ExtraSmall),
-                                )
+                                TextButton(
+                                    onClick = { onOpenExerciseDetails(exercise) },
+                                    contentPadding = PaddingValues(0.dp),
+                                    modifier = Modifier.padding(top = Spacing.ExtraSmall).heightIn(min = 48.dp),
+                                ) { Text("Try: ${exercise.name}", style = MaterialTheme.typography.bodySmall) }
                                 summary.recommendationNote?.let { note ->
                                     Text(
                                         note,
@@ -1038,6 +1058,8 @@ private fun ExercisePickerContent(
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var expandedExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var detailExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val guidanceByKey by viewModel.guidanceByKey.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val holdSuggestions by viewModel.holdSuggestions.collectAsStateWithLifecycle()
     val lastWorkingSets by viewModel.lastWorkingSets.collectAsStateWithLifecycle()
@@ -1056,6 +1078,23 @@ private fun ExercisePickerContent(
                 showAddDialog = false
             },
         )
+    }
+    detailExerciseId?.let { id ->
+        val exercise = exercises.firstOrNull { it.id == id }
+        val guidance = exercise?.catalogueKey?.let(guidanceByKey::get)
+        if (exercise != null) {
+            val model = buildExerciseDetail(exercise, guidance)
+            val easier = model.easierVariationKey?.let(guidanceByKey::get)
+            ExerciseDetailSheet(
+                model = model,
+                easierName = easier?.name,
+                onShowEasier = {
+                    val easierExercise = easier?.catalogueKey?.let { key -> exercises.firstOrNull { it.catalogueKey == key } }
+                    detailExerciseId = easierExercise?.id
+                },
+                onDismiss = { detailExerciseId = null },
+            )
+        }
     }
 
     var showOrderMenu by remember { mutableStateOf(false) }
@@ -1146,6 +1185,7 @@ private fun ExercisePickerContent(
                         onToggle = {
                             expandedExerciseId = if (expandedExerciseId == exercise.id) null else exercise.id
                         },
+                        onShowDetails = { detailExerciseId = exercise.id },
                         onLogStrength = { weight, reps, target, isWarmup, addedWeightKg, rpe, provenance ->
                             viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg, rpe, provenance)
                         },
@@ -1214,12 +1254,14 @@ private fun ExercisePickerRow(
     pulseId: Long,
     onToggleFavorite: () -> Unit,
     onToggle: () -> Unit,
+    onShowDetails: () -> Unit,
     onLogStrength: (Double, Int, Int, Boolean, Double?, Int?, TargetProvenance) -> Unit,
     onLogCardio: (Double, Double?) -> Unit,
     onLogHold: (Int, Int, Boolean, TargetProvenance) -> Unit,
     onStartTimer: () -> Unit,
     onCancelTimer: () -> Unit,
 ) {
+    Column {
     when (exercise.loggingType) {
         LoggingType.HOLD.name -> HoldLogRow(
             exerciseId = exercise.id,
@@ -1269,6 +1311,10 @@ private fun ExercisePickerRow(
             onToggle = onToggle,
             onLog = onLogStrength,
         )
+    }
+    if (expanded) {
+        TextButton(onClick = onShowDetails, modifier = Modifier.align(Alignment.End)) { Text("Exercise details") }
+    }
     }
 }
 

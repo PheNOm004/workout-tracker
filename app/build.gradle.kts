@@ -4,6 +4,34 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+val firebaseEnabled = providers.gradleProperty("timegoFirebase").orNull == "true"
+if (firebaseEnabled) {
+    require(file("google-services.json").isFile) {
+        "-PtimegoFirebase=true requires app/google-services.json; obtain it from the TimeGo Firebase project and do not commit it"
+    }
+    pluginManager.apply("com.google.gms.google-services")
+}
+
+val uploadStoreFilePath = providers.environmentVariable("TIMEGO_UPLOAD_STORE_FILE").orNull
+val uploadStorePassword = providers.environmentVariable("TIMEGO_UPLOAD_STORE_PASSWORD").orNull
+val uploadKeyAlias = providers.environmentVariable("TIMEGO_UPLOAD_KEY_ALIAS").orNull
+val uploadKeyPassword = providers.environmentVariable("TIMEGO_UPLOAD_KEY_PASSWORD").orNull
+val hasCompleteUploadSigning = listOf(
+    uploadStoreFilePath,
+    uploadStorePassword,
+    uploadKeyAlias,
+    uploadKeyPassword,
+).all { !it.isNullOrBlank() }
+
+if (
+    !hasCompleteUploadSigning &&
+    gradle.startParameter.taskNames.any { requested -> requested.substringAfterLast(':') == "bundleRelease" }
+) {
+    throw GradleException(
+        "bundleRelease requires all TIMEGO_UPLOAD_* environment variables; see docs/release/PLAY_RELEASE.md",
+    )
+}
+
 android {
     namespace = "com.lsing.timego"
     compileSdk {
@@ -23,8 +51,22 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (hasCompleteUploadSigning) {
+            create("upload") {
+                storeFile = file(requireNotNull(uploadStoreFilePath))
+                storePassword = requireNotNull(uploadStorePassword)
+                keyAlias = requireNotNull(uploadKeyAlias)
+                keyPassword = requireNotNull(uploadKeyPassword)
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (hasCompleteUploadSigning) {
+                signingConfig = signingConfigs.getByName("upload")
+            }
             optimization {
                 enable = true
             }
@@ -62,6 +104,11 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.datastore.preferences)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.functions)
+    implementation(libs.androidx.work.runtime.ktx)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

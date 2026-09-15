@@ -16,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AllInclusive
@@ -47,6 +48,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.TIMEGO_BACKUP_MIME_TYPE
 import com.lsing.timego.data.Exercise
+import com.lsing.timego.data.TimeGoDatabase
+import com.lsing.timego.data.guidance.CatalogueRepository
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.RoutineCardSkeleton
@@ -55,6 +58,19 @@ import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import com.lsing.timego.ui.onboarding.OnboardingScreen
+import com.lsing.timego.ui.onboarding.OnboardingViewModel
+import androidx.compose.ui.platform.LocalContext
+import com.lsing.timego.account.AccountViewModel
+import com.lsing.timego.account.FirebaseAuthRepository
+import com.lsing.timego.ui.account.AccountScreen
+import com.lsing.timego.account.AuthState
+import com.lsing.timego.report.ReportViewModel
+import com.lsing.timego.ui.report.ReportSettingsScreen
+import com.lsing.timego.sync.CloudBackupViewModel
+import com.lsing.timego.ui.account.CloudBackupScreen
+import com.lsing.timego.ui.exercise.ExerciseDetailSheet
+import com.lsing.timego.ui.exercise.buildExerciseDetail
 
 private val SESSION_HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
@@ -76,6 +92,53 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showSessionHistory by remember { mutableStateOf(false) }
     var pendingDeleteSessionId by remember { mutableStateOf<Long?>(null) }
+    var showTrainingProfile by remember { mutableStateOf(false) }
+    var showAccount by remember { mutableStateOf(false) }
+    var showReports by remember { mutableStateOf(false) }
+    var showCloudBackup by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val accountRepository = remember(context) { FirebaseAuthRepository.createIfConfigured(context) }
+    val accountViewModel: AccountViewModel = viewModel(key = "account", factory = AccountViewModel.factory(accountRepository))
+    val cloudBackupViewModel: CloudBackupViewModel = viewModel(key = "cloud_backup")
+    val cloudConsent by cloudBackupViewModel.consent.collectAsStateWithLifecycle()
+    val accountState by accountViewModel.uiState.collectAsStateWithLifecycle()
+    val catalogueRepository = remember(context) { CatalogueRepository(TimeGoDatabase.getInstance(context)) }
+    val guidanceByKey by catalogueRepository.guidanceByKey.collectAsStateWithLifecycle(initialValue = emptyMap())
+    var detailExercise by remember { mutableStateOf<Exercise?>(null) }
+
+    if (showCloudBackup) {
+        CloudBackupScreen(
+            viewModel = cloudBackupViewModel,
+            emailVerified = (accountState.authState as? AuthState.SignedIn)?.verified == true,
+            onBack = { showCloudBackup = false },
+        )
+        return
+    }
+
+    if (showReports) {
+        val reportViewModel: ReportViewModel = viewModel(key = "reports")
+        ReportSettingsScreen(
+            viewModel = reportViewModel,
+            emailVerified = (accountState.authState as? AuthState.SignedIn)?.verified == true,
+            cloudBackupEnabled = cloudConsent.enabled,
+            onBack = { showReports = false },
+        )
+        return
+    }
+
+    if (showAccount) {
+        AccountScreen(accountViewModel, onOpenCloudBackup = { showCloudBackup = true }, onOpenReports = { showReports = true }, onDeleteLocalData = { viewModel.clearLocalWorkoutData() }, onBack = { showAccount = false })
+        return
+    }
+
+    if (showTrainingProfile) {
+        val profileViewModel: OnboardingViewModel = viewModel(key = "settings_onboarding")
+        OnboardingScreen(
+            viewModel = profileViewModel,
+            onFinished = { showTrainingProfile = false },
+        )
+        return
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(TIMEGO_BACKUP_MIME_TYPE)) { uri ->
         uri?.let(viewModel::exportBackup)
@@ -140,6 +203,10 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             onRestoreBackup = {
                 restoreLauncher.launch(arrayOf("*/*"))
             },
+            onEditTrainingProfile = {
+                showTrainingProfile = true
+            },
+            onOpenAccount = { showAccount = true },
             sessionHistoryCount = sessionHistory.size,
             onViewSessionHistory = {
                 showSessionHistory = true
@@ -326,17 +393,27 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                 }
                     val steps = routineExercisesById[routine.id].orEmpty()
                     if (steps.isNotEmpty()) {
-                        RoutineSteps(steps)
+                        RoutineSteps(steps, onOpenDetails = { detailExercise = it })
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = Spacing.ExtraSmall))
                 }
             }
         }
     }
+    detailExercise?.let { exercise ->
+        val model = buildExerciseDetail(exercise, exercise.catalogueKey?.let(guidanceByKey::get))
+        val easierExercise = model.easierVariationKey?.let { key -> exercises.firstOrNull { it.catalogueKey == key } }
+        ExerciseDetailSheet(
+            model = model,
+            easierName = easierExercise?.name,
+            onShowEasier = { easierExercise?.let { detailExercise = it } },
+            onDismiss = { detailExercise = null },
+        )
+    }
 }
 
 @Composable
-private fun RoutineSteps(exercises: List<Exercise>) {
+private fun RoutineSteps(exercises: List<Exercise>, onOpenDetails: (Exercise) -> Unit) {
     Column(modifier = Modifier.padding(Spacing.Medium, 0.dp, Spacing.Medium, Spacing.Medium)) {
         Text(
             "Workout order",
@@ -347,7 +424,11 @@ private fun RoutineSteps(exercises: List<Exercise>) {
         exercises.forEachIndexed { index, exercise ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = Spacing.ExtraSmall),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .clickable { onOpenDetails(exercise) }
+                    .padding(vertical = Spacing.ExtraSmall),
             ) {
                 Box(
                     contentAlignment = Alignment.Center,

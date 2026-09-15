@@ -72,6 +72,8 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     private val _isHydrated = MutableStateFlow(false)
     val isHydrated: StateFlow<Boolean> = _isHydrated.asStateFlow()
 
+    suspend fun clearLocalWorkoutData() = repository.clearLocalWorkoutData()
+
     init {
         viewModelScope.launch {
             // RoutinesViewModel is activity-scoped, so it survives after its tab leaves

@@ -6,10 +6,15 @@
 /build
 /captures
 .externalNativeBuild
+.kotlin/
+functions/node_modules/
+functions/lib/
+.firebase/
 .cxx
 /.worktrees
 /.superpowers/
 /.claude/
+/.wrangler/
 
 # Personal workout records stay local: never commit Room database copies, WAL files, or exports.
 *.db
@@ -24,6 +29,13 @@
 /exports/
 /backups/
 /personal-records/
+
+# Signing material is supplied from the local environment or CI secret store.
+*.jks
+*.keystore
+*.p12
+google-services.json
+keystore.properties
 
 # Jupyter server logs can include local session URLs and access tokens.
 /ml-prototype/jupyter.log
