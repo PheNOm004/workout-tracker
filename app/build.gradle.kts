@@ -44,7 +44,7 @@ android {
         applicationId = "com.lsing.timego"
         minSdk = 26
         targetSdk = 37
-        versionCode = 4
+        versionCode = 5
         versionName = "1.2"
         // targetSdk tracks compileSdk 37; keep them moving together (HeatP is also on 37).
 
