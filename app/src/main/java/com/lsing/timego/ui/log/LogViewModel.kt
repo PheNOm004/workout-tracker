@@ -207,6 +207,17 @@ class LogViewModel(
     private val _selectedRoutineId = MutableStateFlow<Long?>(null)
     val selectedRoutineId: StateFlow<Long?> = _selectedRoutineId.asStateFlow()
 
+    /** Program prescriptions (sets, rep range, target RPE, rest, tempo) for the selected routine, keyed by
+     *  exercise name; empty for freeform sessions and programs without prescriptions. */
+    val activePrescriptions: StateFlow<Map<String, com.lsing.timego.data.Prescription>> =
+        combine(_selectedRoutineId, _routines) { routineId, routines ->
+            if (routines.firstOrNull { it.id == routineId }?.programId == com.lsing.timego.data.RIR_PROGRAM_ID) {
+                com.lsing.timego.data.RIR_PROGRAM_PRESCRIPTIONS
+            } else {
+                emptyMap()
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
     private val _latestBodyWeightKg = MutableStateFlow<Double?>(null)
     val latestBodyWeightKg: StateFlow<Double?> = _latestBodyWeightKg.asStateFlow()
 

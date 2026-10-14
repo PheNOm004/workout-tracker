@@ -648,23 +648,80 @@ private fun LogLandingContent(
                 }
             }
 
-            // Program -- filters which routines the carousel below shows; "None" shows only your
-            // own user-created routines. Not required to follow; freeform stays reachable either way.
+            // Program filters the seeded routines below. Keep the choice in one compact control so
+            // the landing page remains scannable on smaller phones and with larger text settings.
+            val selectedProgramName = activeProgramId?.let { id ->
+                com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.entries.firstOrNull { it.key == id }?.value
+            } ?: "Your routines"
+            var programMenuExpanded by rememberSaveable { mutableStateOf(false) }
             SectionHeader("Program", topPadding = Spacing.Small)
-            FlowRow(
+            SurfaceCard(
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                hero = false,
+                riveted = false,
             ) {
-                FilterChip(
-                    selected = activeProgramId == null,
-                    onClick = { onSetActiveProgramId(null) },
-                    label = { Text("None") },
-                )
-                com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.forEach { (programId, name) ->
-                    FilterChip(
-                        selected = activeProgramId == programId,
-                        onClick = { onSetActiveProgramId(programId) },
-                        label = { Text(name) },
+                Column(modifier = Modifier.fillMaxWidth().padding(Spacing.Medium)) {
+                    Text(
+                        text = "Choose a program",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.ExtraSmall))
+                    Box {
+                        OutlinedButton(
+                            onClick = { programMenuExpanded = true },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            contentPadding = PaddingValues(horizontal = Spacing.Medium),
+                        ) {
+                            Text(
+                                text = selectedProgramName,
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Icon(
+                                imageVector = if (programMenuExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.ChevronRight,
+                                contentDescription = if (programMenuExpanded) "Collapse program list" else "Expand program list",
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = programMenuExpanded,
+                            onDismissRequest = { programMenuExpanded = false },
+                            modifier = Modifier.fillMaxWidth(0.92f),
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Your routines") },
+                                onClick = {
+                                    onSetActiveProgramId(null)
+                                    programMenuExpanded = false
+                                },
+                                leadingIcon = if (activeProgramId == null) {
+                                    { Icon(Icons.Filled.Check, contentDescription = null) }
+                                } else null,
+                            )
+                            com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.forEach { (programId, name) ->
+                                DropdownMenuItem(
+                                    text = { Text(name) },
+                                    onClick = {
+                                        onSetActiveProgramId(programId)
+                                        programMenuExpanded = false
+                                    },
+                                    leadingIcon = if (activeProgramId == programId) {
+                                        { Icon(Icons.Filled.Check, contentDescription = null) }
+                                    } else null,
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = if (activeProgramId == null) {
+                            "Showing routines you created"
+                        } else {
+                            "Showing routines from this program"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.ExtraSmall),
                     )
                 }
             }
@@ -834,6 +891,7 @@ private fun LoggingContent(
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
     val setLoggedPulse by viewModel.setLoggedPulse.collectAsStateWithLifecycle()
     val activeSessionSetsByExercise by viewModel.activeSessionSetsByExercise.collectAsStateWithLifecycle()
+    val prescriptions by viewModel.activePrescriptions.collectAsStateWithLifecycle()
     var showEndSessionConfirmation by remember { mutableStateOf(false) }
     val activeListState = rememberLazyListState()
 
@@ -1020,6 +1078,7 @@ private fun LoggingContent(
                             suggestion = suggestions[exercise.id],
                             lastWorkingSet = lastWorkingSets[exercise.id],
                             currentSessionSets = currentExerciseSets,
+                            prescription = prescriptions[exercise.name],
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
                             isFavorite = exercise.id in favoriteExerciseIds,
@@ -1470,6 +1529,7 @@ private fun StrengthLogRow(
     suggestion: com.lsing.timego.domain.OverloadSuggestion?,
     lastWorkingSet: SetLog?,
     currentSessionSets: List<SetLog> = emptyList(),
+    prescription: com.lsing.timego.data.Prescription? = null,
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
     isFavorite: Boolean,
@@ -1652,6 +1712,14 @@ private fun StrengthLogRow(
                         label = { Text("+1 rep", style = MaterialTheme.typography.labelSmall) },
                     )
                 }
+                prescription?.let {
+                    Text(
+                        text = listOfNotNull(it.summary, it.note).joinToString(separator = "\u000A"),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.Small),
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = Spacing.Small),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1660,7 +1728,7 @@ private fun StrengthLogRow(
                         value = rpeText,
                         onValueChange = { rpeText = it },
                         label = { Text("RPE") },
-                        placeholder = { Text("1-10") },
+                        placeholder = { Text(prescription?.rpeText ?: "1-10") },
                         isError = !validRpe,
                         singleLine = true,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),

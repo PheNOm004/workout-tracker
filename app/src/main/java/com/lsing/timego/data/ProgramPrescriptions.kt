@@ -16,7 +16,6 @@ data class Prescription(
     val rpeText get() = "$rpeLow-$rpeHigh"
     val summary get() = buildString {
         append("$sets x $repMin-$repMax")
-        append(" · RPE $rpeText")
         append(" · rest ${restMinSec / 60}-${restMaxSec / 60} min")
         append(" · tempo $tempo")
     }
