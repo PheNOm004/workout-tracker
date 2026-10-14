@@ -281,6 +281,13 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                                 onToggleFavorite = viewModel::toggleFavoriteExercise,
                                 onAddCustomExercise = viewModel::addCustomExercise,
                                 onBack = { activeLogPageName = ActiveLogPage.SESSION.name },
+                                // First set from the picker: back to the session page with that exercise
+                                // expanded, where the next set, rest timer and Log button already live.
+                                onSetLogged = { exerciseId ->
+                                    if (exerciseId !in selectedExerciseIds) selectedExerciseIds = selectedExerciseIds + exerciseId
+                                    expandedExerciseIds = listOf(exerciseId)
+                                    activeLogPageName = ActiveLogPage.SESSION.name
+                                },
                             )
                         }
                     } else {
@@ -1132,6 +1139,7 @@ private fun ExercisePickerContent(
     onToggleFavorite: (Long) -> Unit,
     onAddCustomExercise: (name: String, muscleGroups: List<String>, category: String) -> Unit,
     onBack: () -> Unit,
+    onSetLogged: (exerciseId: Long) -> Unit,
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var expandedExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -1265,10 +1273,15 @@ private fun ExercisePickerContent(
                         onShowDetails = { detailExerciseId = exercise.id },
                         onLogStrength = { weight, reps, target, isWarmup, addedWeightKg, rpe, provenance ->
                             viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg, rpe, provenance)
+                            onSetLogged(exercise.id)
                         },
-                        onLogCardio = { duration, distance -> viewModel.logCardioSet(exercise.id, duration, distance) },
+                        onLogCardio = { duration, distance ->
+                            viewModel.logCardioSet(exercise.id, duration, distance)
+                            onSetLogged(exercise.id)
+                        },
                         onLogHold = { duration, target, isWarmup, provenance ->
                             viewModel.logHoldSet(exercise.id, duration, target, isWarmup, provenance)
+                            onSetLogged(exercise.id)
                         },
                         onStartTimer = { viewModel.startTimer(exercise.id) },
                         onCancelTimer = { viewModel.clearActiveTimer(exercise.id) },
