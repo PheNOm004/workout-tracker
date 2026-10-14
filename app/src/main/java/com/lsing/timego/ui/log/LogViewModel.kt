@@ -57,6 +57,7 @@ import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.recommendSynergisticMuscleGroups
 import com.lsing.timego.domain.recommendationHighlightStrengths
 import com.lsing.timego.domain.repRangeAtWeight
+import com.lsing.timego.domain.adjusted
 import com.lsing.timego.domain.routineLastCompletedDates
 import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.sessionWorkingSetHistory
@@ -257,6 +258,11 @@ class LogViewModel(
     private val _routineLastCompleted = MutableStateFlow<Map<Long, LocalDate>>(emptyMap())
     val routineLastCompleted: StateFlow<Map<Long, LocalDate>> = _routineLastCompleted.asStateFlow()
 
+    private val _restTimer = MutableStateFlow<com.lsing.timego.domain.RestTimerState?>(null)
+    val restTimer: StateFlow<com.lsing.timego.domain.RestTimerState?> = _restTimer.asStateFlow()
+    private val _restDefaultSeconds = MutableStateFlow(SettingsRepository.DEFAULT_REST_TIMER_SECONDS)
+    private var restAlertJob: kotlinx.coroutines.Job? = null
+
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
     val holdDelaySeconds: StateFlow<Int> = _holdDelaySeconds.asStateFlow()
 
@@ -287,6 +293,9 @@ class LogViewModel(
                     coroutineScope {
                         launch {
                             settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
+                        }
+                        launch {
+                            settingsRepository.restTimerSeconds.collect { _restDefaultSeconds.value = it }
                         }
                         launch {
                             settingsRepository.favoriteExerciseIds.collect { _favoriteExerciseIds.value = it }
@@ -699,6 +708,7 @@ class LogViewModel(
         val current = _sessionState.value
         if (current !is SessionUiState.Active) return
         clearActiveTimer()
+        dismissRest()
         viewModelScope.launch {
             val endedAt = System.currentTimeMillis()
             repository.endSession(current.sessionId, endedAt)
@@ -730,6 +740,7 @@ class LogViewModel(
         viewModelScope.launch {
             repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name)
             emitSetLoggedPulse(exerciseId)
+            if (!isWarmup) startRest(exerciseId)
         }
     }
 
@@ -753,12 +764,41 @@ class LogViewModel(
         viewModelScope.launch {
             repository.logHoldSet(sessionId, exerciseId, durationSeconds, targetDurationSeconds, isWarmup, targetProvenance.name)
             emitSetLoggedPulse(exerciseId)
+            if (!isWarmup) startRest(exerciseId)
         }
     }
 
     fun toggleFavoriteExercise(exerciseId: Long) {
         viewModelScope.launch { settingsRepository.toggleFavoriteExercise(exerciseId) }
     }
+
+    /** Starts the rest countdown after a working set: the active program's prescribed rest when there is
+     *  one, else the user's default. A default of 0 turns the timer off entirely. */
+    private fun startRest(exerciseId: Long) {
+        if (_restDefaultSeconds.value <= 0) return
+        val name = allExercises.firstOrNull { it.id == exerciseId }?.name
+        val seconds = com.lsing.timego.domain.restSecondsFor(activePrescriptions.value[name], _restDefaultSeconds.value)
+        setRest(com.lsing.timego.domain.RestTimerState(System.currentTimeMillis(), seconds))
+    }
+
+    private fun setRest(state: com.lsing.timego.domain.RestTimerState?) {
+        restAlertJob?.cancel()
+        RestAlert.cancel(getApplication())
+        _restTimer.value = state
+        if (state != null) {
+            restAlertJob = viewModelScope.launch {
+                val remainingMillis = state.totalSeconds * 1000L - (System.currentTimeMillis() - state.startedAtMillis)
+                kotlinx.coroutines.delay(remainingMillis.coerceAtLeast(0L))
+                RestAlert.finished(getApplication())
+            }
+        }
+    }
+
+    fun adjustRest(deltaSeconds: Int) {
+        _restTimer.value?.let { setRest(it.adjusted(deltaSeconds)) }
+    }
+
+    fun dismissRest() = setRest(null)
 
     private fun emitSetLoggedPulse(exerciseId: Long) {
         nextPulseEventId += 1

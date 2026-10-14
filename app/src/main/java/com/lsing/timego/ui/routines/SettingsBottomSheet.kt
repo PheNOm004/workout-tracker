@@ -46,6 +46,8 @@ import kotlinx.coroutines.launch
 fun SettingsBottomSheet(
     holdDelaySeconds: Int,
     onSetHoldDelaySeconds: (Int) -> Unit,
+    restTimerSeconds: Int,
+    onSetRestTimerSeconds: (Int) -> Unit,
     trainingLean: TrainingLean,
     onSetTrainingLean: (TrainingLean) -> Unit,
     onExportBackup: () -> Unit,
@@ -115,6 +117,25 @@ fun SettingsBottomSheet(
                 Text("${holdDelaySeconds}s", style = LedgerFigureEmphasis)
                 IconButton(onClick = { onSetHoldDelaySeconds(holdDelaySeconds + 1) }) {
                     Icon(Icons.Filled.Add, contentDescription = "Increase delay")
+                }
+            }
+
+            // Rest timer between working sets
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+            ) {
+                Text(
+                    "Rest timer between sets",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { onSetRestTimerSeconds((restTimerSeconds - 15).coerceAtLeast(0)) }) {
+                    Icon(Icons.Filled.Remove, contentDescription = "Decrease rest time")
+                }
+                Text(if (restTimerSeconds == 0) "Off" else "${restTimerSeconds}s", style = LedgerFigureEmphasis)
+                IconButton(onClick = { onSetRestTimerSeconds(restTimerSeconds + 15) }) {
+                    Icon(Icons.Filled.Add, contentDescription = "Increase rest time")
                 }
             }
 

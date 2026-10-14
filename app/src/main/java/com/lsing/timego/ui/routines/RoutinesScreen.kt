@@ -92,6 +92,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
     val untrainedGroups by viewModel.untrainedGroups.collectAsStateWithLifecycle()
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
+    val restTimerSeconds by viewModel.restTimerSeconds.collectAsStateWithLifecycle()
     val trainingLean by viewModel.trainingLean.collectAsStateWithLifecycle()
     val sessionHistory by viewModel.sessionHistory.collectAsStateWithLifecycle()
     val backupResult by viewModel.backupResult.collectAsStateWithLifecycle()
@@ -220,6 +221,8 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
         SettingsBottomSheet(
             holdDelaySeconds = holdDelaySeconds,
             onSetHoldDelaySeconds = viewModel::setHoldDelaySeconds,
+            restTimerSeconds = restTimerSeconds,
+            onSetRestTimerSeconds = viewModel::setRestTimerSeconds,
             trainingLean = trainingLean,
             onSetTrainingLean = viewModel::setTrainingLean,
             onExportBackup = {

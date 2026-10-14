@@ -57,6 +57,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     private val _untrainedGroups = MutableStateFlow<List<String>>(emptyList())
     val untrainedGroups: StateFlow<List<String>> = _untrainedGroups.asStateFlow()
 
+    private val _restTimerSeconds = MutableStateFlow(SettingsRepository.DEFAULT_REST_TIMER_SECONDS)
+    val restTimerSeconds: StateFlow<Int> = _restTimerSeconds.asStateFlow()
+
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
     val holdDelaySeconds: StateFlow<Int> = _holdDelaySeconds.asStateFlow()
 
@@ -119,11 +122,18 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
                             settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
                         }
                         launch {
+                            settingsRepository.restTimerSeconds.collect { _restTimerSeconds.value = it }
+                        }
+                        launch {
                             settingsRepository.trainingLean.collect { _trainingLean.value = it }
                         }
                     }
                 }
         }
+    }
+
+    fun setRestTimerSeconds(seconds: Int) {
+        viewModelScope.launch { settingsRepository.setRestTimerSeconds(seconds.coerceIn(0, 600)) }
     }
 
     fun setHoldDelaySeconds(seconds: Int) {

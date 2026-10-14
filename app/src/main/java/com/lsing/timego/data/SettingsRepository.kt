@@ -22,6 +22,11 @@ class SettingsRepository(private val context: Context) {
         prefs[HOLD_DELAY_SECONDS_KEY] ?: DEFAULT_HOLD_DELAY_SECONDS
     }
 
+    /** Default rest between working sets, in seconds; 0 turns the rest timer off. */
+    val restTimerSeconds: Flow<Int> = context.settingsDataStore.data.map { prefs ->
+        prefs[REST_TIMER_SECONDS_KEY] ?: DEFAULT_REST_TIMER_SECONDS
+    }
+
     val trainingLean: Flow<TrainingLean> = context.settingsDataStore.data.map { prefs ->
         prefs[TRAINING_LEAN_KEY]
             ?.let { saved -> runCatching { TrainingLean.valueOf(saved) }.getOrNull() }
@@ -44,6 +49,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setHoldDelaySeconds(seconds: Int) {
         context.settingsDataStore.edit { prefs -> prefs[HOLD_DELAY_SECONDS_KEY] = seconds }
+    }
+
+    suspend fun setRestTimerSeconds(seconds: Int) {
+        context.settingsDataStore.edit { prefs -> prefs[REST_TIMER_SECONDS_KEY] = seconds }
     }
 
     suspend fun setTrainingLean(lean: TrainingLean) {
@@ -70,7 +79,9 @@ class SettingsRepository(private val context: Context) {
 
     companion object {
         const val DEFAULT_HOLD_DELAY_SECONDS = 5
+        const val DEFAULT_REST_TIMER_SECONDS = 120
         private val HOLD_DELAY_SECONDS_KEY = intPreferencesKey("hold_delay_seconds")
+        private val REST_TIMER_SECONDS_KEY = intPreferencesKey("rest_timer_seconds")
         private val TRAINING_LEAN_KEY = stringPreferencesKey("training_lean")
         private val FAVORITE_EXERCISE_IDS_KEY = stringSetPreferencesKey("favorite_exercise_ids")
         private val ACTIVE_PROGRAM_ID_KEY = stringPreferencesKey("active_program_id")

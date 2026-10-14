@@ -860,6 +860,23 @@ private fun LoggingContent(
     val setLoggedPulse by viewModel.setLoggedPulse.collectAsStateWithLifecycle()
     val activeSessionSetsByExercise by viewModel.activeSessionSetsByExercise.collectAsStateWithLifecycle()
     val prescriptions by viewModel.activePrescriptions.collectAsStateWithLifecycle()
+    val restTimer by viewModel.restTimer.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val notificationPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) {}
+    var askedNotificationPermission by rememberSaveable { mutableStateOf(false) }
+    // Ask once, the first time a rest timer starts, so the end-of-rest alert can reach a backgrounded app.
+    LaunchedEffect(restTimer != null) {
+        if (restTimer != null && !askedNotificationPermission &&
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            askedNotificationPermission = true
+            notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     var showEndSessionConfirmation by remember { mutableStateOf(false) }
     val activeListState = rememberLazyListState()
     val exercisesById = remember(libraryExercises) { libraryExercises.associateBy { it.id } }
@@ -909,10 +926,20 @@ private fun LoggingContent(
     }
 
     androidx.compose.runtime.CompositionLocalProvider(LocalAutoScrollExpandedCard provides false) {
+    Column(modifier = Modifier.fillMaxSize().imePadding()) {
+    androidx.compose.animation.AnimatedVisibility(
+        visible = restTimer != null,
+        enter = androidx.compose.animation.expandVertically(TimeGoMotion.expandEnter) + androidx.compose.animation.fadeIn(TimeGoMotion.fadeEnter),
+        exit = androidx.compose.animation.shrinkVertically(TimeGoMotion.expandExit) + androidx.compose.animation.fadeOut(TimeGoMotion.fadeExit),
+    ) {
+        restTimer?.let { timer ->
+            RestTimerBar(state = timer, onAdjust = viewModel::adjustRest, onDismiss = viewModel::dismissRest)
+        }
+    }
     LazyColumn(
         state = activeListState,
         modifier = Modifier
-            .imePadding()
+            .weight(1f)
             .padding(horizontal = Spacing.Large),
         contentPadding = PaddingValues(bottom = Spacing.ExtraLarge),
     ) {
@@ -1088,6 +1115,7 @@ private fun LoggingContent(
                 Spacer(modifier = Modifier.height(Spacing.ExtraLarge))
             }
         }
+    }
     }
 }
 
@@ -1653,6 +1681,24 @@ private fun StrengthLogRow(
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
+                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                    )
+                    OutlinedTextField(
+                        value = rpeText,
+                        onValueChange = { rpeText = it },
+                        label = { Text("RPE") },
+                        placeholder = { Text(prescription?.rpeText ?: "1-10") },
+                        isError = !validRpe,
+                        singleLine = true,
+                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = NightEdgeHairline,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
+                        ),
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1702,54 +1748,40 @@ private fun StrengthLogRow(
                         modifier = Modifier.padding(top = Spacing.Small),
                     )
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.Small),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        value = rpeText,
-                        onValueChange = { rpeText = it },
-                        label = { Text("RPE") },
-                        placeholder = { Text(prescription?.rpeText ?: "1-10") },
-                        isError = !validRpe,
-                        singleLine = true,
-                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = NightEdgeHairline,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
-                        ),
-                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
-                    )
-                    val logInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                    Button(
-                        enabled = canLog,
-                        shape = RoundedCornerShape(8.dp),
-                        interactionSource = logInteractionSource,
-                        modifier = Modifier.tactilePress(logInteractionSource, pressedScale = 0.94f),
-                        onClick = {
-                            if (isBodyweight) {
-                                if (reps != null && enteredWeight != null && totalBodyweightLoad != null) {
-                                    onLog(totalBodyweightLoad, reps, suggestion?.reps ?: reps, isWarmup, enteredWeight, rpe, targetProvenanceFor(suggestion != null))
-                                    weightText = ""
-                                    repsText = ""
-                                    rpeText = ""
-                                    isWarmup = false
-                                }
-                            } else if (enteredWeight != null && reps != null) {
-                                onLog(enteredWeight, reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
+                val logInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                val workingSetNumber = currentSessionSets.count { !it.isWarmup } + 1
+                Button(
+                    enabled = canLog,
+                    shape = RoundedCornerShape(10.dp),
+                    interactionSource = logInteractionSource,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 52.dp)
+                        .padding(top = Spacing.Small)
+                        .tactilePress(logInteractionSource, pressedScale = 0.97f),
+                    onClick = {
+                        if (isBodyweight) {
+                            if (reps != null && enteredWeight != null && totalBodyweightLoad != null) {
+                                onLog(totalBodyweightLoad, reps, suggestion?.reps ?: reps, isWarmup, enteredWeight, rpe, targetProvenanceFor(suggestion != null))
                                 weightText = ""
                                 repsText = ""
                                 rpeText = ""
                                 isWarmup = false
                             }
+                        } else if (enteredWeight != null && reps != null) {
+                            onLog(enteredWeight, reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
+                            weightText = ""
+                            repsText = ""
+                            rpeText = ""
+                            isWarmup = false
                         }
-                    ) {
-                        Text("Log set", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                     }
+                ) {
+                    Text(
+                        if (isWarmup) "Log warmup set" else "Log set $workingSetNumber",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    )
                 }
             }
         }
