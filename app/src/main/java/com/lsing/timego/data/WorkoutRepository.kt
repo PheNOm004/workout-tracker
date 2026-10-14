@@ -340,6 +340,11 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         }
     }
 
+    suspend fun deleteBodyMetric(id: Long) = db.withTransaction {
+        db.bodyMetricDao().deleteById(id)
+        syncRepository.markDeleted("body_metric", id)
+    }
+
     /** Inserts any [seed] routine not already present (matched by `(programId, name)`, mirroring
      *  [seedMissingExercises]'s name-matching convention) -- run once at startup, not gated on the
      *  table being empty, so a future SEED_ROUTINES expansion still reaches an already-used install.

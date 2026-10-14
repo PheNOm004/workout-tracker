@@ -48,6 +48,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.ExerciseCategory
@@ -113,9 +117,9 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     var heightText by remember { mutableStateOf("") }
     // Plausible-range gate on entry only (a stray extra digit once stored a 1,111,111,111 cm height);
     // stored data and restores keep the looser persistence validation.
-    val enteredWeight = weightText.toPositiveFiniteDoubleOrNull()?.takeIf { it in 20.0..300.0 }
-    val enteredWaist = waistText.toPositiveFiniteDoubleOrNull()?.takeIf { it in 30.0..250.0 }
-    val enteredHeight = heightText.toPositiveFiniteDoubleOrNull()?.takeIf { it in 100.0..250.0 }
+    val enteredWeight = weightText.toPositiveFiniteDoubleOrNull()?.takeIf { it in com.lsing.timego.domain.PLAUSIBLE_WEIGHT_KG }
+    val enteredWaist = waistText.toPositiveFiniteDoubleOrNull()?.takeIf { it in com.lsing.timego.domain.PLAUSIBLE_WAIST_CM }
+    val enteredHeight = heightText.toPositiveFiniteDoubleOrNull()?.takeIf { it in com.lsing.timego.domain.PLAUSIBLE_HEIGHT_CM }
     val bodyMetricInputValid =
         (weightText.isBlank() || enteredWeight != null) &&
             (waistText.isBlank() || enteredWaist != null) &&
@@ -601,11 +605,23 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                             // Height is carried on every entry; list it only for height-only entries.
                             metric.heightCm?.takeIf { metric.weightKg == null && metric.waistCm == null }?.let { "Height: %.1f cm".format(it) },
                         ).joinToString("  •  ")
-                        Text(
-                            summary,
-                            style = LedgerFigureValue.copy(fontSize = 13.sp),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
+                        val implausible = metric.heightCm?.let { it !in com.lsing.timego.domain.PLAUSIBLE_HEIGHT_CM } == true ||
+                            metric.weightKg?.let { it !in com.lsing.timego.domain.PLAUSIBLE_WEIGHT_KG } == true ||
+                            metric.waistCm?.let { it !in com.lsing.timego.domain.PLAUSIBLE_WAIST_CM } == true
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                if (implausible) "$summary  (ignored: out of range)" else summary,
+                                style = LedgerFigureValue.copy(fontSize = 13.sp),
+                                color = if (implausible) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                            )
+                            IconButton(onClick = { viewModel.deleteBodyMetric(metric.id) }) {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = "Delete entry from ${metric.date}",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                     }
                 }
             }
