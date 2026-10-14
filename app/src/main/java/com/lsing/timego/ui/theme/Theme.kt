@@ -73,7 +73,7 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = LedgerAccentDim,
+    primary = DaylightBrass,
     onPrimary = Color.White,
     primaryContainer = LedgerAccentContainerLight,
     onPrimaryContainer = LedgerOnAccentContainerLight,
@@ -92,7 +92,7 @@ private val LightColorScheme = lightColorScheme(
     onSurface = LedgerOnSurfaceLight,
     surfaceVariant = LedgerSurfaceVariantLight,
     onSurfaceVariant = LedgerOnSurfaceVariantLight,
-    surfaceTint = LedgerAccentDim,
+    surfaceTint = DaylightBrass,
     inverseSurface = LedgerOnSurfaceLight,
     inverseOnSurface = LedgerBackgroundLight,
     surfaceDim = LedgerSurfaceDimLight,

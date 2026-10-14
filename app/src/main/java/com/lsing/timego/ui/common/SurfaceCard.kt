@@ -42,6 +42,8 @@ fun SurfaceCard(
     val shape = RoundedCornerShape(cornerRadius)
     val deck = if (hero) NightDeckHigh else NightDeckLow
     val hairline = NightEdgeHairline
+    val sheenTop = NightSheenTop
+    val glowColor = NightGlow
     val dark = LocalTimeGoDark.current
     val rivetBody = if (dark) Color(0xFF3A4247) else Color(0xFFB9B3A6)
     val rivetShadow = if (dark) RivetShadow else Color(0x33000000)
@@ -68,14 +70,14 @@ fun SurfaceCard(
                 // since every SurfaceCard call site inherits it without touching each screen.
                 drawRect(
                     brush = Brush.verticalGradient(
-                        0f to NightSheenTop,
+                        0f to sheenTop,
                         0.4f to Color.Transparent,
                     ),
                 )
                 if (hero) {
                     drawRect(
                         brush = Brush.verticalGradient(
-                            0f to NightSheenTop,
+                            0f to sheenTop,
                             0.35f to Color.Transparent,
                         ),
                     )
@@ -83,7 +85,7 @@ fun SurfaceCard(
                 if (glow) {
                     drawRect(
                         brush = Brush.radialGradient(
-                            colors = listOf(NightGlow, Color.Transparent),
+                            colors = listOf(glowColor, Color.Transparent),
                             center = Offset(size.width / 2f, size.height),
                             radius = size.maxDimension * 0.85f,
                         ),
