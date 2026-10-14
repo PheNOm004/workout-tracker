@@ -110,7 +110,8 @@ import com.lsing.timego.domain.estimatedCalorieBurn
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.domain.formatDaysSince
 import com.lsing.timego.domain.flexibleRoutines
-import com.lsing.timego.domain.nextFlexibleRoutineInRotation
+import com.lsing.timego.domain.nextFlexibleRoutineByRecovery
+import com.lsing.timego.domain.primaryMuscleGroups
 import com.lsing.timego.domain.orderedMuscleDistributionForChart
 import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.toggleExpandedExerciseIds
@@ -382,8 +383,14 @@ private fun LogLandingContent(
     val flexibleRoutinesList = remember(filteredRoutines) {
         flexibleRoutines(filteredRoutines)
     }
-    val defaultSuggestedFlexibleRoutine = remember(flexibleRoutinesList, routineLastCompleted) {
-        nextFlexibleRoutineInRotation(flexibleRoutinesList, routineLastCompleted)
+    val defaultSuggestedFlexibleRoutine = remember(flexibleRoutinesList, routineLastCompleted, routineExercisesById, summary.lastWorkedByGroup) {
+        nextFlexibleRoutineByRecovery(
+            flexibleRoutinesList,
+            routinePrimaryGroups = routineExercisesById.mapValues { (_, exercises) -> exercises.flatMapTo(mutableSetOf()) { primaryMuscleGroups(it) } },
+            lastWorkedByGroup = summary.lastWorkedByGroup,
+            routineLastCompleted = routineLastCompleted,
+            today = LocalDate.now(),
+        )
     }
     var userSelectedFlexibleRoutineId by remember(flexibleRoutinesList) {
         mutableStateOf<Long?>(null)
@@ -396,7 +403,7 @@ private fun LogLandingContent(
     // A routine's own exercises are the ground truth for its target muscles -- no recommender
     // needed, unlike the generic Recommended Focus diagram below.
     fun regionsForRoutine(routineId: Long): Set<String> =
-        expandMuscleGroupRegions(routineExercisesById[routineId].orEmpty().flatMap { it.muscleGroups }.toSet())
+        expandMuscleGroupRegions(routineExercisesById[routineId].orEmpty().flatMap { primaryMuscleGroups(it) }.toSet())
 
     Column(
         modifier = Modifier

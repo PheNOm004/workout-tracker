@@ -593,10 +593,13 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        val w = metric.weightKg?.let { "%.1f kg".format(it) } ?: "--"
-                        val waist = metric.waistCm?.let { "%.1f cm".format(it) } ?: "--"
+                        val summary = listOfNotNull(
+                            metric.weightKg?.let { "%.1f kg".format(it) },
+                            metric.waistCm?.let { "Waist: %.1f cm".format(it) },
+                            metric.heightCm?.let { "Height: %.1f cm".format(it) },
+                        ).joinToString("  •  ")
                         Text(
-                            "$w  •  Waist: $waist",
+                            summary,
                             style = LedgerFigureValue.copy(fontSize = 13.sp),
                             color = MaterialTheme.colorScheme.onSurface,
                         )

@@ -129,3 +129,27 @@ class RoutineScheduleTest {
         assertEquals(null, next)
     }
 }
+
+class RoutineRecoveryRotationTest {
+    private val arm = com.lsing.timego.data.Routine(id = 1, name = "Arm Day")
+    private val back = com.lsing.timego.data.Routine(id = 2, name = "Back Day")
+    private val legs = com.lsing.timego.data.Routine(id = 3, name = "Leg Day")
+    private val today = java.time.LocalDate.of(2026, 10, 14)
+    private val groups = mapOf(
+        1L to setOf("BICEPS", "TRICEPS"),
+        2L to setOf("LATS", "UPPER_BACK"),
+        3L to setOf("QUADS", "HAMSTRINGS"),
+    )
+
+    @org.junit.Test
+    fun `routine whose muscles were just trained freeform is not next`() {
+        val worked = mapOf(
+            "BICEPS" to today, "TRICEPS" to today, "LATS" to today, "UPPER_BACK" to today,
+            "QUADS" to today.minusDays(57), "HAMSTRINGS" to today.minusDays(57),
+        )
+
+        val next = nextFlexibleRoutineByRecovery(listOf(arm, back, legs), groups, worked, emptyMap(), today)
+
+        org.junit.Assert.assertEquals("Leg Day", next?.name)
+    }
+}

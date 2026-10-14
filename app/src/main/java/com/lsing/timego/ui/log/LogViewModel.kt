@@ -107,6 +107,8 @@ data class LandingSummary(
     val recommendedMuscleGroups: List<String>,
     val suggestedExercise: Exercise?,
     val recommendationHighlightStrengths: Map<String, Float> = emptyMap(),
+    /** Last date each muscle group was loaded (primary or heavy synergist), freeform sessions included. */
+    val lastWorkedByGroup: Map<String, LocalDate> = emptyMap(),
     /** At least one more familiar alternative exists beyond [suggestedExercise], so the session-local
      *  "Choose another" action (Coach Memory Phase 1) has somewhere to go. */
     val canChooseAnother: Boolean = false,
@@ -647,6 +649,7 @@ class LogViewModel(
                 recommendedMuscleGroups = recommended,
                 suggestedExercise = suggestedExercise,
                 recommendationHighlightStrengths = highlightStrengths,
+                lastWorkedByGroup = lastWorked,
                 canChooseAnother = alternatives.any { it.id != suggestedExercise?.id },
                 noAlternativesLeft = exclusions.isNotEmpty() && suggestedExercise == null,
                 recommendationNote = recommendationNote,
