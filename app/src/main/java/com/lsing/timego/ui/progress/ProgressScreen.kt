@@ -118,6 +118,9 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     var heightText by remember { mutableStateOf("") }
     // Plausible-range gate on entry only (a stray extra digit once stored a 1,111,111,111 cm height);
     // stored data and restores keep the looser persistence validation.
+    val latestWeight = com.lsing.timego.domain.latestWeightKg(bodyMetrics)
+    val latestHeight = com.lsing.timego.domain.latestHeightCm(bodyMetrics)
+    val latestWaist = bodyMetrics.sortedBy { it.date }.mapNotNull { it.waistCm }.lastOrNull { it in com.lsing.timego.domain.PLAUSIBLE_WAIST_CM }
     val enteredWeight = weightText.toPositiveFiniteDoubleOrNull()?.takeIf { it in com.lsing.timego.domain.PLAUSIBLE_WEIGHT_KG }
     val enteredWaist = waistText.toPositiveFiniteDoubleOrNull()?.takeIf { it in com.lsing.timego.domain.PLAUSIBLE_WAIST_CM }
     val enteredHeight = heightText.toPositiveFiniteDoubleOrNull()?.takeIf { it in com.lsing.timego.domain.PLAUSIBLE_HEIGHT_CM }
@@ -542,6 +545,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                 value = weightText,
                                 onValueChange = { weightText = it },
                                 label = { Text("Weight (kg)") },
+                                placeholder = { latestWeight?.let { Text("last %.1f".format(it)) } },
+                                supportingText = { if (weightText.isNotBlank() && enteredWeight == null) Text("20 to 300 kg") },
                                 isError = weightText.isNotBlank() && enteredWeight == null,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f).padding(end = 8.dp),
@@ -550,6 +555,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                 value = waistText,
                                 onValueChange = { waistText = it },
                                 label = { Text("Waist (cm)") },
+                                placeholder = { latestWaist?.let { Text("last %.1f".format(it)) } },
+                                supportingText = { if (waistText.isNotBlank() && enteredWaist == null) Text("30 to 250 cm") },
                                 isError = waistText.isNotBlank() && enteredWaist == null,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
@@ -563,6 +570,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                 value = heightText,
                                 onValueChange = { heightText = it },
                                 label = { Text("Height (cm)") },
+                                placeholder = { latestHeight?.let { Text("last %.0f".format(it)) } },
+                                supportingText = { if (heightText.isNotBlank() && enteredHeight == null) Text("100 to 250 cm") },
                                 isError = heightText.isNotBlank() && enteredHeight == null,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f).padding(end = 8.dp),

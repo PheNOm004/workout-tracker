@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -104,78 +105,34 @@ fun SettingsBottomSheet(
                 modifier = Modifier.padding(bottom = Spacing.Small),
             )
 
-            // Hold exercise start delay
-            SectionHeader(title = "Workout Settings", topPadding = Spacing.Small)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
-            ) {
-                Text(
-                    "Hold-exercise start delay",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = { onSetHoldDelaySeconds((holdDelaySeconds - 1).coerceAtLeast(0)) }) {
-                    Icon(Icons.Filled.Remove, contentDescription = "Decrease delay")
-                }
-                Text("${holdDelaySeconds}s", style = LedgerFigureEmphasis)
-                IconButton(onClick = { onSetHoldDelaySeconds(holdDelaySeconds + 1) }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Increase delay")
-                }
-            }
-
-            // Appearance
-            Text(
-                "Appearance",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = Spacing.Small, bottom = Spacing.ExtraSmall),
+            // Workout: the controls used mid-session, ordered by how often they change
+            SectionHeader(title = "Workout", topPadding = Spacing.Small)
+            SettingStepper(
+                label = "Rest timer between sets",
+                value = if (restTimerSeconds == 0) "Off" else "${restTimerSeconds}s",
+                onMinus = { onSetRestTimerSeconds((restTimerSeconds - 15).coerceAtLeast(0)) },
+                onPlus = { onSetRestTimerSeconds(restTimerSeconds + 15) },
+                minusDescription = "Decrease rest time",
+                plusDescription = "Increase rest time",
             )
-            Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Spacing.Small)) {
-                com.lsing.timego.data.ThemeMode.entries.forEach { mode ->
-                    androidx.compose.material3.FilterChip(
-                        selected = themeMode == mode,
-                        onClick = { onSetThemeMode(mode) },
-                        label = { Text(mode.name.lowercase().replaceFirstChar(Char::uppercase)) },
-                    )
-                }
-            }
-
-            // Rest timer between working sets
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
-            ) {
-                Text(
-                    "Rest timer between sets",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = { onSetRestTimerSeconds((restTimerSeconds - 15).coerceAtLeast(0)) }) {
-                    Icon(Icons.Filled.Remove, contentDescription = "Decrease rest time")
-                }
-                Text(if (restTimerSeconds == 0) "Off" else "${restTimerSeconds}s", style = LedgerFigureEmphasis)
-                IconButton(onClick = { onSetRestTimerSeconds(restTimerSeconds + 15) }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Increase rest time")
-                }
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Adaptive rest", style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        if (restAdaptive) "Uses the program's rest and your last RPE; the value above is the fallback."
-                        else "Always the fixed value above.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                androidx.compose.material3.Switch(checked = restAdaptive, onCheckedChange = onSetRestAdaptive)
-            }
-
-            // Training lean
+            SettingSwitch(
+                label = "Adaptive rest",
+                supporting = if (restAdaptive) {
+                    "Uses the program's rest and your last RPE; the time above is the fallback."
+                } else {
+                    "Always the fixed time above."
+                },
+                checked = restAdaptive,
+                onChange = onSetRestAdaptive,
+            )
+            SettingStepper(
+                label = "Hold-exercise start delay",
+                value = "${holdDelaySeconds}s",
+                onMinus = { onSetHoldDelaySeconds((holdDelaySeconds - 1).coerceAtLeast(0)) },
+                onPlus = { onSetHoldDelaySeconds(holdDelaySeconds + 1) },
+                minusDescription = "Decrease delay",
+                plusDescription = "Increase delay",
+            )
             Text(
                 "Suggested exercise style",
                 style = MaterialTheme.typography.bodyMedium,
@@ -198,6 +155,22 @@ fun SettingsBottomSheet(
                                 },
                             )
                         },
+                    )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
+
+            SectionHeader(title = "Appearance", topPadding = Spacing.Small)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+            ) {
+                com.lsing.timego.data.ThemeMode.entries.forEach { mode ->
+                    FilterChip(
+                        selected = themeMode == mode,
+                        onClick = { onSetThemeMode(mode) },
+                        label = { Text(mode.name.lowercase().replaceFirstChar(Char::uppercase)) },
                     )
                 }
             }
@@ -276,5 +249,41 @@ fun SettingsBottomSheet(
                 }
             }
         }
+    }
+}
+
+/** Label on the left, "- value +" stepper on the right; one row shape for every numeric preference. */
+@Composable
+private fun SettingStepper(
+    label: String,
+    value: String,
+    onMinus: () -> Unit,
+    onPlus: () -> Unit,
+    minusDescription: String,
+    plusDescription: String,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        IconButton(onClick = onMinus) { Icon(Icons.Filled.Remove, contentDescription = minusDescription) }
+        Text(value, style = LedgerFigureEmphasis, modifier = Modifier.widthIn(min = 44.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        IconButton(onClick = onPlus) { Icon(Icons.Filled.Add, contentDescription = plusDescription) }
+    }
+}
+
+/** Label with a one-line explanation of the current state and a switch. */
+@Composable
+private fun SettingSwitch(label: String, supporting: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = Spacing.Small)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium)
+            Text(supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        androidx.compose.material3.Switch(checked = checked, onCheckedChange = onChange)
     }
 }

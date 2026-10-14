@@ -45,6 +45,10 @@ object OnboardingReducer {
         )
     }
 
+    /** Jump to an earlier step (Review rows use this); never skips forward past unvalidated steps. */
+    fun goTo(state: OnboardingState, step: OnboardingStep): OnboardingState =
+        if (steps.indexOf(step) < steps.indexOf(state.step)) state.copy(step = step, validationMessage = null) else state
+
     fun canComplete(state: OnboardingState): Boolean =
         state.step == OnboardingStep.REVIEW && state.draft.isComplete
 

@@ -31,6 +31,8 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
 
     fun back() = _state.update(OnboardingReducer::back)
 
+    fun goTo(step: OnboardingStep) = _state.update { OnboardingReducer.goTo(it, step) }
+
     fun skipOptional() {
         _state.update { current ->
             require(current.step == OnboardingStep.PHYSICAL || current.step == OnboardingStep.LIMITATIONS)
