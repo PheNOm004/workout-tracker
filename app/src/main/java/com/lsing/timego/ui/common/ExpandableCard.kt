@@ -1,6 +1,11 @@
 package com.lsing.timego.ui.common
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -59,7 +64,13 @@ fun ExpandableCard(
     ) {
         Column {
             header()
-            if (expanded) content()
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(TimeGoMotion.expandEnter) + fadeIn(TimeGoMotion.fadeEnter),
+                exit = shrinkVertically(TimeGoMotion.expandExit) + fadeOut(TimeGoMotion.fadeExit),
+            ) {
+                Column { content() }
+            }
         }
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AllInclusive
+import androidx.compose.animation.togetherWith
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -276,138 +277,152 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
         }
     }
 
-    LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
-        item {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
-            ) {
-                Text(
-                    "Programs & Routines",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = { showSettingsSheet = true }) {
-                    Icon(
-                        Icons.Outlined.Settings,
-                        contentDescription = "Settings & Preferences",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Text(
-                "Prepare the next session before you step in.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = Spacing.Small),
-            )
-            if (showPreinstalled) {
+    // Same horizontal slide the Log pages use, so drilling into the preinstalled list reads as going deeper.
+    androidx.compose.animation.AnimatedContent(
+        targetState = showPreinstalled,
+        transitionSpec = {
+            val deeper = targetState
+            val enter = androidx.compose.animation.slideInHorizontally(com.lsing.timego.ui.theme.TimeGoMotion.navigationInOffset) { width -> if (deeper) width / 4 else -width / 4 } +
+                androidx.compose.animation.fadeIn(com.lsing.timego.ui.theme.TimeGoMotion.contentEnter)
+            val exit = androidx.compose.animation.slideOutHorizontally(com.lsing.timego.ui.theme.TimeGoMotion.navigationOutOffset) { width -> if (deeper) -width / 4 else width / 4 } +
+                androidx.compose.animation.fadeOut(com.lsing.timego.ui.theme.TimeGoMotion.contentExit)
+            enter togetherWith exit
+        },
+        label = "programsPageTransition",
+    ) { onPreinstalledPage ->
+        LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
+            item {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall),
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
                 ) {
-                    IconButton(onClick = { showPreinstalled = false }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Programs & Routines")
-                    }
-                    Text("Preinstalled programs", style = MaterialTheme.typography.titleMedium)
-                }
-            } else {
-                SectionHeader(title = "My programs", topPadding = Spacing.ExtraSmall)
-            }
-        }
-        val programCardCallbacks = ProgramCardCallbacks(
-            onToggle = { expandedProgramIds = expandedProgramIds.toggle(it) },
-            onOpenDetails = { detailExercise = it },
-            onEdit = { editingRoutine = it },
-        )
-        if (showPreinstalled) {
-            com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.filterKeys { it != com.lsing.timego.data.RIR_PROGRAM_ID }.forEach { (programId, name) ->
-                item(key = "program-$programId") {
-                    ProgramCard(
-                        title = name,
-                        programRoutines = routines.filter { it.programId == programId },
-                        expanded = programId in expandedProgramIds,
-                        programKey = programId,
-                        routineExercisesById = routineExercisesById,
-                        callbacks = programCardCallbacks,
-                        onDelete = null,
-                        onReset = { viewModel.resetSeededRoutine(it.id) },
+                    Text(
+                        "Programs & Routines",
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.weight(1f),
                     )
+                    IconButton(onClick = { showSettingsSheet = true }) {
+                        Icon(
+                            Icons.Outlined.Settings,
+                            contentDescription = "Settings & Preferences",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
-            }
-        } else {
-            item(key = "program-${com.lsing.timego.data.RIR_PROGRAM_ID}") {
-                ProgramCard(
-                    title = "Upper/Lower AB (RIR)",
-                    programRoutines = routines.filter { it.programId == com.lsing.timego.data.RIR_PROGRAM_ID },
-                    expanded = com.lsing.timego.data.RIR_PROGRAM_ID in expandedProgramIds,
-                    programKey = com.lsing.timego.data.RIR_PROGRAM_ID,
-                    routineExercisesById = routineExercisesById,
-                    callbacks = programCardCallbacks,
-                    onDelete = { viewModel.deleteRoutine(it.id) },
-                    onReset = null,
+                Text(
+                    "Prepare the next session before you step in.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = Spacing.Small),
                 )
-            }
-            item(key = "program-custom") {
-                ProgramCard(
-                    title = "Custom routines",
-                    programRoutines = routines.filter { it.programId == null },
-                    expanded = "custom" in expandedProgramIds,
-                    programKey = "custom",
-                    routineExercisesById = routineExercisesById,
-                    callbacks = programCardCallbacks,
-                    onDelete = { viewModel.deleteRoutine(it.id) },
-                    onReset = null,
-                    onNewRoutine = { showRoutineForm = true },
-                )
-            }
-            item(key = "preinstalledEntry") {
-                SurfaceCard(modifier = Modifier.fillMaxWidth().padding(top = Spacing.Large, bottom = 4.dp), cornerRadius = 10.dp) {
+                if (onPreinstalledPage) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showPreinstalled = true }
-                            .padding(Spacing.Medium),
+                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall),
                     ) {
-                        Text("Preinstalled programs", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                        Text(
-                            "${com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.size - 1} programs",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(end = Spacing.Small),
+                        IconButton(onClick = { showPreinstalled = false }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Programs & Routines")
+                        }
+                        Text("Preinstalled programs", style = MaterialTheme.typography.titleMedium)
+                    }
+                } else {
+                    SectionHeader(title = "My programs", topPadding = Spacing.ExtraSmall)
+                }
+            }
+            val programCardCallbacks = ProgramCardCallbacks(
+                onToggle = { expandedProgramIds = expandedProgramIds.toggle(it) },
+                onOpenDetails = { detailExercise = it },
+                onEdit = { editingRoutine = it },
+            )
+            if (onPreinstalledPage) {
+                com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.filterKeys { it != com.lsing.timego.data.RIR_PROGRAM_ID }.forEach { (programId, name) ->
+                    item(key = "program-$programId") {
+                        ProgramCard(
+                            title = name,
+                            programRoutines = routines.filter { it.programId == programId },
+                            expanded = programId in expandedProgramIds,
+                            programKey = programId,
+                            routineExercisesById = routineExercisesById,
+                            callbacks = programCardCallbacks,
+                            onDelete = null,
+                            onReset = { viewModel.resetSeededRoutine(it.id) },
                         )
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+                    }
+                }
+            } else {
+                item(key = "program-${com.lsing.timego.data.RIR_PROGRAM_ID}") {
+                    ProgramCard(
+                        title = "Upper/Lower AB (RIR)",
+                        programRoutines = routines.filter { it.programId == com.lsing.timego.data.RIR_PROGRAM_ID },
+                        expanded = com.lsing.timego.data.RIR_PROGRAM_ID in expandedProgramIds,
+                        programKey = com.lsing.timego.data.RIR_PROGRAM_ID,
+                        routineExercisesById = routineExercisesById,
+                        callbacks = programCardCallbacks,
+                        onDelete = { viewModel.deleteRoutine(it.id) },
+                        onReset = null,
+                    )
+                }
+                item(key = "program-custom") {
+                    ProgramCard(
+                        title = "Custom routines",
+                        programRoutines = routines.filter { it.programId == null },
+                        expanded = "custom" in expandedProgramIds,
+                        programKey = "custom",
+                        routineExercisesById = routineExercisesById,
+                        callbacks = programCardCallbacks,
+                        onDelete = { viewModel.deleteRoutine(it.id) },
+                        onReset = null,
+                        onNewRoutine = { showRoutineForm = true },
+                    )
+                }
+                item(key = "preinstalledEntry") {
+                    SurfaceCard(modifier = Modifier.fillMaxWidth().padding(top = Spacing.Large, bottom = 4.dp), cornerRadius = 10.dp) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showPreinstalled = true }
+                                .padding(Spacing.Medium),
+                        ) {
+                            Text("Preinstalled programs", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                            Text(
+                                "${com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.size - 1} programs",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(end = Spacing.Small),
+                            )
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+                        }
                     }
                 }
             }
-        }
-        if (!showPreinstalled && untrainedGroups.isNotEmpty()) {
-            item {
-                Text(
-                    "Not trained in a while",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.Large, bottom = Spacing.ExtraSmall),
-                )
-                FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
-                    untrainedGroups.take(6).forEach { group ->
-                        AssistChip(
-                            onClick = {},
-                            label = { Text(formatEnumLabel(group)) },
-                            colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.error),
-                            border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = MaterialTheme.colorScheme.error),
-                            modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
+            if (!onPreinstalledPage && untrainedGroups.isNotEmpty()) {
+                item {
+                    Text(
+                        "Not trained in a while",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.Large, bottom = Spacing.ExtraSmall),
+                    )
+                    FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium)) {
+                        untrainedGroups.take(6).forEach { group ->
+                            AssistChip(
+                                onClick = {},
+                                label = { Text(formatEnumLabel(group)) },
+                                colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.error),
+                                border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = MaterialTheme.colorScheme.error),
+                                modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
+                            )
+                        }
+                    }
+                    if (untrainedGroups.size > 6) {
+                        Text(
+                            "Showing the six longest-neglected groups.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = Spacing.Medium),
                         )
                     }
-                }
-                if (untrainedGroups.size > 6) {
-                    Text(
-                        "Showing the six longest-neglected groups.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = Spacing.Medium),
-                    )
                 }
             }
         }
