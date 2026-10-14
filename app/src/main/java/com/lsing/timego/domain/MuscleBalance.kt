@@ -227,6 +227,17 @@ fun synergisticPartnersFor(primaryGroup: String): Set<String> {
     return partners
 }
 
+/** Small or mostly-secondary groups. While never trained they
+ *  tie at infinite staleness, so left eligible they win the primary slot forever (enum order) and starve
+ *  the large groups that are genuinely overdue. They still join a session as partners, and lead once trained. */
+private val MINOR_NEVER_TRAINED = setOf(
+    MuscleGroup.LOWER_BACK.name,
+    MuscleGroup.TRAPS.name,
+    MuscleGroup.OBLIQUES.name,
+    MuscleGroup.ADDUCTORS.name,
+    MuscleGroup.FOREARMS.name,
+)
+
 /** Evidence-based recommendation algorithm that selects the most neglected, recovered muscle group
  *  as the primary focus, and pairs it with its most stale synergistic partner.
  *  Uses [lastWorkedByGroup] to protect against collateral synergist fatigue (e.g. Triceps loaded
@@ -239,7 +250,7 @@ fun recommendSynergisticMuscleGroups(
 ): List<String> {
     val ranked = rankUntrainedMuscleGroups(allGroups, lastWorkedByGroup, today)
     if (ranked.isEmpty()) return emptyList()
-    val primary = ranked.first()
+    val primary = ranked.firstOrNull { it !in MINOR_NEVER_TRAINED || it in lastWorkedByGroup } ?: ranked.first()
     val partners = synergisticPartnersFor(primary)
 
     val eligiblePartners = partners.intersect(allGroups.toSet())
