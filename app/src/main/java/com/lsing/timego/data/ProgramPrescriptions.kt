@@ -37,7 +37,7 @@ val RIR_PROGRAM_PRESCRIPTIONS: Map<String, Prescription> = mapOf(
     "Pull-Up" to heavy(3, 6..10, "Progress with weighted variations"),
     "Dip" to heavy(3, 6..10, "Progress with weighted variations"),
     "Chest-Supported Row" to heavy(2, 8..12),
-    "Seated Dumbbell Shoulder Press" to heavy(2, 8..12),
+    "Neutral-Grip Shoulder Press" to heavy(2, 8..12),
     "Preacher Curl" to accessory(2),
     "Lateral Raise" to accessory(2),
 
@@ -45,7 +45,7 @@ val RIR_PROGRAM_PRESCRIPTIONS: Map<String, Prescription> = mapOf(
     "Nordic Hamstring Curl" to heavy(3, 6..10, "Start with eccentrics, progress from there"),
     "Leg Extension" to heavy(2, 8..12),
     "Hyperextension" to heavy(2, 8..12),
-    "Hanging Knee Raise" to accessory(2, "Captain's chair knee tuck; progress with Hanging Leg Raises"),
+    "Captain's Chair Knee Tuck" to accessory(2, "Progress with Hanging Leg Raises"),
     "Ab Wheel Rollout" to accessory(2, "Progress with increased ROM"),
 
     "Incline Dumbbell Press" to heavy(3, 6..10),
@@ -59,6 +59,6 @@ val RIR_PROGRAM_PRESCRIPTIONS: Map<String, Prescription> = mapOf(
     "Romanian Deadlift" to heavy(3, 6..10),
     "Leg Press" to heavy(2, 8..12),
     "Standing Calf Raise" to heavy(2, 8..12),
-    "Cable Kneeling Crunch" to accessory(2),
-    "Dumbbell Side Bend" to accessory(2),
+    "Weighted Crunch" to accessory(2),
+    "Roman Chair Side Crunch" to accessory(2),
 )

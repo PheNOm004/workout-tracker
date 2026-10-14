@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogueVersion": 1,
+  "catalogueVersion": 2,
   "exercises": [
     {
       "key": "timego.seed.v1.barbell-bench-press",
@@ -24779,6 +24779,179 @@
         "Forcing a painful range instead of adjusting or stopping."
       ],
       "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "REVIEWED_COMPLETE"
+    },
+    {
+      "key": "timego.seed.v1.neutral-grip-shoulder-press",
+      "name": "Neutral-Grip Shoulder Press",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "FRONT_DELTS",
+        "SIDE_DELTS",
+        "TRICEPS",
+        "TRAPS"
+      ],
+      "muscleWeights": {
+        "SIDE_DELTS": 60,
+        "TRICEPS": 50,
+        "TRAPS": 25
+      },
+      "equipment": [
+        "dumbbells",
+        "bench"
+      ],
+      "difficulty": "INTERMEDIATE",
+      "complexity": "MEDIUM",
+      "purpose": "Presses dumbbells overhead with palms facing each other, loading the shoulders and triceps with less strain on the front of the joint than a pronated grip.",
+      "setup": [
+        "Sit with back supported and hold a dumbbell in each hand at shoulder height, palms facing each other.",
+        "Keep wrists neutral and elbows slightly in front of the body, about 30-45 degrees from your sides."
+      ],
+      "steps": [
+        "Brace your core and press both dumbbells up in the plane of the shoulder blades.",
+        "Let the shoulder blades rotate upward as the arms rise; a small shrug at the top is fine.",
+        "Lower under control to shoulder height and reset."
+      ],
+      "cues": [
+        "Elbows slightly forward, not flared straight out.",
+        "Stack wrists over elbows and ribs down.",
+        "Control the lowering phase."
+      ],
+      "mistakes": [
+        "Flaring the elbows wide.",
+        "Arching the lower back to finish the rep.",
+        "Pinning the shoulder blades back and down as in a bench press.",
+        "Using a load that breaks wrist or elbow position."
+      ],
+      "easierVariationKey": "timego.seed.v1.seated-dumbbell-shoulder-press",
+      "harderVariationKeys": [],
+      "reviewStatus": "REVIEWED_COMPLETE"
+    },
+    {
+      "key": "timego.seed.v1.captain-s-chair-knee-tuck",
+      "name": "Captain's Chair Knee Tuck",
+      "aliases": [],
+      "category": "CALISTHENICS",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "ABS"
+      ],
+      "muscleWeights": {},
+      "equipment": [
+        "captain's chair"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "Trains the abs and hip flexors by tucking the knees toward the chest while supported on a captain's chair.",
+      "setup": [
+        "Rest your forearms on the pads with your back against the backrest and let your legs hang.",
+        "Grip the handles and keep your shoulders down, away from your ears."
+      ],
+      "steps": [
+        "Brace your core and tuck your pelvis slightly.",
+        "Flex at the hips and knees to lift your knees toward your chest.",
+        "Pause briefly at the top, then lower your legs under control."
+      ],
+      "cues": [
+        "Curl the pelvis up rather than only lifting the knees.",
+        "Keep a 2-1-2 tempo and exhale as the knees rise.",
+        "Keep your back against the pad."
+      ],
+      "mistakes": [
+        "Swinging the legs for momentum.",
+        "Dropping the legs quickly on the way down.",
+        "Shrugging the shoulders up to the ears.",
+        "Training through acute lower back or shoulder pain."
+      ],
+      "easierVariationKey": null,
+      "harderVariationKeys": [
+        "timego.seed.v1.captain-s-chair-leg-raise"
+      ],
+      "reviewStatus": "REVIEWED_COMPLETE"
+    },
+    {
+      "key": "timego.seed.v1.weighted-crunch",
+      "name": "Weighted Crunch",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "ABS"
+      ],
+      "muscleWeights": {},
+      "equipment": [
+        "weight plate",
+        "dumbbell"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "Loads the crunch pattern with a plate or dumbbell held to the chest to progress abdominal strength.",
+      "setup": [
+        "Lie on your back with knees bent and feet flat, hip-width apart.",
+        "Hold a light plate or dumbbell against your chest with both hands and press your lower back toward the floor."
+      ],
+      "steps": [
+        "Exhale and curl your ribs toward your pelvis, lifting only the shoulder blades off the floor.",
+        "Pause briefly and squeeze the abs at the top.",
+        "Inhale and lower with control without dropping your head."
+      ],
+      "cues": [
+        "Start light, around 5-10 lb, and add load slowly.",
+        "Keep your chin off your chest and your neck relaxed.",
+        "Move smoothly rather than swinging up."
+      ],
+      "mistakes": [
+        "Using momentum to throw the torso up.",
+        "Sitting all the way up, which turns the crunch into a sit-up.",
+        "Letting the lower back arch off the floor.",
+        "Pulling on the neck."
+      ],
+      "easierVariationKey": null,
+      "harderVariationKeys": [
+        "timego.seed.v1.cable-kneeling-crunch"
+      ],
+      "reviewStatus": "REVIEWED_COMPLETE"
+    },
+    {
+      "key": "timego.seed.v1.roman-chair-side-crunch",
+      "name": "Roman Chair Side Crunch",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "OBLIQUES"
+      ],
+      "muscleWeights": {},
+      "equipment": [
+        "roman chair"
+      ],
+      "difficulty": "INTERMEDIATE",
+      "complexity": "MEDIUM",
+      "purpose": "Trains the obliques by side-bending against gravity on a roman chair, with the hips supported on the pad.",
+      "setup": [
+        "Set the pad so it supports your hips and upper thighs while you lie on your side, feet secured.",
+        "Cross your arms over your chest or hold light weight to the chest; avoid pulling on your head."
+      ],
+      "steps": [
+        "Lower your torso sideways under control through a pain-free range.",
+        "Raise the torso back to a straight line by contracting the obliques on the top side.",
+        "Complete all reps on one side, then switch."
+      ],
+      "cues": [
+        "Keep the movement in the side-bend plane without twisting.",
+        "Exhale as you rise and inhale as you lower.",
+        "Stop at a straight body line rather than over-arching."
+      ],
+      "mistakes": [
+        "Swinging the torso with momentum.",
+        "Twisting instead of side-bending.",
+        "Pulling on the head or neck.",
+        "Using more load than can be controlled through the range."
+      ],
+      "easierVariationKey": "timego.seed.v1.dumbbell-side-bend",
       "harderVariationKeys": [],
       "reviewStatus": "REVIEWED_COMPLETE"
     }

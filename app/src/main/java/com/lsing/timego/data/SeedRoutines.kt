@@ -69,10 +69,10 @@ val SEED_ROUTINES: List<SeedRoutine> = listOf(
     SeedRoutine("westside_conjugate", "Dynamic Effort Upper", exerciseNames = listOf("Close-Grip Bench Press", "Skull Crusher", "Seated Cable Row")),
 
     // Personal Upper/Lower AB split (RIR-based); prescriptions live in RIR_PROGRAM_PRESCRIPTIONS
-    SeedRoutine(RIR_PROGRAM_ID, "Upper A", exerciseNames = listOf("Pull-Up", "Dip", "Chest-Supported Row", "Seated Dumbbell Shoulder Press", "Preacher Curl", "Lateral Raise")),
-    SeedRoutine(RIR_PROGRAM_ID, "Lower A", exerciseNames = listOf("Hack Squat", "Nordic Hamstring Curl", "Leg Extension", "Hyperextension", "Hanging Knee Raise", "Ab Wheel Rollout")),
+    SeedRoutine(RIR_PROGRAM_ID, "Upper A", exerciseNames = listOf("Pull-Up", "Dip", "Chest-Supported Row", "Neutral-Grip Shoulder Press", "Preacher Curl", "Lateral Raise")),
+    SeedRoutine(RIR_PROGRAM_ID, "Lower A", exerciseNames = listOf("Hack Squat", "Nordic Hamstring Curl", "Leg Extension", "Hyperextension", "Captain's Chair Knee Tuck", "Ab Wheel Rollout")),
     SeedRoutine(RIR_PROGRAM_ID, "Upper B", exerciseNames = listOf("Incline Dumbbell Press", "T-Bar Row", "Pec Deck Machine", "Rear Delt Fly", "Hammer Curl", "Tricep Pushdown")),
-    SeedRoutine(RIR_PROGRAM_ID, "Lower B", exerciseNames = listOf("Pistol Squat", "Romanian Deadlift", "Leg Press", "Standing Calf Raise", "Cable Kneeling Crunch", "Dumbbell Side Bend")),
+    SeedRoutine(RIR_PROGRAM_ID, "Lower B", exerciseNames = listOf("Pistol Squat", "Romanian Deadlift", "Leg Press", "Standing Calf Raise", "Weighted Crunch", "Roman Chair Side Crunch")),
 
     // Calisthenics Progression -- tiered
     SeedRoutine("calisthenics_progression", "Beginner Full Body", tier = "BEGINNER", exerciseNames = listOf("Push-Up", "Australian Pull-Up", "Bodyweight Squat", "Step-Up", "Plank")),

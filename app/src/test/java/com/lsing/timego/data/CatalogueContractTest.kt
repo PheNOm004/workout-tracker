@@ -15,7 +15,7 @@ class CatalogueContractTest {
         val keys = Regex("\\\"key\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"").findAll(json).map { it.groupValues[1] }.toList()
         val seedKeys = SEED_EXERCISES.mapNotNull(Exercise::catalogueKey)
 
-        assertEquals(820, seedKeys.size)
+        assertEquals(824, seedKeys.size)
         assertEquals(seedKeys.toSet(), keys.toSet())
         assertEquals(keys.size, keys.toSet().size)
     }

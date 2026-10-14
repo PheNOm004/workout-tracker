@@ -887,4 +887,8 @@ val SEED_EXERCISES = listOf(
     strength("Cable Kneeling Crunch", MuscleGroup.ABS),
     strength("Captain's Chair Leg Raise", MuscleGroup.ABS),
     strength("Dumbbell Side Bend", MuscleGroup.OBLIQUES),
+    strength("Neutral-Grip Shoulder Press", MuscleGroup.FRONT_DELTS, MuscleGroup.SIDE_DELTS, MuscleGroup.TRICEPS, MuscleGroup.TRAPS, weights = mapOf(MuscleGroup.SIDE_DELTS to 60, MuscleGroup.TRICEPS to 50, MuscleGroup.TRAPS to 25)),
+    calisthenics("Captain's Chair Knee Tuck", MuscleGroup.ABS),
+    strength("Weighted Crunch", MuscleGroup.ABS),
+    strength("Roman Chair Side Crunch", MuscleGroup.OBLIQUES),
 )
