@@ -1442,11 +1442,6 @@ private fun ExerciseRowHeader(
     onToggleFavorite: () -> Unit,
     onToggle: () -> Unit,
 ) {
-    val chevronRotation by animateFloatAsState(
-        targetValue = if (expanded) 90f else 0f,
-        animationSpec = androidx.compose.animation.core.tween(280, easing = androidx.compose.animation.core.EaseInOut),
-        label = "chevronRotation",
-    )
     val starScale by animateFloatAsState(
         targetValue = if (isFavorite) 1.2f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
@@ -1481,11 +1476,7 @@ private fun ExerciseRowHeader(
                 },
             )
         }
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = if (expanded) "Collapse" else "Expand",
-            modifier = Modifier.graphicsLayer { rotationZ = chevronRotation },
-        )
+        com.lsing.timego.ui.common.ExpandChevron(expanded)
     }
 }
 

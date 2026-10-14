@@ -21,6 +21,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import com.lsing.timego.ui.common.ExpandableCard
+import com.lsing.timego.ui.common.ExpandableHeader
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -93,6 +97,8 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     var showRoutineForm by remember { mutableStateOf(false) }
     var editingRoutine by remember { mutableStateOf<com.lsing.timego.data.Routine?>(null) }
     var expandedProgramIds by remember { mutableStateOf(setOf<String>()) }
+    var showPreinstalled by remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = showPreinstalled) { showPreinstalled = false }
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showSessionHistory by remember { mutableStateOf(false) }
     var pendingDeleteSessionId by remember { mutableStateOf<Long?>(null) }
@@ -295,51 +301,88 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = Spacing.Small),
             )
-            SectionHeader(title = "My programs", topPadding = Spacing.ExtraSmall)
+            if (showPreinstalled) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall),
+                ) {
+                    IconButton(onClick = { showPreinstalled = false }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Programs & Routines")
+                    }
+                    Text("Preinstalled programs", style = MaterialTheme.typography.titleMedium)
+                }
+            } else {
+                SectionHeader(title = "My programs", topPadding = Spacing.ExtraSmall)
+            }
         }
-        val myProgramRoutines = routines.filter { it.programId == com.lsing.timego.data.RIR_PROGRAM_ID }
-        val customRoutines = routines.filter { it.programId == null }
-        programSection(
-            title = "Upper/Lower AB (RIR)",
-            programRoutines = myProgramRoutines,
-            programKey = com.lsing.timego.data.RIR_PROGRAM_ID,
-            expandedProgramIds = expandedProgramIds,
+        val programCardCallbacks = ProgramCardCallbacks(
             onToggle = { expandedProgramIds = expandedProgramIds.toggle(it) },
-            routineExercisesById = routineExercisesById,
             onOpenDetails = { detailExercise = it },
             onEdit = { editingRoutine = it },
-            onDelete = { viewModel.deleteRoutine(it.id) },
-            onReset = null,
         )
-        programSection(
-            title = "Custom routines",
-            programRoutines = customRoutines,
-            programKey = "custom",
-            expandedProgramIds = expandedProgramIds,
-            onToggle = { expandedProgramIds = expandedProgramIds.toggle(it) },
-            routineExercisesById = routineExercisesById,
-            onOpenDetails = { detailExercise = it },
-            onEdit = { editingRoutine = it },
-            onDelete = { viewModel.deleteRoutine(it.id) },
-            onReset = null,
-            trailingHeader = { Button(onClick = { showRoutineForm = true }) { Text("+ New routine") } },
-        )
-        item { SectionHeader(title = "Preinstalled programs", topPadding = Spacing.Large) }
-        com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.filterKeys { it != com.lsing.timego.data.RIR_PROGRAM_ID }.forEach { (programId, name) ->
-            programSection(
-                title = name,
-                programRoutines = routines.filter { it.programId == programId },
-                programKey = programId,
-                expandedProgramIds = expandedProgramIds,
-                onToggle = { expandedProgramIds = expandedProgramIds.toggle(it) },
-                routineExercisesById = routineExercisesById,
-                onOpenDetails = { detailExercise = it },
-                onEdit = { editingRoutine = it },
-                onDelete = null,
-                onReset = { viewModel.resetSeededRoutine(it.id) },
-            )
+        if (showPreinstalled) {
+            com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.filterKeys { it != com.lsing.timego.data.RIR_PROGRAM_ID }.forEach { (programId, name) ->
+                item(key = "program-$programId") {
+                    ProgramCard(
+                        title = name,
+                        programRoutines = routines.filter { it.programId == programId },
+                        expanded = programId in expandedProgramIds,
+                        programKey = programId,
+                        routineExercisesById = routineExercisesById,
+                        callbacks = programCardCallbacks,
+                        onDelete = null,
+                        onReset = { viewModel.resetSeededRoutine(it.id) },
+                    )
+                }
+            }
+        } else {
+            item(key = "program-${com.lsing.timego.data.RIR_PROGRAM_ID}") {
+                ProgramCard(
+                    title = "Upper/Lower AB (RIR)",
+                    programRoutines = routines.filter { it.programId == com.lsing.timego.data.RIR_PROGRAM_ID },
+                    expanded = com.lsing.timego.data.RIR_PROGRAM_ID in expandedProgramIds,
+                    programKey = com.lsing.timego.data.RIR_PROGRAM_ID,
+                    routineExercisesById = routineExercisesById,
+                    callbacks = programCardCallbacks,
+                    onDelete = { viewModel.deleteRoutine(it.id) },
+                    onReset = null,
+                )
+            }
+            item(key = "program-custom") {
+                ProgramCard(
+                    title = "Custom routines",
+                    programRoutines = routines.filter { it.programId == null },
+                    expanded = "custom" in expandedProgramIds,
+                    programKey = "custom",
+                    routineExercisesById = routineExercisesById,
+                    callbacks = programCardCallbacks,
+                    onDelete = { viewModel.deleteRoutine(it.id) },
+                    onReset = null,
+                    onNewRoutine = { showRoutineForm = true },
+                )
+            }
+            item(key = "preinstalledEntry") {
+                SurfaceCard(modifier = Modifier.fillMaxWidth().padding(top = Spacing.Large, bottom = 4.dp), cornerRadius = 10.dp) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showPreinstalled = true }
+                            .padding(Spacing.Medium),
+                    ) {
+                        Text("Preinstalled programs", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                        Text(
+                            "${com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.size - 1} programs",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = Spacing.Small),
+                        )
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+                    }
+                }
+            }
         }
-        if (untrainedGroups.isNotEmpty()) {
+        if (!showPreinstalled && untrainedGroups.isNotEmpty()) {
             item {
                 Text(
                     "Not trained in a while",
@@ -474,65 +517,56 @@ private fun SessionHistoryDialog(
 
 private fun Set<String>.toggle(key: String) = if (key in this) this - key else this + key
 
-/** One program: a collapsible header followed by its routine cards. [trailingHeader] adds an action
- *  (e.g. "+ New routine") on the header row. */
-private fun androidx.compose.foundation.lazy.LazyListScope.programSection(
+private class ProgramCardCallbacks(
+    val onToggle: (String) -> Unit,
+    val onOpenDetails: (Exercise) -> Unit,
+    val onEdit: (com.lsing.timego.data.Routine) -> Unit,
+)
+
+/** One program as an [ExpandableCard] (same look as the Log exercise rows): the header shows the name and
+ *  routine count, the body lists its routines with edit plus delete (own routines) or reset (preinstalled). */
+@Composable
+private fun ProgramCard(
     title: String,
     programRoutines: List<com.lsing.timego.data.Routine>,
+    expanded: Boolean,
     programKey: String,
-    expandedProgramIds: Set<String>,
-    onToggle: (String) -> Unit,
     routineExercisesById: Map<Long, List<Exercise>>,
-    onOpenDetails: (Exercise) -> Unit,
-    onEdit: (com.lsing.timego.data.Routine) -> Unit,
+    callbacks: ProgramCardCallbacks,
     onDelete: ((com.lsing.timego.data.Routine) -> Unit)?,
     onReset: ((com.lsing.timego.data.Routine) -> Unit)?,
-    trailingHeader: (@Composable () -> Unit)? = null,
+    onNewRoutine: (() -> Unit)? = null,
 ) {
-    val expanded = programKey in expandedProgramIds
-    item(key = "program-$programKey") {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .clickable { onToggle(programKey) }
-                .padding(vertical = Spacing.ExtraSmall),
-        ) {
-            Icon(
-                if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.ChevronRight,
-                contentDescription = if (expanded) "Collapse $title" else "Expand $title",
+    ExpandableCard(
+        expanded = expanded,
+        header = {
+            ExpandableHeader(
+                title = title,
+                expanded = expanded,
+                onToggle = { callbacks.onToggle(programKey) },
+                summary = "${programRoutines.size} routine${if (programRoutines.size == 1) "" else "s"}",
             )
-            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(start = Spacing.Small))
-            Text(
-                "${programRoutines.size} routine${if (programRoutines.size == 1) "" else "s"}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = Spacing.Small),
-            )
-            trailingHeader?.invoke()
+        },
+    ) {
+        onNewRoutine?.let {
+            Button(onClick = it, modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall)) { Text("+ New routine") }
         }
-    }
-    if (expanded) {
         if (programRoutines.isEmpty()) {
-            item(key = "program-$programKey-empty") {
-                Text(
-                    "No routines here yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = Spacing.Small),
-                )
-            }
+            Text(
+                "No routines here yet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(Spacing.Medium),
+            )
         }
-        items(programRoutines, key = { it.id }) { routine ->
-            RoutineCard(
+        programRoutines.forEach { routine ->
+            RoutineBody(
                 routine = routine,
                 steps = routineExercisesById[routine.id].orEmpty(),
-                onOpenDetails = onOpenDetails,
-                onEdit = { onEdit(routine) },
+                onOpenDetails = callbacks.onOpenDetails,
+                onEdit = { callbacks.onEdit(routine) },
                 onDelete = onDelete?.let { { it(routine) } },
                 onReset = onReset?.let { { it(routine) } },
-                modifier = Modifier.animateItem(),
             )
         }
     }
@@ -540,73 +574,70 @@ private fun androidx.compose.foundation.lazy.LazyListScope.programSection(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun RoutineCard(
+private fun RoutineBody(
     routine: com.lsing.timego.data.Routine,
     steps: List<Exercise>,
     onOpenDetails: (Exercise) -> Unit,
     onEdit: () -> Unit,
     onDelete: (() -> Unit)?,
     onReset: (() -> Unit)?,
-    modifier: Modifier = Modifier,
 ) {
-    SurfaceCard(modifier = modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall)) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    routine.name,
-                    style = LedgerFigureEmphasis,
-                    modifier = Modifier.weight(1f).padding(Spacing.Medium, Spacing.Medium, Spacing.Medium, Spacing.ExtraSmall),
-                )
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Filled.Edit, contentDescription = "Edit ${routine.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                onReset?.let {
-                    IconButton(onClick = it) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Reset ${routine.name} to default", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                onDelete?.let {
-                    IconButton(onClick = it) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Delete ${routine.name}", tint = MaterialTheme.colorScheme.error)
-                    }
+    Column {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                routine.name,
+                style = LedgerFigureEmphasis,
+                modifier = Modifier.weight(1f).padding(Spacing.Medium, Spacing.Medium, Spacing.Medium, Spacing.ExtraSmall),
+            )
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Filled.Edit, contentDescription = "Edit ${routine.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            onReset?.let {
+                IconButton(onClick = it) {
+                    Icon(Icons.Filled.Refresh, contentDescription = "Reset ${routine.name} to default", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            FlowRow(modifier = Modifier.padding(Spacing.Small, 0.dp, Spacing.Small, Spacing.Small)) {
-                when {
-                    routine.daysOfWeek.isEmpty() -> AssistChip(
-                        onClick = {},
-                        leadingIcon = {
-                            Icon(
-                                Icons.Filled.AllInclusive,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp),
-                            )
-                        },
-                        label = { Text("Flexible · Any day") },
-                        colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.primary),
-                        border = AssistChipDefaults.assistChipBorder(
-                            enabled = true,
-                            borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                        ),
-                        modifier = Modifier.padding(Spacing.ExtraSmall),
-                    )
-                    routine.daysOfWeek.size >= 7 -> AssistChip(
-                        onClick = {},
-                        label = { Text("Every day (Mon–Sun)") },
-                        modifier = Modifier.padding(Spacing.ExtraSmall),
-                    )
-                    else -> routine.daysOfWeek.forEach { day ->
-                        AssistChip(
-                            onClick = {},
-                            label = { Text(day.take(3).lowercase().replaceFirstChar(Char::uppercase)) },
-                            modifier = Modifier.padding(Spacing.ExtraSmall),
-                        )
-                    }
+            onDelete?.let {
+                IconButton(onClick = it) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Delete ${routine.name}", tint = MaterialTheme.colorScheme.error)
                 }
             }
-            if (steps.isNotEmpty()) RoutineSteps(steps, onOpenDetails = onOpenDetails)
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = Spacing.ExtraSmall))
         }
+        FlowRow(modifier = Modifier.padding(Spacing.Small, 0.dp, Spacing.Small, Spacing.Small)) {
+            when {
+                routine.daysOfWeek.isEmpty() -> AssistChip(
+                    onClick = {},
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.AllInclusive,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    },
+                    label = { Text("Flexible · Any day") },
+                    colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.primary),
+                    border = AssistChipDefaults.assistChipBorder(
+                        enabled = true,
+                        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                    ),
+                    modifier = Modifier.padding(Spacing.ExtraSmall),
+                )
+                routine.daysOfWeek.size >= 7 -> AssistChip(
+                    onClick = {},
+                    label = { Text("Every day (Mon–Sun)") },
+                    modifier = Modifier.padding(Spacing.ExtraSmall),
+                )
+                else -> routine.daysOfWeek.forEach { day ->
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(day.take(3).lowercase().replaceFirstChar(Char::uppercase)) },
+                        modifier = Modifier.padding(Spacing.ExtraSmall),
+                    )
+                }
+            }
+        }
+        if (steps.isNotEmpty()) RoutineSteps(steps, onOpenDetails = onOpenDetails)
     }
 }
