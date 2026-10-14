@@ -1697,7 +1697,7 @@ private fun StrengthLogRow(
             ) {
                 Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
                 Text("Warmup set", style = MaterialTheme.typography.bodySmall)
-                if (!isBodyweight) {
+                if (!isBodyweight && (combined || com.lsing.timego.domain.supportsCombinedEntry(exerciseName))) {
                     Checkbox(checked = combined, onCheckedChange = { sideModes.toggleCombinedEntry(exerciseId) })
                     Text("Both dumbbells combined", style = MaterialTheme.typography.bodySmall)
                 }
@@ -2046,8 +2046,10 @@ private fun HoldLogRow(
             ) {
                 Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
                 Text("Warmup set", style = MaterialTheme.typography.bodySmall)
-                Checkbox(checked = bothSides, onCheckedChange = { sideModes.toggleBothSides(exerciseId); sideIndex = 0 })
-                Text("Both sides", style = MaterialTheme.typography.bodySmall)
+                if (bothSides || com.lsing.timego.domain.supportsBothSides(exerciseName)) {
+                    Checkbox(checked = bothSides, onCheckedChange = { sideModes.toggleBothSides(exerciseId); sideIndex = 0 })
+                    Text("Both sides", style = MaterialTheme.typography.bodySmall)
+                }
             }
             if (bothSides && timerVisible) {
                 Text(

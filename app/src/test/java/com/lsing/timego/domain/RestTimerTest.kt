@@ -47,4 +47,14 @@ class RestTimerTest {
         assertEquals("2:05", formatRestClock(125))
         assertEquals("+0:12", formatRestClock(-12))
     }
+
+    @Test
+    fun `entry toggles only appear where they make sense`() {
+        assertEquals(false, supportsCombinedEntry("Hack Squat"))
+        assertEquals(false, supportsCombinedEntry("Cable Lateral Raise"))
+        assertEquals(true, supportsCombinedEntry("Dumbbell Bench Press"))
+        assertEquals(true, supportsCombinedEntry("Lateral Raise"))
+        assertEquals(true, supportsBothSides("Standing Quad Stretch"))
+        assertEquals(false, supportsBothSides("Plank"))
+    }
 }
