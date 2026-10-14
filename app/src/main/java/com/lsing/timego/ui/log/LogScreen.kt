@@ -72,6 +72,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -170,6 +171,16 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     // LaunchedEffect once the new session actually exists -- setting selectedExerciseIds directly in
     // the click handler would be clobbered by this same effect's own reset when sessionState updates.
     var pendingRoutineExerciseIds by remember { mutableStateOf<List<Long>?>(null) }
+
+    // Back unwinds the active-session layers one at a time (picker -> logging -> landing); at the landing
+    // level it is disabled so the root handler in TimeGoNavHost owns exit.
+    BackHandler(enabled = sessionState is SessionUiState.Active && !peekingLanding) {
+        if (activeLogPageName == ActiveLogPage.EXERCISE_PICKER.name) {
+            activeLogPageName = ActiveLogPage.SESSION.name
+        } else {
+            peekingLanding = true
+        }
+    }
 
     LaunchedEffect(sessionState) {
         val sessionId = (sessionState as? SessionUiState.Active)?.sessionId
