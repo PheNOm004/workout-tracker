@@ -74,6 +74,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -143,6 +145,14 @@ import com.lsing.timego.ui.exercise.buildExerciseDetail
 import java.time.LocalDate
 
 private enum class ActiveLogPage { SESSION, EXERCISE_PICKER }
+
+/** Items LoggingContent's list renders before the first exercise card: activeHeader, activeSummary,
+ *  favorites, quickAdd, logExerciseAction, exercisesHeader. Keep in sync when adding items above. */
+private const val FIRST_EXERCISE_ITEM_INDEX = 6
+
+/** ExerciseCard recentres itself in its scroll parent when expanded; the active-session list scrolls to
+ *  each card itself (see LoggingContent), so it turns this off. */
+private val LocalAutoScrollExpandedCard = androidx.compose.runtime.compositionLocalOf { true }
 
 @Composable
 fun LogScreen(viewModel: LogViewModel = viewModel()) {
@@ -908,6 +918,24 @@ private fun LoggingContent(
     val prescriptions by viewModel.activePrescriptions.collectAsStateWithLifecycle()
     var showEndSessionConfirmation by remember { mutableStateOf(false) }
     val activeListState = rememberLazyListState()
+    val exercisesById = remember(libraryExercises) { libraryExercises.associateBy { it.id } }
+    val selectedExercises = remember(selectedExerciseIds, activeSessionSetsByExercise, exercisesById) {
+        (selectedExerciseIds + activeSessionSetsByExercise.keys).distinct().mapNotNull { exercisesById[it] }
+    }
+    val focusedExerciseId = expandedExerciseIds.singleOrNull()
+    val density = LocalDensity.current
+    // Each exercise is its own lazy item, so the expanded one can be scrolled to exactly: top of the
+    // viewport with a small gap. Scrolled twice because the previously expanded card is still collapsing
+    // during the first scroll and shifts everything below it.
+    LaunchedEffect(focusedExerciseId) {
+        val index = selectedExercises.indexOfFirst { it.id == focusedExerciseId }
+        if (index < 0) return@LaunchedEffect
+        val target = FIRST_EXERCISE_ITEM_INDEX + index
+        val topGap = -with(density) { Spacing.Small.roundToPx() }
+        activeListState.animateScrollToItem(target, topGap)
+        delay(300)
+        activeListState.animateScrollToItem(target, topGap)
+    }
 
     if (showEndSessionConfirmation) {
         TimeGoDialog(
@@ -936,6 +964,7 @@ private fun LoggingContent(
         }
     }
 
+    androidx.compose.runtime.CompositionLocalProvider(LocalAutoScrollExpandedCard provides false) {
     LazyColumn(
         state = activeListState,
         modifier = Modifier
@@ -980,14 +1009,16 @@ private fun LoggingContent(
                 val favoriteExercises = libraryExercises.filter { it.id in favoriteExerciseIds }
                 SectionHeader("Favorites", topPadding = Spacing.Small)
                 if (favoriteExercises.isNotEmpty()) {
-                    FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                    ) {
                         favoriteExercises.forEach { exercise ->
                             AnimatedAssistChip(
                                 onClick = {
                                     onSelectExercise(exercise.id)
                                 },
                                 label = { Text(exercise.name) },
-                                modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
                             )
                         }
                     }
@@ -1003,14 +1034,16 @@ private fun LoggingContent(
             item(key = "quickAdd") {
                 SectionHeader("Quick add", topPadding = Spacing.Small)
                 if (quickAddExercises.isNotEmpty()) {
-                    FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                    ) {
                         quickAddExercises.forEach { exercise ->
                             AnimatedAssistChip(
                                 onClick = {
                                     onSelectExercise(exercise.id)
                                 },
                                 label = { Text(exercise.name) },
-                                modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
                             )
                         }
                     }
@@ -1038,15 +1071,13 @@ private fun LoggingContent(
                     Text("Log exercise")
                 }
             }
-            item(key = "selectedExercises") {
-                val exercisesById = remember(libraryExercises) { libraryExercises.associateBy { it.id } }
-                val selectedExercises = (selectedExerciseIds + activeSessionSetsByExercise.keys)
-                    .distinct()
-                    .mapNotNull { exercisesById[it] }
+            item(key = "exercisesHeader") {
                 if (selectedExercises.isNotEmpty()) {
                     SectionHeader("Exercises", topPadding = Spacing.Small)
                 }
-                selectedExercises.forEach { exercise ->
+            }
+            items(selectedExercises, key = { "exercise-${it.id}" }) { exercise ->
+                run {
                     val currentExerciseSets = activeSessionSetsByExercise[exercise.id].orEmpty()
                     when (exercise.loggingType) {
                         LoggingType.HOLD.name -> HoldLogRow(
@@ -1113,6 +1144,7 @@ private fun LoggingContent(
                 Spacer(modifier = Modifier.height(Spacing.ExtraLarge))
             }
         }
+    }
 }
 
 @Composable
@@ -1470,8 +1502,9 @@ private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Compos
     var cardWidth by remember { mutableStateOf(0) }
     val viewportHeightPx = LocalWindowInfo.current.containerSize.height.toFloat().coerceAtLeast(1f)
 
+    val autoScroll = LocalAutoScrollExpandedCard.current
     LaunchedEffect(expanded, cardHeight, cardWidth, viewportHeightPx) {
-        if (expanded && cardHeight > 0 && cardWidth > 0) {
+        if (autoScroll && expanded && cardHeight > 0 && cardWidth > 0) {
             // Recenter after every animated size change using the actual window viewport. This
             // avoids a second fixed-delay correction and keeps the expanded exercise in the
             // visual middle while the keyboard/insets are changing.
