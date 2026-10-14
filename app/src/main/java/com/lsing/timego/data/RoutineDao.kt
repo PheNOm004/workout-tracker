@@ -3,12 +3,16 @@ package com.lsing.timego.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RoutineDao {
     @Insert
     suspend fun insertRoutine(routine: Routine): Long
+
+    @Update
+    suspend fun updateRoutine(routine: Routine)
 
     @Insert
     suspend fun insertRoutineExercise(routineExercise: RoutineExercise): Long

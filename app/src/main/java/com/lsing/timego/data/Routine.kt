@@ -3,10 +3,6 @@ package com.lsing.timego.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-/** The user's own routines: hand-created ones plus the personal [RIR_PROGRAM_ID] program, which is theirs to
- *  edit and delete rather than a preinstalled program. */
-fun Routine.isUserOwned() = programId == null || programId == RIR_PROGRAM_ID
-
 /** [daysOfWeek] stores java.time.DayOfWeek enum names (e.g. "WEDNESDAY"), via the same
  *  Converters.fromStringList/toStringList pair Exercise.muscleGroups already uses -- same List<String>
  *  type, same converter, no new Room TypeConverter needed.

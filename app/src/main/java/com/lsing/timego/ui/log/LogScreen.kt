@@ -97,7 +97,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
-import com.lsing.timego.data.isUserOwned
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.TargetProvenance
 import com.lsing.timego.data.targetProvenanceFor
@@ -382,7 +381,7 @@ private fun LogLandingContent(
     val filteredRoutines = remember(routines, activeProgramId, calisthenicsTier) {
         routines.filter { routine ->
             when {
-                activeProgramId == null -> routine.isUserOwned()
+                activeProgramId == null -> routine.programId == null
                 routine.programId != activeProgramId -> false
                 activeProgramId == "calisthenics_progression" -> routine.tier == calisthenicsTier.name
                 else -> true
@@ -671,7 +670,7 @@ private fun LogLandingContent(
             // the landing page remains scannable on smaller phones and with larger text settings.
             val selectedProgramName = activeProgramId?.let { id ->
                 com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.entries.firstOrNull { it.key == id }?.value
-            } ?: "Your routines"
+            } ?: "Custom routines"
             var programMenuExpanded by rememberSaveable { mutableStateOf(false) }
             SectionHeader("Program", topPadding = Spacing.Small)
             SurfaceCard(
@@ -708,17 +707,7 @@ private fun LogLandingContent(
                             onDismissRequest = { programMenuExpanded = false },
                             modifier = Modifier.fillMaxWidth(0.92f),
                         ) {
-                            DropdownMenuItem(
-                                text = { Text("Your routines") },
-                                onClick = {
-                                    onSetActiveProgramId(null)
-                                    programMenuExpanded = false
-                                },
-                                leadingIcon = if (activeProgramId == null) {
-                                    { Icon(Icons.Filled.Check, contentDescription = null) }
-                                } else null,
-                            )
-                            com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.forEach { (programId, name) ->
+                            val programItem: @Composable (String?, String) -> Unit = { programId, name ->
                                 DropdownMenuItem(
                                     text = { Text(name) },
                                     onClick = {
@@ -730,11 +719,17 @@ private fun LogLandingContent(
                                     } else null,
                                 )
                             }
+                            programItem(com.lsing.timego.data.RIR_PROGRAM_ID, "Upper/Lower AB (RIR) - my program")
+                            programItem(null, "Custom routines")
+                            HorizontalDivider()
+                            com.lsing.timego.data.PROGRAM_DISPLAY_NAMES
+                                .filterKeys { it != com.lsing.timego.data.RIR_PROGRAM_ID }
+                                .forEach { (programId, name) -> programItem(programId, name) }
                         }
                     }
                     Text(
                         text = if (activeProgramId == null) {
-                            "Showing routines you created"
+                            "Showing your custom routines"
                         } else {
                             "Showing routines from this program"
                         },

@@ -367,14 +367,11 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         val personalProgramExists = existingRoutines.any { it.programId == RIR_PROGRAM_ID }
         val seed = seed.filterNot { it.programId == RIR_PROGRAM_ID && personalProgramExists }
         val missing = seed.filter { (it.programId to it.name) !in existingByKey }
-        // A seeded routine is out of sync with its source (empty from the old seed/read-race bug, or
-        // simply edited in SEED_ROUTINES since it was first seeded) whenever its stored exercise set no
-        // longer matches what the current seed defines -- resync rather than only patching emptiness, so
-        // a SEED_ROUTINES content change actually reaches devices that seeded before the change.
+        // Preinstalled routines are user-editable, so only a routine with no exercises (the old seed/read-race
+        // bug, or a reset via [resetSeededRoutine]) is refilled from the seed; a non-empty one is the user's.
         val outOfSync = seed.mapNotNull { seedRoutine ->
             val existing = existingByKey[seedRoutine.programId to seedRoutine.name] ?: return@mapNotNull null
-            val seedExerciseIds = seedRoutine.exerciseNames.mapNotNull { exerciseIdsByName[it] }.toSet()
-            if (existingExerciseIdsByRoutineId[existing.id].orEmpty() == seedExerciseIds) return@mapNotNull null
+            if (existingExerciseIdsByRoutineId[existing.id].orEmpty().isNotEmpty()) return@mapNotNull null
             seedRoutine to existing.id
         }
         if (missing.isEmpty() && outOfSync.isEmpty()) return
@@ -407,6 +404,27 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         }
         syncRepository.markPending("routine", routineId)
         routineId
+    }
+
+    suspend fun updateRoutine(routineId: Long, name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) = db.withTransaction {
+        val existing = db.routineDao().getRoutineById(routineId) ?: return@withTransaction
+        db.routineDao().updateRoutine(existing.copy(name = name, daysOfWeek = daysOfWeek))
+        db.routineDao().deleteRoutineExercises(routineId)
+        exerciseIds.forEachIndexed { index, exerciseId ->
+            db.routineDao().insertRoutineExercise(RoutineExercise(routineId = routineId, exerciseId = exerciseId, orderIndex = index))
+        }
+        syncRepository.markPending("routine", routineId)
+    }
+
+    /** Puts a preinstalled routine back to its seeded exercises and schedule. */
+    suspend fun resetSeededRoutine(routineId: Long) {
+        val existing = db.routineDao().getRoutineById(routineId) ?: return
+        db.withTransaction {
+            db.routineDao().updateRoutine(existing.copy(daysOfWeek = emptyList()))
+            db.routineDao().deleteRoutineExercises(routineId)
+        }
+        seedMissingRoutines(SEED_ROUTINES)
+        syncRepository.markPending("routine", routineId)
     }
 
     suspend fun deleteRoutine(routineId: Long) = db.withTransaction {

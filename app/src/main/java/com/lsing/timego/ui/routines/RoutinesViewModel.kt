@@ -151,6 +151,14 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch { repository.createRoutine(name, exerciseIds, daysOfWeek) }
     }
 
+    fun updateRoutine(routineId: Long, name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) {
+        viewModelScope.launch { repository.updateRoutine(routineId, name, exerciseIds, daysOfWeek) }
+    }
+
+    fun resetSeededRoutine(routineId: Long) {
+        viewModelScope.launch { repository.resetSeededRoutine(routineId) }
+    }
+
     fun deleteRoutine(routineId: Long) {
         viewModelScope.launch { repository.deleteRoutine(routineId) }
     }

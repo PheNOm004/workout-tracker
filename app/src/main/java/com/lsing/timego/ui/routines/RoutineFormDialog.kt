@@ -35,6 +35,15 @@ import com.lsing.timego.ui.common.TimeGoDialog
 import com.lsing.timego.ui.theme.Spacing
 import java.time.DayOfWeek
 
+/** Starting values when editing an existing routine; [nameEditable] is false for preinstalled routines,
+ *  whose name is their seed key. */
+data class RoutineFormInitial(
+    val name: String,
+    val exerciseIds: List<Long>,
+    val days: Set<String>,
+    val nameEditable: Boolean,
+)
+
 /** Dedicated hardware-plated dialog for creating a routine with Gauge Panel styling,
  *  scroll-to-fit layout, and symmetric EaseInOut enter/exit animations. */
 @Composable
@@ -42,15 +51,16 @@ fun RoutineFormDialog(
     exercises: List<Exercise>,
     onDismiss: () -> Unit,
     onCreate: (name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) -> Unit,
+    initial: RoutineFormInitial? = null,
 ) {
-    var routineName by remember { mutableStateOf("") }
-    val selectedExerciseIds = remember { mutableStateOf<List<Long>>(emptyList()) }
-    val selectedDays = remember { mutableStateOf(setOf<String>()) }
+    var routineName by remember { mutableStateOf(initial?.name.orEmpty()) }
+    val selectedExerciseIds = remember { mutableStateOf(initial?.exerciseIds.orEmpty()) }
+    val selectedDays = remember { mutableStateOf(initial?.days.orEmpty()) }
 
     TimeGoDialog(
         onDismissRequest = onDismiss,
         eyebrow = "ROUTINES",
-        title = "New Routine",
+        title = if (initial == null) "New Routine" else "Edit Routine",
         dismissButton = {
             val dismiss = LocalTimeGoDialogDismiss.current
             TextButton(onClick = dismiss) { Text("Cancel") }
@@ -66,7 +76,7 @@ fun RoutineFormDialog(
                 },
                 enabled = routineName.isNotBlank() && selectedExerciseIds.value.isNotEmpty(),
             ) {
-                Text("Create routine")
+                Text(if (initial == null) "Create routine" else "Save changes")
             }
         },
     ) {
@@ -79,6 +89,7 @@ fun RoutineFormDialog(
                 value = routineName,
                 onValueChange = { routineName = it },
                 label = { Text("Routine name") },
+                enabled = initial?.nameEditable ?: true,
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(
