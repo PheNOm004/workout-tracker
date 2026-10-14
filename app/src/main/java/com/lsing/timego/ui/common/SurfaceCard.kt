@@ -48,7 +48,9 @@ fun SurfaceCard(
     val rivetBody = if (dark) Color(0xFF3A4247) else Color(0xFFB9B3A6)
     val rivetShadow = if (dark) RivetShadow else Color(0x33000000)
     val rivetHighlight = if (dark) RivetHighlight else Color(0xCCFFFFFF)
-    val elevation = if (hero) 6.dp else 2.dp
+    // The shadow is cast from the box before the caller's outer padding is applied, so on a light
+    // background it shows as a grey slab under the card. Daylight relies on hairline + plate contrast.
+    val elevation = if (!dark) 0.dp else if (hero) 6.dp else 2.dp
 
     // clip(shape) stays outermost so a caller-supplied .clickable's ripple (e.g. the Log
     // landing card) is still bounded to the rounded shape. background() previously had no

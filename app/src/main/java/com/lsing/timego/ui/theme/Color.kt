@@ -126,8 +126,8 @@ val NightEdgeHairline: Color @androidx.compose.runtime.Composable @androidx.comp
     get() = if (LocalTimeGoDark.current) NightEdgeHairlineDark else DaylightEdgeHairline
 val NightSheenTopDark = Color(0x14C9A24B)
 val NightGlowDark = Color(0x2AC9A24B)
-val DaylightSheenTop = Color(0x3DC9A24B)
-val DaylightGlow = Color(0x40C9A24B)
+val DaylightSheenTop = Color(0x24C9A24B)
+val DaylightGlow = Color(0x2EC9A24B)
 
 val NightSheenTop: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
     get() = if (LocalTimeGoDark.current) NightSheenTopDark else DaylightSheenTop

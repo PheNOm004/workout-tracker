@@ -163,7 +163,7 @@ fun MuscleBodyDiagram(
 ) {
     // Theme-adaptive mid-grey rather than onSurface (too stark -- white on dark, black on
     // light) or a fixed color (disappears against a same-toned background on one theme).
-    val outlineColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val outlineColor = if (com.lsing.timego.ui.theme.LocalTimeGoDark.current) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline
     val detailColor = MaterialTheme.colorScheme.surfaceVariant
 
     val frontShapes = CACHED_FRONT_SHAPES
