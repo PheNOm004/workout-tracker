@@ -57,6 +57,7 @@ import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.recommendSynergisticMuscleGroups
 import com.lsing.timego.domain.recommendationHighlightStrengths
 import com.lsing.timego.domain.repRangeAtWeight
+import com.lsing.timego.domain.adjusted
 import com.lsing.timego.domain.routineLastCompletedDates
 import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.sessionWorkingSetHistory
@@ -107,6 +108,8 @@ data class LandingSummary(
     val recommendedMuscleGroups: List<String>,
     val suggestedExercise: Exercise?,
     val recommendationHighlightStrengths: Map<String, Float> = emptyMap(),
+    /** Last date each muscle group was loaded (primary or heavy synergist), freeform sessions included. */
+    val lastWorkedByGroup: Map<String, LocalDate> = emptyMap(),
     /** At least one more familiar alternative exists beyond [suggestedExercise], so the session-local
      *  "Choose another" action (Coach Memory Phase 1) has somewhere to go. */
     val canChooseAnother: Boolean = false,
@@ -207,6 +210,17 @@ class LogViewModel(
     private val _selectedRoutineId = MutableStateFlow<Long?>(null)
     val selectedRoutineId: StateFlow<Long?> = _selectedRoutineId.asStateFlow()
 
+    /** Program prescriptions (sets, rep range, target RPE, rest, tempo) for the selected routine, keyed by
+     *  exercise name; empty for freeform sessions and programs without prescriptions. */
+    val activePrescriptions: StateFlow<Map<String, com.lsing.timego.data.Prescription>> =
+        combine(_selectedRoutineId, _routines) { routineId, routines ->
+            if (routines.firstOrNull { it.id == routineId }?.programId == com.lsing.timego.data.RIR_PROGRAM_ID) {
+                com.lsing.timego.data.RIR_PROGRAM_PRESCRIPTIONS
+            } else {
+                emptyMap()
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
     private val _latestBodyWeightKg = MutableStateFlow<Double?>(null)
     val latestBodyWeightKg: StateFlow<Double?> = _latestBodyWeightKg.asStateFlow()
 
@@ -244,6 +258,16 @@ class LogViewModel(
     private val _routineLastCompleted = MutableStateFlow<Map<Long, LocalDate>>(emptyMap())
     val routineLastCompleted: StateFlow<Map<Long, LocalDate>> = _routineLastCompleted.asStateFlow()
 
+    private val _restTimer = MutableStateFlow<com.lsing.timego.domain.RestTimerState?>(null)
+    val restTimer: StateFlow<com.lsing.timego.domain.RestTimerState?> = _restTimer.asStateFlow()
+    private val _restDefaultSeconds = MutableStateFlow(SettingsRepository.DEFAULT_REST_TIMER_SECONDS)
+    private val _restAdaptive = MutableStateFlow(true)
+    private val _combinedEntryExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
+    val combinedEntryExerciseIds: StateFlow<Set<Long>> = _combinedEntryExerciseIds.asStateFlow()
+    private val _bothSidesExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
+    val bothSidesExerciseIds: StateFlow<Set<Long>> = _bothSidesExerciseIds.asStateFlow()
+    private var restAlertJob: kotlinx.coroutines.Job? = null
+
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
     val holdDelaySeconds: StateFlow<Int> = _holdDelaySeconds.asStateFlow()
 
@@ -274,6 +298,18 @@ class LogViewModel(
                     coroutineScope {
                         launch {
                             settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
+                        }
+                        launch {
+                            settingsRepository.restTimerSeconds.collect { _restDefaultSeconds.value = it }
+                        }
+                        launch {
+                            settingsRepository.restAdaptive.collect { _restAdaptive.value = it }
+                        }
+                        launch {
+                            settingsRepository.combinedEntryExerciseIds.collect { _combinedEntryExerciseIds.value = it }
+                        }
+                        launch {
+                            settingsRepository.bothSidesExerciseIds.collect { _bothSidesExerciseIds.value = it }
                         }
                         launch {
                             settingsRepository.favoriteExerciseIds.collect { _favoriteExerciseIds.value = it }
@@ -636,6 +672,7 @@ class LogViewModel(
                 recommendedMuscleGroups = recommended,
                 suggestedExercise = suggestedExercise,
                 recommendationHighlightStrengths = highlightStrengths,
+                lastWorkedByGroup = lastWorked,
                 canChooseAnother = alternatives.any { it.id != suggestedExercise?.id },
                 noAlternativesLeft = exclusions.isNotEmpty() && suggestedExercise == null,
                 recommendationNote = recommendationNote,
@@ -685,6 +722,7 @@ class LogViewModel(
         val current = _sessionState.value
         if (current !is SessionUiState.Active) return
         clearActiveTimer()
+        dismissRest()
         viewModelScope.launch {
             val endedAt = System.currentTimeMillis()
             repository.endSession(current.sessionId, endedAt)
@@ -716,6 +754,7 @@ class LogViewModel(
         viewModelScope.launch {
             repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name)
             emitSetLoggedPulse(exerciseId)
+            if (!isWarmup) startRest(exerciseId, rpe)
         }
     }
 
@@ -739,12 +778,49 @@ class LogViewModel(
         viewModelScope.launch {
             repository.logHoldSet(sessionId, exerciseId, durationSeconds, targetDurationSeconds, isWarmup, targetProvenance.name)
             emitSetLoggedPulse(exerciseId)
+            if (!isWarmup) startRest(exerciseId)
         }
+    }
+
+    fun toggleCombinedEntry(exerciseId: Long) {
+        viewModelScope.launch { settingsRepository.toggleCombinedEntry(exerciseId) }
+    }
+
+    fun toggleBothSides(exerciseId: Long) {
+        viewModelScope.launch { settingsRepository.toggleBothSides(exerciseId) }
     }
 
     fun toggleFavoriteExercise(exerciseId: Long) {
         viewModelScope.launch { settingsRepository.toggleFavoriteExercise(exerciseId) }
     }
+
+    /** Starts the rest countdown after a working set: the active program's prescribed rest when there is
+     *  one, else the user's default. A default of 0 turns the timer off entirely. */
+    private fun startRest(exerciseId: Long, lastRpe: Int? = null) {
+        if (_restDefaultSeconds.value <= 0) return
+        val name = allExercises.firstOrNull { it.id == exerciseId }?.name
+        val seconds = com.lsing.timego.domain.restSecondsFor(activePrescriptions.value[name], _restDefaultSeconds.value, _restAdaptive.value, lastRpe)
+        setRest(com.lsing.timego.domain.RestTimerState(System.currentTimeMillis(), seconds))
+    }
+
+    private fun setRest(state: com.lsing.timego.domain.RestTimerState?) {
+        restAlertJob?.cancel()
+        RestAlert.cancel(getApplication())
+        _restTimer.value = state
+        if (state != null) {
+            restAlertJob = viewModelScope.launch {
+                val remainingMillis = state.totalSeconds * 1000L - (System.currentTimeMillis() - state.startedAtMillis)
+                kotlinx.coroutines.delay(remainingMillis.coerceAtLeast(0L))
+                RestAlert.finished(getApplication())
+            }
+        }
+    }
+
+    fun adjustRest(deltaSeconds: Int) {
+        _restTimer.value?.let { setRest(it.adjusted(deltaSeconds)) }
+    }
+
+    fun dismissRest() = setRest(null)
 
     private fun emitSetLoggedPulse(exerciseId: Long) {
         nextPulseEventId += 1

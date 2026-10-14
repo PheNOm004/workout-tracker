@@ -7,10 +7,16 @@ import com.lsing.timego.data.BodyMetric
  *  `lastOrNull { ... }` that silently depended on BodyMetricDao.observeAll's `ORDER BY date`.
  *  Sorting here makes that dependency explicit instead of ambient. */
 fun latestWeightKg(metrics: List<BodyMetric>): Double? =
-    metrics.sortedBy { it.date }.lastOrNull { it.weightKg != null }?.weightKg
+    metrics.sortedBy { it.date }.mapNotNull { it.weightKg }.lastOrNull { it in PLAUSIBLE_WEIGHT_KG }
 
 fun latestHeightCm(metrics: List<BodyMetric>): Double? =
-    metrics.sortedBy { it.date }.lastOrNull { it.heightCm != null }?.heightCm
+    metrics.sortedBy { it.date }.mapNotNull { it.heightCm }.lastOrNull { it in PLAUSIBLE_HEIGHT_CM }
+
+/** Entry and derived-value limits; a typo outside these (e.g. 1111111111 cm) is ignored rather than
+ *  poisoning BMI or the calisthenics bodyweight load. */
+val PLAUSIBLE_WEIGHT_KG = 20.0..300.0
+val PLAUSIBLE_WAIST_CM = 30.0..250.0
+val PLAUSIBLE_HEIGHT_CM = 100.0..250.0
 
 /** Standard BMI formula: weight (kg) / height (m) squared. */
 fun bodyMassIndex(weightKg: Double, heightCm: Double): Double {

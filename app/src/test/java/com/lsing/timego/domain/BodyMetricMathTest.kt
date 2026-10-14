@@ -11,6 +11,18 @@ class BodyMetricMathTest {
     }
 
     @Test
+    fun `latest height and weight ignore implausible typos`() {
+        val d = java.time.LocalDate.of(2026, 10, 1)
+        val metrics = listOf(
+            com.lsing.timego.data.BodyMetric(date = d, weightKg = 59.8, waistCm = null, heightCm = 168.0),
+            com.lsing.timego.data.BodyMetric(date = d.plusDays(1), weightKg = 5000.0, waistCm = null, heightCm = 1111111111.0),
+        )
+
+        assertEquals(168.0, latestHeightCm(metrics)!!, 0.0)
+        assertEquals(59.8, latestWeightKg(metrics)!!, 0.0)
+    }
+
+    @Test
     fun `bmiCategory labels the standard WHO ranges`() {
         assertEquals(BmiCategory.UNDERWEIGHT, bmiCategory(18.0))
         assertEquals(BmiCategory.NORMAL, bmiCategory(22.0))

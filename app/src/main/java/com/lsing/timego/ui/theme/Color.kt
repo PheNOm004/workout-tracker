@@ -24,26 +24,29 @@ val LedgerSurfaceContainerHighDark = Color(0xFF252C2F)
 val LedgerSurfaceContainerHighestDark = Color(0xFF30383B)
 
 // Warm light companion, intentionally not a mechanical inversion of dark mode.
-val LedgerBackgroundLight = Color(0xFFF2F0EC)
-val LedgerSurfaceLight = Color(0xFFFBFAF7)
-val LedgerSurfaceVariantLight = Color(0xFFE7E4DF)
-val LedgerOnSurfaceLight = Color(0xFF1B2022)
-val LedgerOnSurfaceVariantLight = Color(0xFF596164)
-val LedgerOutlineLight = Color(0xFF7C8587)
-val LedgerOutlineVariantLight = Color(0xFFD2D5D4)
+val LedgerBackgroundLight = Color(0xFFD9DFE1)
+val LedgerSurfaceLight = Color(0xFFEDF0F1)
+val LedgerSurfaceVariantLight = Color(0xFFCFD6D9)
+val LedgerOnSurfaceLight = Color(0xFF11171A)
+val LedgerOnSurfaceVariantLight = Color(0xFF46535A)
+val LedgerOutlineLight = Color(0xFF67737A)
+val LedgerOutlineVariantLight = Color(0xFFB6C0C4)
 
-val LedgerSurfaceDimLight = Color(0xFFD9DCD9)
+val LedgerSurfaceDimLight = Color(0xFFCBD2D5)
 val LedgerSurfaceBrightLight = Color(0xFFFFFFFF)
 val LedgerSurfaceContainerLowestLight = Color(0xFFFFFFFF)
-val LedgerSurfaceContainerLowLight = Color(0xFFF7F6F2)
-val LedgerSurfaceContainerLight = Color(0xFFEDEBE6)
-val LedgerSurfaceContainerHighLight = Color(0xFFE7E5E0)
-val LedgerSurfaceContainerHighestLight = Color(0xFFE1E0DB)
+val LedgerSurfaceContainerLowLight = Color(0xFFF2F4F5)
+val LedgerSurfaceContainerLight = Color(0xFFE6EAEC)
+val LedgerSurfaceContainerHighLight = Color(0xFFDDE3E5)
+val LedgerSurfaceContainerHighestLight = Color(0xFFD3DADD)
 
 // Brand/action color: brass instrument trim, not the old coral accent -- toggles, the FAB, and
 // selected nav read as a machined brass fitting on the steel panel.
 val LedgerAccent = Color(0xFFC9A24B)
 val LedgerAccentDim = Color(0xFF8F7233)
+
+/** Primary on daylight surfaces: a deeper, more saturated brass than the dark theme's, so buttons keep their punch. */
+val DaylightBrass = Color(0xFF93680A)
 val LedgerOnAccent = Color(0xFF241C0A)
 val LedgerSecondary = Color(0xFF9BA6A8)
 val LedgerOnSecondary = Color(0xFF172022)
@@ -62,9 +65,9 @@ val LedgerOnTertiaryContainerDark = Color(0xFFE6DEFF)
 val LedgerErrorContainerDark = Color(0xFF5C1A16)
 val LedgerOnErrorContainerDark = Color(0xFFFFDAD5)
 
-val LedgerAccentContainerLight = Color(0xFFF3E3B8)
-val LedgerOnAccentContainerLight = Color(0xFF4A3B18)
-val LedgerSecondaryContainerLight = Color(0xFFDCE4E5)
+val LedgerAccentContainerLight = Color(0xFFF2DFA4)
+val LedgerOnAccentContainerLight = Color(0xFF3F3008)
+val LedgerSecondaryContainerLight = Color(0xFFCBD7DB)
 val LedgerOnSecondaryContainerLight = Color(0xFF182123)
 val LedgerTertiaryContainerLight = Color(0xFFE8E0FF)
 val LedgerOnTertiaryContainerLight = Color(0xFF251B52)
@@ -72,11 +75,27 @@ val LedgerErrorContainerLight = Color(0xFFFFDAD5)
 val LedgerOnErrorContainerLight = Color(0xFF410002)
 
 // Semantic fitness colors. These never replace the brand accent for action chrome.
-val NightMint = Color(0xFF9BD8B2)
-val NightAmber = Color(0xFFF2B866)
-val NightViolet = Color(0xFFB8A7FF)
-val LedgerProgressing = NightMint
-val LedgerPlateauing = NightAmber
+val NightMintDark = Color(0xFF9BD8B2)
+val NightAmberDark = Color(0xFFF2B866)
+val NightVioletDark = Color(0xFFB8A7FF)
+val DaylightMint = Color(0xFF1E8A57)
+val DaylightAmber = Color(0xFFB36A00)
+val DaylightViolet = Color(0xFF6650D0)
+
+/** True while the dark palette is active; provided by [TimeGoTheme]. Token getters below read it so the
+ *  ~100 call sites that use Night* constants follow the theme without being touched. */
+val LocalTimeGoDark = androidx.compose.runtime.staticCompositionLocalOf { true }
+
+val NightMint: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightMintDark else DaylightMint
+val NightAmber: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightAmberDark else DaylightAmber
+val NightViolet: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightVioletDark else DaylightViolet
+val LedgerProgressing: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = NightMint
+val LedgerPlateauing: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = NightAmber
 val LedgerRegressing = LedgerError
 
 // Explicit aliases for new presentation code and design-token readability.
@@ -89,11 +108,31 @@ val NightCoralShade = LedgerAccentDim
 // Engine-Room Gauge Panel depth tokens. Unlike the retired Backlit rule (hairline-only, no
 // shadow), riveted panels are meant to read as three-dimensional plate: a real cast shadow plus
 // a brass-lit top bezel, not a flat tonal step.
-val NightDeckLow = Color(0xFF181F23)
-val NightDeckHigh = Color(0xFF212A2F)
-val NightEdgeHairline = Color(0x1EFFFFFF)
-val NightSheenTop = Color(0x14C9A24B)
-val NightGlow = Color(0x2AC9A24B)
+val NightDeckLowDark = Color(0xFF181F23)
+val NightDeckHighDark = Color(0xFF212A2F)
+val NightEdgeHairlineDark = Color(0x1EFFFFFF)
+
+// Daylight plates: warm paper-white panels that lift off the stone background with a soft shadow, edged
+// by a dark hairline, so the same plate/brass construction reads in sunlight.
+val DaylightDeckLow = Color(0xFFF3F5F6)
+val DaylightDeckHigh = Color(0xFFFFFBF0)
+val DaylightEdgeHairline = Color(0x3A1C2A30)
+
+val NightDeckLow: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightDeckLowDark else DaylightDeckLow
+val NightDeckHigh: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightDeckHighDark else DaylightDeckHigh
+val NightEdgeHairline: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightEdgeHairlineDark else DaylightEdgeHairline
+val NightSheenTopDark = Color(0x14C9A24B)
+val NightGlowDark = Color(0x2AC9A24B)
+val DaylightSheenTop = Color(0x24C9A24B)
+val DaylightGlow = Color(0x2EC9A24B)
+
+val NightSheenTop: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightSheenTopDark else DaylightSheenTop
+val NightGlow: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightGlowDark else DaylightGlow
 
 // Brass instrument trim -- the panel's one warm metal, reserved for controls and active state.
 // Never used as a flat fill; always a rim, ring, or fitting.

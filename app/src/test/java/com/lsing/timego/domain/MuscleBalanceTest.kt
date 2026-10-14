@@ -405,4 +405,19 @@ class MuscleBalanceTest {
         assertEquals("TRAPS", result[0])
         assertEquals("BICEPS", result[1])
     }
+    @Test
+    fun `never-trained minor groups do not outrank genuinely overdue legs`() {
+        val today = LocalDate.of(2026, 10, 14)
+        val lastWorked = mapOf(
+            "CHEST" to LocalDate.of(2026, 10, 10),
+            "LATS" to LocalDate.of(2026, 10, 14),
+            "QUADS" to LocalDate.of(2026, 8, 18),      // 57 days ago
+            "HAMSTRINGS" to LocalDate.of(2026, 8, 18),
+        )
+        val allGroups = listOf("LOWER_BACK", "TRAPS", "OBLIQUES", "ADDUCTORS", "CHEST", "LATS", "QUADS", "HAMSTRINGS")
+
+        val result = recommendSynergisticMuscleGroups(allGroups, lastWorked, today)
+
+        assertEquals("QUADS", result[0])
+    }
 }

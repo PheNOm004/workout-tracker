@@ -48,6 +48,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.ExerciseCategory
@@ -111,15 +116,21 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     var weightText by remember { mutableStateOf("") }
     var waistText by remember { mutableStateOf("") }
     var heightText by remember { mutableStateOf("") }
-    val enteredWeight = weightText.toPositiveFiniteDoubleOrNull()
-    val enteredWaist = waistText.toPositiveFiniteDoubleOrNull()
-    val enteredHeight = heightText.toPositiveFiniteDoubleOrNull()
+    // Plausible-range gate on entry only (a stray extra digit once stored a 1,111,111,111 cm height);
+    // stored data and restores keep the looser persistence validation.
+    val latestWeight = com.lsing.timego.domain.latestWeightKg(bodyMetrics)
+    val latestHeight = com.lsing.timego.domain.latestHeightCm(bodyMetrics)
+    val latestWaist = bodyMetrics.sortedBy { it.date }.mapNotNull { it.waistCm }.lastOrNull { it in com.lsing.timego.domain.PLAUSIBLE_WAIST_CM }
+    val enteredWeight = weightText.toPositiveFiniteDoubleOrNull()?.takeIf { it in com.lsing.timego.domain.PLAUSIBLE_WEIGHT_KG }
+    val enteredWaist = waistText.toPositiveFiniteDoubleOrNull()?.takeIf { it in com.lsing.timego.domain.PLAUSIBLE_WAIST_CM }
+    val enteredHeight = heightText.toPositiveFiniteDoubleOrNull()?.takeIf { it in com.lsing.timego.domain.PLAUSIBLE_HEIGHT_CM }
     val bodyMetricInputValid =
         (weightText.isBlank() || enteredWeight != null) &&
             (waistText.isBlank() || enteredWaist != null) &&
             (heightText.isBlank() || enteredHeight != null) &&
             (enteredWeight != null || enteredWaist != null || enteredHeight != null)
     var showPeriodBreakdown by remember { mutableStateOf(false) }
+    var pendingDeleteMetric by remember { mutableStateOf<com.lsing.timego.data.BodyMetric?>(null) }
 
     val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsStateWithLifecycle()
     val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsStateWithLifecycle()
@@ -534,6 +545,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                 value = weightText,
                                 onValueChange = { weightText = it },
                                 label = { Text("Weight (kg)") },
+                                placeholder = { latestWeight?.let { Text("last %.1f".format(it)) } },
+                                supportingText = { if (weightText.isNotBlank() && enteredWeight == null) Text("20 to 300 kg") },
                                 isError = weightText.isNotBlank() && enteredWeight == null,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f).padding(end = 8.dp),
@@ -542,6 +555,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                 value = waistText,
                                 onValueChange = { waistText = it },
                                 label = { Text("Waist (cm)") },
+                                placeholder = { latestWaist?.let { Text("last %.1f".format(it)) } },
+                                supportingText = { if (waistText.isNotBlank() && enteredWaist == null) Text("30 to 250 cm") },
                                 isError = waistText.isNotBlank() && enteredWaist == null,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
@@ -555,6 +570,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                 value = heightText,
                                 onValueChange = { heightText = it },
                                 label = { Text("Height (cm)") },
+                                placeholder = { latestHeight?.let { Text("last %.0f".format(it)) } },
+                                supportingText = { if (heightText.isNotBlank() && enteredHeight == null) Text("100 to 250 cm") },
                                 isError = heightText.isNotBlank() && enteredHeight == null,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f).padding(end = 8.dp),
@@ -578,13 +595,23 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             if (bodyMetrics.isNotEmpty()) {
                 item {
                     SectionHeader("Metric History", topPadding = Spacing.Small)
+                    Text(
+                        "Long-press an entry to delete it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 items(bodyMetrics, key = { it.id }) { metric ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
-                            .padding(vertical = 4.dp, horizontal = Spacing.Small),
+                            .combinedClickable(
+                                onClick = {},
+                                onLongClickLabel = "Delete entry",
+                                onLongClick = { pendingDeleteMetric = metric },
+                            )
+                            .padding(vertical = 8.dp, horizontal = Spacing.Small),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -593,12 +620,19 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        val w = metric.weightKg?.let { "%.1f kg".format(it) } ?: "--"
-                        val waist = metric.waistCm?.let { "%.1f cm".format(it) } ?: "--"
+                        val summary = listOfNotNull(
+                            metric.weightKg?.let { "%.1f kg".format(it) },
+                            metric.waistCm?.let { "Waist: %.1f cm".format(it) },
+                            // Height is carried on every entry; list it only for height-only entries.
+                            metric.heightCm?.takeIf { metric.weightKg == null && metric.waistCm == null }?.let { "Height: %.1f cm".format(it) },
+                        ).joinToString("  •  ")
+                        val implausible = metric.heightCm?.let { it !in com.lsing.timego.domain.PLAUSIBLE_HEIGHT_CM } == true ||
+                            metric.weightKg?.let { it !in com.lsing.timego.domain.PLAUSIBLE_WEIGHT_KG } == true ||
+                            metric.waistCm?.let { it !in com.lsing.timego.domain.PLAUSIBLE_WAIST_CM } == true
                         Text(
-                            "$w  •  Waist: $waist",
+                            if (implausible) "$summary  (ignored: out of range)" else summary,
                             style = LedgerFigureValue.copy(fontSize = 13.sp),
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = if (implausible) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
@@ -609,6 +643,31 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         }
             }
         }
+
+    pendingDeleteMetric?.let { metric ->
+        com.lsing.timego.ui.common.TimeGoDialog(
+            onDismissRequest = { pendingDeleteMetric = null },
+            eyebrow = "BODY",
+            title = "Delete this entry?",
+            confirmButton = {
+                val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
+                androidx.compose.material3.TextButton(onClick = {
+                    viewModel.deleteBodyMetric(metric.id)
+                    dismiss()
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
+                androidx.compose.material3.TextButton(onClick = dismiss) { Text("Cancel") }
+            },
+        ) {
+            Text(
+                "Removes the ${metric.date} entry from your metric history.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 
     // Floating thumb-friendly Segment Selector at bottom of Progress screen
     Surface(

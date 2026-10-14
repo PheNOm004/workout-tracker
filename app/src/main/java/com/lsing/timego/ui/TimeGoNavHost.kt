@@ -97,12 +97,23 @@ private val destinations = listOf(
  * back-stack to lose; [BackHandler] below restores the one piece of back-button behavior a real
  * NavController would have given for free (back returns to Log rather than exiting).
  */
+private const val EXIT_BACK_WINDOW_MILLIS = 2_000L
+
 @Composable
 fun TimeGoNavHost() {
     val context = LocalContext.current
     val profileRepository = remember { ProfileRepository(context.applicationContext) }
-    val profile by profileRepository.profile.collectAsStateWithLifecycle(initialValue = TrainingProfile())
+    // null until the saved profile has actually loaded. Defaulting to an empty TrainingProfile here made
+    // every launch look like a first run, flashing the questions page until DataStore answered.
+    val loadedProfile by profileRepository.profile.collectAsStateWithLifecycle<TrainingProfile?>(initialValue = null)
     var onboardingDismissedForSession by rememberSaveable { mutableStateOf(false) }
+    val profile = loadedProfile
+    if (profile == null) {
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        )
+        return
+    }
     if (
         profile.onboardingVersion < ProfileRepository.CURRENT_ONBOARDING_VERSION &&
         !profile.invitationDismissed &&
@@ -118,6 +129,18 @@ fun TimeGoNavHost() {
 
     var selectedRoute by rememberSaveable { mutableStateOf("log") }
     BackHandler(enabled = selectedRoute != "log") { selectedRoute = "log" }
+    // Registered before any screen's handler, so a deeper layer (e.g. Log's picker/session) always wins;
+    // this only fires once the user is at the Log landing page. Two backs within 2s exit, like games.
+    var lastExitBackAtMillis by remember { mutableStateOf(0L) }
+    BackHandler(enabled = selectedRoute == "log") {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastExitBackAtMillis <= EXIT_BACK_WINDOW_MILLIS) {
+            (context as? android.app.Activity)?.finish()
+        } else {
+            lastExitBackAtMillis = now
+            android.widget.Toast.makeText(context, "Press back again to exit", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Scaffold(
         bottomBar = {

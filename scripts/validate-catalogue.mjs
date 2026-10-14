@@ -69,7 +69,7 @@ function validate({ allowIncomplete }) {
   const errors = [];
   if (document.schemaVersion !== 1) errors.push("schemaVersion must be 1");
   if (!Number.isInteger(document.catalogueVersion) || document.catalogueVersion < 1) errors.push("catalogueVersion must be a positive integer");
-  if (!Array.isArray(document.exercises) || document.exercises.length !== 820) errors.push(`expected 820 exercises, found ${document.exercises?.length ?? 0}`);
+  if (!Array.isArray(document.exercises) || document.exercises.length !== 824) errors.push(`expected 824 exercises, found ${document.exercises?.length ?? 0}`);
   const keys = new Set();
   for (const [index, entry] of (document.exercises ?? []).entries()) {
     const at = `exercises[${index}]`;
@@ -100,7 +100,7 @@ function validate({ allowIncomplete }) {
     }
   }
   const complete = (document.exercises ?? []).filter((e) => e.reviewStatus === "REVIEWED_COMPLETE").length;
-  if (!allowIncomplete && complete !== 200) errors.push(`expected exactly 200 REVIEWED_COMPLETE entries, found ${complete}`);
+  if (!allowIncomplete && complete !== 204) errors.push(`expected exactly 204 REVIEWED_COMPLETE entries, found ${complete}`);
   if (errors.length) throw new Error(`Catalogue validation failed:\n- ${errors.join("\n- ")}`);
   console.log(`Catalogue valid: ${document.exercises.length} entries, ${complete} reviewed complete.`);
 }

@@ -60,4 +60,12 @@ class OnboardingStateTest {
         )
         assertTrue(OnboardingReducer.canComplete(complete))
     }
+
+    @org.junit.Test
+    fun `goTo only moves back to an earlier step`() {
+        val atReview = OnboardingState(step = OnboardingStep.REVIEW)
+        org.junit.Assert.assertEquals(OnboardingStep.GOAL, OnboardingReducer.goTo(atReview, OnboardingStep.GOAL).step)
+        val atGoal = OnboardingState(step = OnboardingStep.GOAL)
+        org.junit.Assert.assertEquals(OnboardingStep.GOAL, OnboardingReducer.goTo(atGoal, OnboardingStep.REVIEW).step)
+    }
 }

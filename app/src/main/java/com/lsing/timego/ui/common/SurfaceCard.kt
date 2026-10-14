@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.lsing.timego.ui.theme.NightDeckHigh
+import com.lsing.timego.ui.theme.LocalTimeGoDark
 import com.lsing.timego.ui.theme.NightDeckLow
 import com.lsing.timego.ui.theme.NightEdgeHairline
 import com.lsing.timego.ui.theme.NightGlow
@@ -40,7 +41,16 @@ fun SurfaceCard(
 ) {
     val shape = RoundedCornerShape(cornerRadius)
     val deck = if (hero) NightDeckHigh else NightDeckLow
-    val elevation = if (hero) 6.dp else 2.dp
+    val hairline = NightEdgeHairline
+    val sheenTop = NightSheenTop
+    val glowColor = NightGlow
+    val dark = LocalTimeGoDark.current
+    val rivetBody = if (dark) Color(0xFF3A4247) else Color(0xFFB9B3A6)
+    val rivetShadow = if (dark) RivetShadow else Color(0x33000000)
+    val rivetHighlight = if (dark) RivetHighlight else Color(0xCCFFFFFF)
+    // The shadow is cast from the box before the caller's outer padding is applied, so on a light
+    // background it shows as a grey slab under the card. Daylight relies on hairline + plate contrast.
+    val elevation = if (!dark) 0.dp else if (hero) 6.dp else 2.dp
 
     // clip(shape) stays outermost so a caller-supplied .clickable's ripple (e.g. the Log
     // landing card) is still bounded to the rounded shape. background() previously had no
@@ -62,14 +72,14 @@ fun SurfaceCard(
                 // since every SurfaceCard call site inherits it without touching each screen.
                 drawRect(
                     brush = Brush.verticalGradient(
-                        0f to NightSheenTop,
+                        0f to sheenTop,
                         0.4f to Color.Transparent,
                     ),
                 )
                 if (hero) {
                     drawRect(
                         brush = Brush.verticalGradient(
-                            0f to NightSheenTop,
+                            0f to sheenTop,
                             0.35f to Color.Transparent,
                         ),
                     )
@@ -77,7 +87,7 @@ fun SurfaceCard(
                 if (glow) {
                     drawRect(
                         brush = Brush.radialGradient(
-                            colors = listOf(NightGlow, Color.Transparent),
+                            colors = listOf(glowColor, Color.Transparent),
                             center = Offset(size.width / 2f, size.height),
                             radius = size.maxDimension * 0.85f,
                         ),
@@ -93,13 +103,13 @@ fun SurfaceCard(
                         Offset(size.width - inset, size.height - inset),
                     )
                     corners.forEach { center ->
-                        drawCircle(RivetShadow, radius = r, center = center + Offset(0.6f, 0.9f))
-                        drawCircle(Color(0xFF3A4247), radius = r, center = center)
-                        drawCircle(RivetHighlight, radius = r * 0.4f, center = center - Offset(0.5f, 0.5f))
+                        drawCircle(rivetShadow, radius = r, center = center + Offset(0.6f, 0.9f))
+                        drawCircle(rivetBody, radius = r, center = center)
+                        drawCircle(rivetHighlight, radius = r * 0.4f, center = center - Offset(0.5f, 0.5f))
                     }
                 }
             }
-            .border(1.dp, NightEdgeHairline, shape),
+            .border(1.dp, hairline, shape),
         content = content,
     )
 }

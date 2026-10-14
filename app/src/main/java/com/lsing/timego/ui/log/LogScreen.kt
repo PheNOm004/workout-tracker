@@ -72,7 +72,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -110,7 +113,8 @@ import com.lsing.timego.domain.estimatedCalorieBurn
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.domain.formatDaysSince
 import com.lsing.timego.domain.flexibleRoutines
-import com.lsing.timego.domain.nextFlexibleRoutineInRotation
+import com.lsing.timego.domain.nextFlexibleRoutineByRecovery
+import com.lsing.timego.domain.primaryMuscleGroups
 import com.lsing.timego.domain.orderedMuscleDistributionForChart
 import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.toggleExpandedExerciseIds
@@ -142,6 +146,27 @@ import java.time.LocalDate
 
 private enum class ActiveLogPage { SESSION, EXERCISE_PICKER }
 
+/** Per-exercise entry conventions, provided once at the top of LogScreen so every logging row (session list
+ *  and picker) reads and toggles them without threading parameters through each layer. */
+private class SideModes(
+    val combinedEntryIds: Set<Long>,
+    val bothSidesIds: Set<Long>,
+    val toggleCombinedEntry: (Long) -> Unit,
+    val toggleBothSides: (Long) -> Unit,
+)
+
+private val LocalSideModes = androidx.compose.runtime.compositionLocalOf {
+    SideModes(emptySet(), emptySet(), {}, {})
+}
+
+/** Items LoggingContent's list renders before the first exercise card: activeHeader, activeSummary,
+ *  favorites, quickAdd, logExerciseAction, exercisesHeader. Keep in sync when adding items above. */
+private const val FIRST_EXERCISE_ITEM_INDEX = 6
+
+/** ExerciseCard recentres itself in its scroll parent when expanded; the active-session list scrolls to
+ *  each card itself (see LoggingContent), so it turns this off. */
+private val LocalAutoScrollExpandedCard = androidx.compose.runtime.compositionLocalOf { true }
+
 @Composable
 fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
@@ -156,6 +181,9 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val exerciseLibrary by viewModel.exerciseLibrary.collectAsStateWithLifecycle()
     val activeProgramId by viewModel.activeProgramId.collectAsStateWithLifecycle()
     val calisthenicsTier by viewModel.calisthenicsTier.collectAsStateWithLifecycle()
+    val combinedEntryIds by viewModel.combinedEntryExerciseIds.collectAsStateWithLifecycle()
+    val bothSidesIds by viewModel.bothSidesExerciseIds.collectAsStateWithLifecycle()
+    val sideModes = SideModes(combinedEntryIds, bothSidesIds, viewModel::toggleCombinedEntry, viewModel::toggleBothSides)
     var peekingLanding by rememberSaveable { mutableStateOf(false) }
     var expandedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
     var librarySearchQuery by rememberSaveable { mutableStateOf("") }
@@ -168,6 +196,16 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     // LaunchedEffect once the new session actually exists -- setting selectedExerciseIds directly in
     // the click handler would be clobbered by this same effect's own reset when sessionState updates.
     var pendingRoutineExerciseIds by remember { mutableStateOf<List<Long>?>(null) }
+
+    // Back unwinds the active-session layers one at a time (picker -> logging -> landing); at the landing
+    // level it is disabled so the root handler in TimeGoNavHost owns exit.
+    BackHandler(enabled = sessionState is SessionUiState.Active && !peekingLanding) {
+        if (activeLogPageName == ActiveLogPage.EXERCISE_PICKER.name) {
+            activeLogPageName = ActiveLogPage.SESSION.name
+        } else {
+            peekingLanding = true
+        }
+    }
 
     LaunchedEffect(sessionState) {
         val sessionId = (sessionState as? SessionUiState.Active)?.sessionId
@@ -182,6 +220,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
         }
     }
 
+    androidx.compose.runtime.CompositionLocalProvider(LocalSideModes provides sideModes) {
     AnimatedContent(
         targetState = sessionState,
         transitionSpec = {
@@ -259,6 +298,13 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                                 onToggleFavorite = viewModel::toggleFavoriteExercise,
                                 onAddCustomExercise = viewModel::addCustomExercise,
                                 onBack = { activeLogPageName = ActiveLogPage.SESSION.name },
+                                // First set from the picker: back to the session page with that exercise
+                                // expanded, where the next set, rest timer and Log button already live.
+                                onSetLogged = { exerciseId ->
+                                    if (exerciseId !in selectedExerciseIds) selectedExerciseIds = selectedExerciseIds + exerciseId
+                                    expandedExerciseIds = listOf(exerciseId)
+                                    activeLogPageName = ActiveLogPage.SESSION.name
+                                },
                             )
                         }
                     } else {
@@ -283,6 +329,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 }
             }
         }
+    }
     }
     detailExercise?.let { exercise ->
         val guidance = exercise.catalogueKey?.let(guidanceByKey::get)
@@ -382,21 +429,29 @@ private fun LogLandingContent(
     val flexibleRoutinesList = remember(filteredRoutines) {
         flexibleRoutines(filteredRoutines)
     }
-    val defaultSuggestedFlexibleRoutine = remember(flexibleRoutinesList, routineLastCompleted) {
-        nextFlexibleRoutineInRotation(flexibleRoutinesList, routineLastCompleted)
+    // One selectable list for the Today's Workout card: today's scheduled routine wins, otherwise the
+    // flexible routine whose muscles are most recovered, otherwise the first routine of the program.
+    val defaultSuggestedRoutine = remember(filteredRoutines, todaysScheduledRoutine, flexibleRoutinesList, routineLastCompleted, routineExercisesById, summary.lastWorkedByGroup) {
+        todaysScheduledRoutine ?: nextFlexibleRoutineByRecovery(
+            flexibleRoutinesList,
+            routinePrimaryGroups = routineExercisesById.mapValues { (_, exercises) -> exercises.flatMapTo(mutableSetOf()) { primaryMuscleGroups(it) } },
+            lastWorkedByGroup = summary.lastWorkedByGroup,
+            routineLastCompleted = routineLastCompleted,
+            today = LocalDate.now(),
+        ) ?: filteredRoutines.firstOrNull()
     }
-    var userSelectedFlexibleRoutineId by remember(flexibleRoutinesList) {
+    var userSelectedRoutineId by remember(filteredRoutines) {
         mutableStateOf<Long?>(null)
     }
-    val activeFlexibleRoutine = remember(flexibleRoutinesList, defaultSuggestedFlexibleRoutine, userSelectedFlexibleRoutineId) {
-        userSelectedFlexibleRoutineId?.let { id -> flexibleRoutinesList.firstOrNull { it.id == id } }
-            ?: defaultSuggestedFlexibleRoutine
+    val activeRoutine = remember(filteredRoutines, defaultSuggestedRoutine, userSelectedRoutineId) {
+        userSelectedRoutineId?.let { id -> filteredRoutines.firstOrNull { it.id == id } }
+            ?: defaultSuggestedRoutine
     }
 
     // A routine's own exercises are the ground truth for its target muscles -- no recommender
     // needed, unlike the generic Recommended Focus diagram below.
     fun regionsForRoutine(routineId: Long): Set<String> =
-        expandMuscleGroupRegions(routineExercisesById[routineId].orEmpty().flatMap { it.muscleGroups }.toSet())
+        expandMuscleGroupRegions(routineExercisesById[routineId].orEmpty().flatMap { primaryMuscleGroups(it) }.toSet())
 
     Column(
         modifier = Modifier
@@ -433,53 +488,9 @@ private fun LogLandingContent(
         } else {
             // HERO: Today's Workout Command Center
             SectionHeader("Today's Workout", topPadding = Spacing.ExtraSmall)
-            if (todaysScheduledRoutine != null) {
-                SurfaceCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
-                        .padding(bottom = Spacing.Medium),
-                    hero = true,
-                    riveted = true,
-                ) {
-                    Column(modifier = Modifier.padding(Spacing.Medium)) {
-                        Text(
-                            "Scheduled for Today",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            todaysScheduledRoutine.name,
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(top = 2.dp, bottom = Spacing.ExtraSmall),
-                        )
-                        val lastTrainedStr = formatDaysSince(routineLastCompleted[todaysScheduledRoutine.id], LocalDate.now())
-                        Text(
-                            "Last completed: $lastTrainedStr",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = Spacing.Small),
-                        )
-                        val scheduledRegions = regionsForRoutine(todaysScheduledRoutine.id)
-                        if (scheduledRegions.isNotEmpty()) {
-                            CroppedMuscleDiagram(
-                                muscleGroups = diagramGroupsForBodyRegionCrop(scheduledRegions),
-                                accentColor = MaterialTheme.colorScheme.primary,
-                                highlightGroups = scheduledRegions,
-                                showNeutralContext = true,
-                                modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(bottom = Spacing.Small),
-                            )
-                        }
-                        Button(
-                            onClick = { onStartOrContinue(todaysScheduledRoutine.id) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("Start ${todaysScheduledRoutine.name}")
-                        }
-                    }
-                }
-            } else if (activeFlexibleRoutine != null) {
+            if (activeRoutine != null) {
+                val isScheduledToday = activeRoutine.id == todaysScheduledRoutine?.id
+                val isFlexible = activeRoutine.daysOfWeek.isEmpty()
                 SurfaceCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -495,41 +506,48 @@ private fun LogLandingContent(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
-                                if (flexibleRoutinesList.size > 1) "Flexible · Next in Rotation" else "Flexible Routine",
+                                when {
+                                    isScheduledToday -> "Scheduled for Today"
+                                    !isFlexible -> "Scheduled · " + activeRoutine.daysOfWeek.joinToString(", ") { it.take(3).lowercase().replaceFirstChar(Char::uppercase) }
+                                    activeRoutine.id == defaultSuggestedRoutine?.id && flexibleRoutinesList.size > 1 -> "Flexible · Next in Rotation"
+                                    else -> "Flexible Routine"
+                                },
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary,
                             )
-                            Icon(
-                                Icons.Filled.AllInclusive,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp),
-                            )
+                            if (isFlexible) {
+                                Icon(
+                                    Icons.Filled.AllInclusive,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                         }
                         Text(
-                            activeFlexibleRoutine.name,
+                            activeRoutine.name,
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(top = 2.dp, bottom = Spacing.ExtraSmall),
                         )
-                        val lastTrainedStr = formatDaysSince(routineLastCompleted[activeFlexibleRoutine.id], LocalDate.now())
+                        val lastTrainedStr = formatDaysSince(routineLastCompleted[activeRoutine.id], LocalDate.now())
                         Text(
                             "Last completed: $lastTrainedStr",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = Spacing.Small),
                         )
-                        val flexibleRegions = regionsForRoutine(activeFlexibleRoutine.id)
-                        if (flexibleRegions.isNotEmpty()) {
+                        val routineRegions = regionsForRoutine(activeRoutine.id)
+                        if (routineRegions.isNotEmpty()) {
                             CroppedMuscleDiagram(
-                                muscleGroups = diagramGroupsForBodyRegionCrop(flexibleRegions),
+                                muscleGroups = diagramGroupsForBodyRegionCrop(routineRegions),
                                 accentColor = MaterialTheme.colorScheme.primary,
-                                highlightGroups = flexibleRegions,
+                                highlightGroups = routineRegions,
                                 showNeutralContext = true,
                                 modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(bottom = Spacing.Small),
                             )
                         }
-                        if (flexibleRoutinesList.size > 1) {
+                        if (filteredRoutines.size > 1) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -537,20 +555,20 @@ private fun LogLandingContent(
                                     .padding(bottom = Spacing.Medium),
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
                             ) {
-                                flexibleRoutinesList.forEach { flexRoutine ->
+                                filteredRoutines.forEach { routine ->
                                     FilterChip(
-                                        selected = flexRoutine.id == activeFlexibleRoutine.id,
-                                        onClick = { userSelectedFlexibleRoutineId = flexRoutine.id },
-                                        label = { Text(flexRoutine.name) },
+                                        selected = routine.id == activeRoutine.id,
+                                        onClick = { userSelectedRoutineId = routine.id },
+                                        label = { Text(routine.name) },
                                     )
                                 }
                             }
                         }
                         Button(
-                            onClick = { onStartOrContinue(activeFlexibleRoutine.id) },
+                            onClick = { onStartOrContinue(activeRoutine.id) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("Start ${activeFlexibleRoutine.name}")
+                            Text("Start ${activeRoutine.name}")
                         }
                         TextButton(
                             onClick = { onStartOrContinue(null) },
@@ -648,23 +666,76 @@ private fun LogLandingContent(
                 }
             }
 
-            // Program -- filters which routines the carousel below shows; "None" shows only your
-            // own user-created routines. Not required to follow; freeform stays reachable either way.
+            // Program filters the seeded routines below. Keep the choice in one compact control so
+            // the landing page remains scannable on smaller phones and with larger text settings.
+            val selectedProgramName = activeProgramId?.let { id ->
+                com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.entries.firstOrNull { it.key == id }?.value
+            } ?: "Custom routines"
+            var programMenuExpanded by rememberSaveable { mutableStateOf(false) }
             SectionHeader("Program", topPadding = Spacing.Small)
-            FlowRow(
+            SurfaceCard(
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                hero = false,
+                riveted = false,
             ) {
-                FilterChip(
-                    selected = activeProgramId == null,
-                    onClick = { onSetActiveProgramId(null) },
-                    label = { Text("None") },
-                )
-                com.lsing.timego.data.PROGRAM_DISPLAY_NAMES.forEach { (programId, name) ->
-                    FilterChip(
-                        selected = activeProgramId == programId,
-                        onClick = { onSetActiveProgramId(programId) },
-                        label = { Text(name) },
+                Column(modifier = Modifier.fillMaxWidth().padding(Spacing.Medium)) {
+                    Text(
+                        text = "Choose a program",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.ExtraSmall))
+                    Box {
+                        OutlinedButton(
+                            onClick = { programMenuExpanded = true },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            contentPadding = PaddingValues(horizontal = Spacing.Medium),
+                        ) {
+                            Text(
+                                text = selectedProgramName,
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Icon(
+                                imageVector = if (programMenuExpanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.ChevronRight,
+                                contentDescription = if (programMenuExpanded) "Collapse program list" else "Expand program list",
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = programMenuExpanded,
+                            onDismissRequest = { programMenuExpanded = false },
+                            modifier = Modifier.fillMaxWidth(0.92f),
+                        ) {
+                            val programItem: @Composable (String?, String) -> Unit = { programId, name ->
+                                DropdownMenuItem(
+                                    text = { Text(name) },
+                                    onClick = {
+                                        onSetActiveProgramId(programId)
+                                        programMenuExpanded = false
+                                    },
+                                    leadingIcon = if (activeProgramId == programId) {
+                                        { Icon(Icons.Filled.Check, contentDescription = null) }
+                                    } else null,
+                                )
+                            }
+                            programItem(com.lsing.timego.data.RIR_PROGRAM_ID, "Upper/Lower AB (RIR) - my program")
+                            programItem(null, "Custom routines")
+                            HorizontalDivider()
+                            com.lsing.timego.data.PROGRAM_DISPLAY_NAMES
+                                .filterKeys { it != com.lsing.timego.data.RIR_PROGRAM_ID }
+                                .forEach { (programId, name) -> programItem(programId, name) }
+                        }
+                    }
+                    Text(
+                        text = if (activeProgramId == null) {
+                            "Showing your custom routines"
+                        } else {
+                            "Showing routines from this program"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.ExtraSmall),
                     )
                 }
             }
@@ -679,27 +750,6 @@ private fun LogLandingContent(
                             onClick = { onSetCalisthenicsTier(tier) },
                             label = { Text(formatEnumLabel(tier.name)) },
                         )
-                    }
-                }
-            }
-
-            // Quick Routines Carousel -- filtered to the selected Program above.
-            if (filteredRoutines.isNotEmpty()) {
-                SectionHeader(if (activeProgramId == null) "Your Routines" else "Routines", topPadding = Spacing.Small)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = Spacing.Medium)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
-                ) {
-                    Button(onClick = { onStartOrContinue(null) }) {
-                        Text("Freeform")
-                    }
-                    filteredRoutines.forEach { routine ->
-                        OutlinedButton(onClick = { onStartOrContinue(routine.id) }) {
-                            Text(routine.name)
-                        }
                     }
                 }
             }
@@ -834,8 +884,56 @@ private fun LoggingContent(
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
     val setLoggedPulse by viewModel.setLoggedPulse.collectAsStateWithLifecycle()
     val activeSessionSetsByExercise by viewModel.activeSessionSetsByExercise.collectAsStateWithLifecycle()
+    val prescriptions by viewModel.activePrescriptions.collectAsStateWithLifecycle()
+    val restTimer by viewModel.restTimer.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val notificationPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) {}
+    var askedNotificationPermission by rememberSaveable { mutableStateOf(false) }
+    // Ask once, the first time a rest timer starts, so the end-of-rest alert can reach a backgrounded app.
+    LaunchedEffect(restTimer != null) {
+        if (restTimer != null && !askedNotificationPermission &&
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            askedNotificationPermission = true
+            notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     var showEndSessionConfirmation by remember { mutableStateOf(false) }
     val activeListState = rememberLazyListState()
+    val exercisesById = remember(libraryExercises) { libraryExercises.associateBy { it.id } }
+    val selectedExercises = remember(selectedExerciseIds, activeSessionSetsByExercise, exercisesById) {
+        (selectedExerciseIds + activeSessionSetsByExercise.keys).distinct().mapNotNull { exercisesById[it] }
+    }
+    val focusedExerciseId = expandedExerciseIds.singleOrNull()
+    val density = LocalDensity.current
+    // Each exercise is its own lazy item, so the expanded one can be scrolled to exactly: top of the
+    // viewport with a small gap. Scrolled twice because the previously expanded card is still collapsing
+    // during the first scroll and shifts everything below it.
+    var focusAppliedOnce by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(focusedExerciseId) {
+        val index = selectedExercises.indexOfFirst { it.id == focusedExerciseId }
+        if (index < 0) return@LaunchedEffect
+        val target = FIRST_EXERCISE_ITEM_INDEX + index
+        val topGap = -with(density) { Spacing.Small.roundToPx() }
+        if (!focusAppliedOnce) {
+            // First arrival (e.g. back from the picker after logging): the page is already sliding in, so
+            // place the card instantly rather than layering a second scroll animation on top of it.
+            focusAppliedOnce = true
+            activeListState.scrollToItem(target, topGap)
+            return@LaunchedEffect
+        }
+        activeListState.animateScrollToItem(target, topGap)
+        delay(300)
+        // Only correct if the previous card's collapse left this one off its mark.
+        val offset = activeListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == target }?.offset
+        if (offset == null || kotlin.math.abs(offset + topGap) > with(density) { 8.dp.roundToPx() }) {
+            activeListState.animateScrollToItem(target, topGap)
+        }
+    }
 
     if (showEndSessionConfirmation) {
         TimeGoDialog(
@@ -864,10 +962,21 @@ private fun LoggingContent(
         }
     }
 
+    androidx.compose.runtime.CompositionLocalProvider(LocalAutoScrollExpandedCard provides false) {
+    Column(modifier = Modifier.fillMaxSize().imePadding()) {
+    androidx.compose.animation.AnimatedVisibility(
+        visible = restTimer != null,
+        enter = androidx.compose.animation.expandVertically(TimeGoMotion.expandEnter) + androidx.compose.animation.fadeIn(TimeGoMotion.fadeEnter),
+        exit = androidx.compose.animation.shrinkVertically(TimeGoMotion.expandExit) + androidx.compose.animation.fadeOut(TimeGoMotion.fadeExit),
+    ) {
+        restTimer?.let { timer ->
+            RestTimerBar(state = timer, onAdjust = viewModel::adjustRest, onDismiss = viewModel::dismissRest)
+        }
+    }
     LazyColumn(
         state = activeListState,
         modifier = Modifier
-            .imePadding()
+            .weight(1f)
             .padding(horizontal = Spacing.Large),
         contentPadding = PaddingValues(bottom = Spacing.ExtraLarge),
     ) {
@@ -908,14 +1017,16 @@ private fun LoggingContent(
                 val favoriteExercises = libraryExercises.filter { it.id in favoriteExerciseIds }
                 SectionHeader("Favorites", topPadding = Spacing.Small)
                 if (favoriteExercises.isNotEmpty()) {
-                    FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                    ) {
                         favoriteExercises.forEach { exercise ->
                             AnimatedAssistChip(
                                 onClick = {
                                     onSelectExercise(exercise.id)
                                 },
                                 label = { Text(exercise.name) },
-                                modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
                             )
                         }
                     }
@@ -931,14 +1042,16 @@ private fun LoggingContent(
             item(key = "quickAdd") {
                 SectionHeader("Quick add", topPadding = Spacing.Small)
                 if (quickAddExercises.isNotEmpty()) {
-                    FlowRow(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                    ) {
                         quickAddExercises.forEach { exercise ->
                             AnimatedAssistChip(
                                 onClick = {
                                     onSelectExercise(exercise.id)
                                 },
                                 label = { Text(exercise.name) },
-                                modifier = Modifier.padding(end = Spacing.ExtraSmall, bottom = Spacing.ExtraSmall),
                             )
                         }
                     }
@@ -966,15 +1079,13 @@ private fun LoggingContent(
                     Text("Log exercise")
                 }
             }
-            item(key = "selectedExercises") {
-                val exercisesById = remember(libraryExercises) { libraryExercises.associateBy { it.id } }
-                val selectedExercises = (selectedExerciseIds + activeSessionSetsByExercise.keys)
-                    .distinct()
-                    .mapNotNull { exercisesById[it] }
+            item(key = "exercisesHeader") {
                 if (selectedExercises.isNotEmpty()) {
                     SectionHeader("Exercises", topPadding = Spacing.Small)
                 }
-                selectedExercises.forEach { exercise ->
+            }
+            items(selectedExercises, key = { "exercise-${it.id}" }) { exercise ->
+                run {
                     val currentExerciseSets = activeSessionSetsByExercise[exercise.id].orEmpty()
                     when (exercise.loggingType) {
                         LoggingType.HOLD.name -> HoldLogRow(
@@ -1015,11 +1126,13 @@ private fun LoggingContent(
                             onCancelTimer = { viewModel.clearActiveTimer(exercise.id) },
                         )
                         else -> StrengthLogRow(
+                            exerciseId = exercise.id,
                             exerciseName = exercise.name,
                             category = exercise.category,
                             suggestion = suggestions[exercise.id],
                             lastWorkingSet = lastWorkingSets[exercise.id],
                             currentSessionSets = currentExerciseSets,
+                            prescription = prescriptions[exercise.name],
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
                             isFavorite = exercise.id in favoriteExerciseIds,
@@ -1040,6 +1153,8 @@ private fun LoggingContent(
                 Spacer(modifier = Modifier.height(Spacing.ExtraLarge))
             }
         }
+    }
+    }
 }
 
 @Composable
@@ -1055,6 +1170,7 @@ private fun ExercisePickerContent(
     onToggleFavorite: (Long) -> Unit,
     onAddCustomExercise: (name: String, muscleGroups: List<String>, category: String) -> Unit,
     onBack: () -> Unit,
+    onSetLogged: (exerciseId: Long) -> Unit,
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var expandedExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -1188,10 +1304,15 @@ private fun ExercisePickerContent(
                         onShowDetails = { detailExerciseId = exercise.id },
                         onLogStrength = { weight, reps, target, isWarmup, addedWeightKg, rpe, provenance ->
                             viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg, rpe, provenance)
+                            onSetLogged(exercise.id)
                         },
-                        onLogCardio = { duration, distance -> viewModel.logCardioSet(exercise.id, duration, distance) },
+                        onLogCardio = { duration, distance ->
+                            viewModel.logCardioSet(exercise.id, duration, distance)
+                            onSetLogged(exercise.id)
+                        },
                         onLogHold = { duration, target, isWarmup, provenance ->
                             viewModel.logHoldSet(exercise.id, duration, target, isWarmup, provenance)
+                            onSetLogged(exercise.id)
                         },
                         onStartTimer = { viewModel.startTimer(exercise.id) },
                         onCancelTimer = { viewModel.clearActiveTimer(exercise.id) },
@@ -1297,6 +1418,7 @@ private fun ExercisePickerRow(
             onCancelTimer = onCancelTimer,
         )
         else -> StrengthLogRow(
+            exerciseId = exercise.id,
             exerciseName = exercise.name,
             category = exercise.category,
             suggestion = suggestion,
@@ -1337,11 +1459,6 @@ private fun ExerciseRowHeader(
     onToggleFavorite: () -> Unit,
     onToggle: () -> Unit,
 ) {
-    val chevronRotation by animateFloatAsState(
-        targetValue = if (expanded) 90f else 0f,
-        animationSpec = androidx.compose.animation.core.tween(280, easing = androidx.compose.animation.core.EaseInOut),
-        label = "chevronRotation",
-    )
     val starScale by animateFloatAsState(
         targetValue = if (isFavorite) 1.2f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
@@ -1376,11 +1493,7 @@ private fun ExerciseRowHeader(
                 },
             )
         }
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = if (expanded) "Collapse" else "Expand",
-            modifier = Modifier.graphicsLayer { rotationZ = chevronRotation },
-        )
+        com.lsing.timego.ui.common.ExpandChevron(expanded)
     }
 }
 
@@ -1397,8 +1510,9 @@ private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Compos
     var cardWidth by remember { mutableStateOf(0) }
     val viewportHeightPx = LocalWindowInfo.current.containerSize.height.toFloat().coerceAtLeast(1f)
 
+    val autoScroll = LocalAutoScrollExpandedCard.current
     LaunchedEffect(expanded, cardHeight, cardWidth, viewportHeightPx) {
-        if (expanded && cardHeight > 0 && cardWidth > 0) {
+        if (autoScroll && expanded && cardHeight > 0 && cardWidth > 0) {
             // Recenter after every animated size change using the actual window viewport. This
             // avoids a second fixed-delay correction and keeps the expanded exercise in the
             // visual middle while the keyboard/insets are changing.
@@ -1465,11 +1579,13 @@ private fun AnimatedAssistChip(
 
 @Composable
 private fun StrengthLogRow(
+    exerciseId: Long,
     exerciseName: String,
     category: String,
     suggestion: com.lsing.timego.domain.OverloadSuggestion?,
     lastWorkingSet: SetLog?,
     currentSessionSets: List<SetLog> = emptyList(),
+    prescription: com.lsing.timego.data.Prescription? = null,
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
     isFavorite: Boolean,
@@ -1482,6 +1598,10 @@ private fun StrengthLogRow(
     // Bodyweight exercises (Pull-Up, Push-Up, Dip, ...) ask for just the added weight k (e.g. a
     // weighted vest) -- blank/0 means bodyweight-only, not "no weight logged." weightKg (the
     // absolute bodyweight+k total 1RM/PR/suggester math needs) is computed at log time, not typed.
+    val sideModes = LocalSideModes.current
+    // Combined entry only applies to loaded exercises; bodyweight moves keep their added-kg convention.
+    val combined = !isBodyweight && exerciseId in sideModes.combinedEntryIds
+    fun displayKg(stored: Double) = com.lsing.timego.domain.storedToCombinedEntry(stored, combined)
     var weightText by rememberSaveable(exerciseName) { mutableStateOf("") }
     var repsText by rememberSaveable(exerciseName) { mutableStateOf("") }
     var rpeText by rememberSaveable(exerciseName) { mutableStateOf("") }
@@ -1507,14 +1627,14 @@ private fun StrengthLogRow(
             val addedK = latestBodyWeightKg?.let { bw -> it.weightKg - bw } ?: it.weightKg
             "${formatCalisthenicsWeight(addedK)} x ${it.reps}"
         } else {
-            "${it.weightKg}kg x ${it.reps}"
+            "${displayKg(it.weightKg)}kg x ${it.reps}"
         }
     }
     val lastSetHint = lastWorkingSet?.let { set ->
         val weight = if (isBodyweight && set.addedWeightKg != null) {
             formatCalisthenicsWeight(set.addedWeightKg)
         } else {
-            "${set.weightKg}kg"
+            "${displayKg(set.weightKg)}kg"
         }
         "Last time: $weight x ${set.reps}"
     }
@@ -1553,7 +1673,7 @@ private fun StrengthLogRow(
             }
             if (currentSessionSets.isNotEmpty()) {
                 val setsSummary = currentSessionSets.mapIndexed { idx, s ->
-                    val w = if (isBodyweight && s.addedWeightKg != null) formatCalisthenicsWeight(s.addedWeightKg) else "${s.weightKg}kg"
+                    val w = if (isBodyweight && s.addedWeightKg != null) formatCalisthenicsWeight(s.addedWeightKg) else "${displayKg(s.weightKg)}kg"
                     "#${idx + 1}: $w x ${s.reps}"
                 }.joinToString("  •  ")
                 Text(
@@ -1577,13 +1697,17 @@ private fun StrengthLogRow(
             ) {
                 Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
                 Text("Warmup set", style = MaterialTheme.typography.bodySmall)
+                if (!isBodyweight && (combined || com.lsing.timego.domain.supportsCombinedEntry(exerciseName))) {
+                    Checkbox(checked = combined, onCheckedChange = { sideModes.toggleCombinedEntry(exerciseId) })
+                    Text("Both dumbbells combined", style = MaterialTheme.typography.bodySmall)
+                }
             }
             Column(modifier = Modifier.fillMaxWidth().padding(Spacing.Medium)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = weightText,
                         onValueChange = { weightText = it },
-                        label = { Text(if (isBodyweight) "added kg" else "kg") },
+                        label = { Text(if (isBodyweight) "added kg" else if (combined) "kg (both)" else "kg") },
                         placeholder = if (isBodyweight) { { Text("0") } } else null,
                         isError = weightText.isNotBlank() && (enteredWeight == null || (isBodyweight && totalBodyweightLoad == null)),
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
@@ -1602,6 +1726,24 @@ private fun StrengthLogRow(
                         onValueChange = { repsText = it },
                         label = { Text("reps") },
                         isError = repsText.isNotBlank() && reps == null,
+                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = NightEdgeHairline,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
+                        ),
+                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                    )
+                    OutlinedTextField(
+                        value = rpeText,
+                        onValueChange = { rpeText = it },
+                        label = { Text("RPE") },
+                        placeholder = { Text(prescription?.rpeText ?: "1-10") },
+                        isError = !validRpe,
+                        singleLine = true,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp),
@@ -1652,54 +1794,48 @@ private fun StrengthLogRow(
                         label = { Text("+1 rep", style = MaterialTheme.typography.labelSmall) },
                     )
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.Small),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        value = rpeText,
-                        onValueChange = { rpeText = it },
-                        label = { Text("RPE") },
-                        placeholder = { Text("1-10") },
-                        isError = !validRpe,
-                        singleLine = true,
-                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = NightEdgeHairline,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
-                        ),
-                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                prescription?.let {
+                    Text(
+                        text = listOfNotNull(it.summary, it.note).joinToString(separator = "\u000A"),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.Small),
                     )
-                    val logInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                    Button(
-                        enabled = canLog,
-                        shape = RoundedCornerShape(8.dp),
-                        interactionSource = logInteractionSource,
-                        modifier = Modifier.tactilePress(logInteractionSource, pressedScale = 0.94f),
-                        onClick = {
-                            if (isBodyweight) {
-                                if (reps != null && enteredWeight != null && totalBodyweightLoad != null) {
-                                    onLog(totalBodyweightLoad, reps, suggestion?.reps ?: reps, isWarmup, enteredWeight, rpe, targetProvenanceFor(suggestion != null))
-                                    weightText = ""
-                                    repsText = ""
-                                    rpeText = ""
-                                    isWarmup = false
-                                }
-                            } else if (enteredWeight != null && reps != null) {
-                                onLog(enteredWeight, reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
+                }
+                val logInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                val workingSetNumber = currentSessionSets.count { !it.isWarmup } + 1
+                Button(
+                    enabled = canLog,
+                    shape = RoundedCornerShape(10.dp),
+                    interactionSource = logInteractionSource,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 52.dp)
+                        .padding(top = Spacing.Small)
+                        .tactilePress(logInteractionSource, pressedScale = 0.97f),
+                    onClick = {
+                        if (isBodyweight) {
+                            if (reps != null && enteredWeight != null && totalBodyweightLoad != null) {
+                                onLog(totalBodyweightLoad, reps, suggestion?.reps ?: reps, isWarmup, enteredWeight, rpe, targetProvenanceFor(suggestion != null))
                                 weightText = ""
                                 repsText = ""
                                 rpeText = ""
                                 isWarmup = false
                             }
+                        } else if (enteredWeight != null && reps != null) {
+                            onLog(com.lsing.timego.domain.combinedEntryToStored(enteredWeight, combined), reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
+                            weightText = ""
+                            repsText = ""
+                            rpeText = ""
+                            isWarmup = false
                         }
-                    ) {
-                        Text("Log set", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                     }
+                ) {
+                    Text(
+                        if (isWarmup) "Log warmup set" else "Log set $workingSetNumber",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    )
                 }
             }
         }
@@ -1867,6 +2003,12 @@ private fun HoldLogRow(
     onStartTimer: () -> Unit,
     onCancelTimer: () -> Unit,
 ) {
+    val sideModes = LocalSideModes.current
+    val bothSides = exerciseId in sideModes.bothSidesIds
+    // 0 = first side, 1 = second side; justStopped lets onCancel (fired right after onStop) know the timer
+    // ended by logging rather than by the user cancelling.
+    var sideIndex by rememberSaveable(exerciseName) { mutableStateOf(0) }
+    var justStopped by remember { mutableStateOf(false) }
     var isWarmup by rememberSaveable(exerciseName) { mutableStateOf(false) }
     var useTimer by rememberSaveable(exerciseName) { mutableStateOf(true) }
     var manualDurationText by rememberSaveable(exerciseName) { mutableStateOf("") }
@@ -1904,6 +2046,18 @@ private fun HoldLogRow(
             ) {
                 Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
                 Text("Warmup set", style = MaterialTheme.typography.bodySmall)
+                if (bothSides || com.lsing.timego.domain.supportsBothSides(exerciseName)) {
+                    Checkbox(checked = bothSides, onCheckedChange = { sideModes.toggleBothSides(exerciseId); sideIndex = 0 })
+                    Text("Both sides", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            if (bothSides && timerVisible) {
+                Text(
+                    if (sideIndex == 0) "Side 1 of 2: timer covers one side" else "Side 2 of 2: switch sides now",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
+                )
             }
             if (!timerVisible) {
                 Row(
@@ -1959,12 +2113,27 @@ private fun HoldLogRow(
                     },
                     onStart = onStartTimer,
                     onCancel = {
-                        useTimer = false
-                        onCancelTimer()
+                        if (justStopped) {
+                            // Stop & Log finished a side: start the other side (its start delay is the switch
+                            // time), or end the exercise if both are done.
+                            justStopped = false
+                            if (bothSides && sideIndex == 0) {
+                                sideIndex = 1
+                                onStartTimer()
+                            } else {
+                                sideIndex = 0
+                                onCancelTimer()
+                            }
+                        } else {
+                            useTimer = false
+                            sideIndex = 0
+                            onCancelTimer()
+                        }
                     },
                     onStop = { seconds ->
                         onLog(seconds, suggestion?.targetDurationSeconds ?: seconds, isWarmup, targetProvenanceFor(suggestion != null))
-                        isWarmup = false
+                        justStopped = true
+                        if (!bothSides || sideIndex == 1) isWarmup = false
                     },
                 )
             }

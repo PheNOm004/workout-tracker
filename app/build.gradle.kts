@@ -44,8 +44,8 @@ android {
         applicationId = "com.lsing.timego"
         minSdk = 26
         targetSdk = 37
-        versionCode = 5
-        versionName = "1.2"
+        versionCode = 6
+        versionName = "1.3"
         // targetSdk tracks compileSdk 37; keep them moving together (HeatP is also on 37).
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -63,6 +63,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Side-by-side with the Play build (different signing key), so installs never touch real data.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             if (hasCompleteUploadSigning) {
                 signingConfig = signingConfigs.getByName("upload")

@@ -15,7 +15,7 @@ import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.domain.exerciseUsageFrequency
 import com.lsing.timego.domain.exercisesRankedByFrequency
-import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
+import com.lsing.timego.domain.lastWorkedDatesByMuscleGroup
 import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.untrainedMuscleGroups
 import kotlinx.coroutines.coroutineScope
@@ -56,6 +56,15 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
 
     private val _untrainedGroups = MutableStateFlow<List<String>>(emptyList())
     val untrainedGroups: StateFlow<List<String>> = _untrainedGroups.asStateFlow()
+
+    private val _themeMode = MutableStateFlow(com.lsing.timego.data.ThemeMode.DARK)
+    val themeMode: StateFlow<com.lsing.timego.data.ThemeMode> = _themeMode.asStateFlow()
+
+    private val _restAdaptive = MutableStateFlow(true)
+    val restAdaptive: StateFlow<Boolean> = _restAdaptive.asStateFlow()
+
+    private val _restTimerSeconds = MutableStateFlow(SettingsRepository.DEFAULT_REST_TIMER_SECONDS)
+    val restTimerSeconds: StateFlow<Int> = _restTimerSeconds.asStateFlow()
 
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
     val holdDelaySeconds: StateFlow<Int> = _holdDelaySeconds.asStateFlow()
@@ -119,11 +128,32 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
                             settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
                         }
                         launch {
+                            settingsRepository.restTimerSeconds.collect { _restTimerSeconds.value = it }
+                        }
+                        launch {
+                            settingsRepository.restAdaptive.collect { _restAdaptive.value = it }
+                        }
+                        launch {
+                            settingsRepository.themeMode.collect { _themeMode.value = it }
+                        }
+                        launch {
                             settingsRepository.trainingLean.collect { _trainingLean.value = it }
                         }
                     }
                 }
         }
+    }
+
+    fun setThemeMode(mode: com.lsing.timego.data.ThemeMode) {
+        viewModelScope.launch { settingsRepository.setThemeMode(mode) }
+    }
+
+    fun setRestAdaptive(adaptive: Boolean) {
+        viewModelScope.launch { settingsRepository.setRestAdaptive(adaptive) }
+    }
+
+    fun setRestTimerSeconds(seconds: Int) {
+        viewModelScope.launch { settingsRepository.setRestTimerSeconds(seconds.coerceIn(0, 600)) }
     }
 
     fun setHoldDelaySeconds(seconds: Int) {
@@ -140,7 +170,7 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
         sessions: List<com.lsing.timego.data.WorkoutSession>,
     ) {
         val sessionDateById = sessions.associate { it.id to it.date }
-        val lastTrained = lastTrainedDatesByMuscleGroup(setLogs, exercisesById, sessionDateById)
+        val lastTrained = lastWorkedDatesByMuscleGroup(setLogs, exercisesById, sessionDateById)
         val allGroups = MuscleGroup.entries.filterNot { it == MuscleGroup.FULL_BODY }.map { it.name }
         val today = LocalDate.now()
         val staleGroups = untrainedMuscleGroups(allGroups, lastTrained, today)
@@ -149,6 +179,14 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
 
     fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) {
         viewModelScope.launch { repository.createRoutine(name, exerciseIds, daysOfWeek) }
+    }
+
+    fun updateRoutine(routineId: Long, name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) {
+        viewModelScope.launch { repository.updateRoutine(routineId, name, exerciseIds, daysOfWeek) }
+    }
+
+    fun resetSeededRoutine(routineId: Long) {
+        viewModelScope.launch { repository.resetSeededRoutine(routineId) }
     }
 
     fun deleteRoutine(routineId: Long) {

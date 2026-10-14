@@ -13,6 +13,9 @@ interface BodyMetricDao {
     @Query("SELECT * FROM body_metrics ORDER BY date")
     fun observeAll(): Flow<List<BodyMetric>>
 
+    @Query("DELETE FROM body_metrics WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
     @Query("SELECT * FROM body_metrics WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): BodyMetric?
 }

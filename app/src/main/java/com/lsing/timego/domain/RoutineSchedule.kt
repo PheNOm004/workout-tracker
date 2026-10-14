@@ -39,3 +39,35 @@ fun formatDaysSince(date: LocalDate?, today: LocalDate): String {
     val days = ChronoUnit.DAYS.between(date, today)
     return if (days <= 0) "Today" else "${days}d ago"
 }
+
+/** Picks the next flexible routine by muscle recovery rather than routine history, so freeform sessions
+ *  (and other routines) that already trained a routine's muscles count. Each routine scores the mean
+ *  staleness of its primary groups (capped at [STALENESS_CAP_DAYS], never trained = cap); any group still
+ *  inside [MIN_RECOVERY_DAYS] costs [RECOVERY_PENALTY]. Ties fall back to least-recently-completed. */
+private const val STALENESS_CAP_DAYS = 14
+private const val RECOVERY_PENALTY = 100
+
+fun nextFlexibleRoutineByRecovery(
+    flexibleRoutines: List<Routine>,
+    routinePrimaryGroups: Map<Long, Set<String>>,
+    lastWorkedByGroup: Map<String, LocalDate>,
+    routineLastCompleted: Map<Long, LocalDate>,
+    today: LocalDate,
+): Routine? {
+    fun score(routine: Routine): Double {
+        val groups = routinePrimaryGroups[routine.id].orEmpty()
+        if (groups.isEmpty()) return 0.0
+        return groups.sumOf { group ->
+            val days = lastWorkedByGroup[group]?.let { ChronoUnit.DAYS.between(it, today).toInt() }
+            when {
+                days == null -> STALENESS_CAP_DAYS
+                days < MIN_RECOVERY_DAYS -> days - RECOVERY_PENALTY
+                else -> minOf(days, STALENESS_CAP_DAYS)
+            }
+        }.toDouble() / groups.size
+    }
+    return flexibleRoutines.maxWithOrNull(
+        compareBy<Routine> { score(it) }
+            .thenByDescending { routineLastCompleted[it.id]?.let { d -> ChronoUnit.DAYS.between(d, today) } ?: Long.MAX_VALUE },
+    )
+}

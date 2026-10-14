@@ -239,6 +239,10 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
         refreshStrengthCurve()
     }
 
+    fun deleteBodyMetric(id: Long) {
+        viewModelScope.launch { repository.deleteBodyMetric(id) }
+    }
+
     fun logBodyMetric(weightKg: Double?, waistCm: Double?, heightCm: Double?) {
         viewModelScope.launch {
             repository.logBodyMetric(LocalDate.now(), weightKg, waistCm, heightCm)

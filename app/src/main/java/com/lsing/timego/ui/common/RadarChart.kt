@@ -88,6 +88,7 @@ fun RadarChart(
     val displayedValues = lerpValues(animationStart, animationTarget, progress.value)
     val displayedComparison = lerpValues(comparisonAnimationStart, comparisonAnimationTarget, progress.value)
 
+    val violet = NightViolet
     Canvas(modifier = modifier) {
         val axisCount = displayedValues.size
         if (axisCount < 3) return@Canvas
@@ -128,7 +129,7 @@ fun RadarChart(
                 if (index == 0) comparisonPath.moveTo(point.x, point.y) else comparisonPath.lineTo(point.x, point.y)
             }
             comparisonPath.close()
-            drawPath(comparisonPath, color = NightViolet.copy(alpha = 0.45f), style = Stroke(width = 2f))
+            drawPath(comparisonPath, color = violet.copy(alpha = 0.45f), style = Stroke(width = 2f))
         }
 
         // The current-period value polygon.
