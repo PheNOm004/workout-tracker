@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
@@ -126,6 +127,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             (heightText.isBlank() || enteredHeight != null) &&
             (enteredWeight != null || enteredWaist != null || enteredHeight != null)
     var showPeriodBreakdown by remember { mutableStateOf(false) }
+    var pendingDeleteMetric by remember { mutableStateOf<com.lsing.timego.data.BodyMetric?>(null) }
 
     val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsStateWithLifecycle()
     val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsStateWithLifecycle()
@@ -584,13 +586,23 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             if (bodyMetrics.isNotEmpty()) {
                 item {
                     SectionHeader("Metric History", topPadding = Spacing.Small)
+                    Text(
+                        "Long-press an entry to delete it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 items(bodyMetrics, key = { it.id }) { metric ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
-                            .padding(vertical = 4.dp, horizontal = Spacing.Small),
+                            .combinedClickable(
+                                onClick = {},
+                                onLongClickLabel = "Delete entry",
+                                onLongClick = { pendingDeleteMetric = metric },
+                            )
+                            .padding(vertical = 8.dp, horizontal = Spacing.Small),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -608,20 +620,11 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                         val implausible = metric.heightCm?.let { it !in com.lsing.timego.domain.PLAUSIBLE_HEIGHT_CM } == true ||
                             metric.weightKg?.let { it !in com.lsing.timego.domain.PLAUSIBLE_WEIGHT_KG } == true ||
                             metric.waistCm?.let { it !in com.lsing.timego.domain.PLAUSIBLE_WAIST_CM } == true
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                if (implausible) "$summary  (ignored: out of range)" else summary,
-                                style = LedgerFigureValue.copy(fontSize = 13.sp),
-                                color = if (implausible) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                            )
-                            IconButton(onClick = { viewModel.deleteBodyMetric(metric.id) }) {
-                                Icon(
-                                    Icons.Filled.Delete,
-                                    contentDescription = "Delete entry from ${metric.date}",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
+                        Text(
+                            if (implausible) "$summary  (ignored: out of range)" else summary,
+                            style = LedgerFigureValue.copy(fontSize = 13.sp),
+                            color = if (implausible) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                        )
                     }
                 }
             }
@@ -631,6 +634,31 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         }
             }
         }
+
+    pendingDeleteMetric?.let { metric ->
+        com.lsing.timego.ui.common.TimeGoDialog(
+            onDismissRequest = { pendingDeleteMetric = null },
+            eyebrow = "BODY",
+            title = "Delete this entry?",
+            confirmButton = {
+                val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
+                androidx.compose.material3.TextButton(onClick = {
+                    viewModel.deleteBodyMetric(metric.id)
+                    dismiss()
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                val dismiss = com.lsing.timego.ui.common.LocalTimeGoDialogDismiss.current
+                androidx.compose.material3.TextButton(onClick = dismiss) { Text("Cancel") }
+            },
+        ) {
+            Text(
+                "Removes the ${metric.date} entry from your metric history.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 
     // Floating thumb-friendly Segment Selector at bottom of Progress screen
     Surface(
