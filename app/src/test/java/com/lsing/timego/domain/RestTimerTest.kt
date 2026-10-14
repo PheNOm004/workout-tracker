@@ -28,6 +28,21 @@ class RestTimerTest {
     }
 
     @Test
+    fun `adaptive rest nudges by RPE and static ignores everything`() {
+        val heavy = RIR_PROGRAM_PRESCRIPTIONS.getValue("Pull-Up")
+        assertEquals(180, restSecondsFor(heavy, 120, adaptive = true, lastRpe = 9))
+        assertEquals(135, restSecondsFor(null, 150, adaptive = true, lastRpe = 5))
+        assertEquals(120, restSecondsFor(heavy, 120, adaptive = false, lastRpe = 10))
+    }
+
+    @Test
+    fun `combined weight entry is halved to per hand`() {
+        assertEquals(17.5, combinedEntryToStored(35.0, combined = true), 0.0)
+        assertEquals(35.0, storedToCombinedEntry(17.5, combined = true), 0.0)
+        assertEquals(20.0, combinedEntryToStored(20.0, combined = false), 0.0)
+    }
+
+    @Test
     fun `clock formatting`() {
         assertEquals("2:05", formatRestClock(125))
         assertEquals("+0:12", formatRestClock(-12))

@@ -146,6 +146,19 @@ import java.time.LocalDate
 
 private enum class ActiveLogPage { SESSION, EXERCISE_PICKER }
 
+/** Per-exercise entry conventions, provided once at the top of LogScreen so every logging row (session list
+ *  and picker) reads and toggles them without threading parameters through each layer. */
+private class SideModes(
+    val combinedEntryIds: Set<Long>,
+    val bothSidesIds: Set<Long>,
+    val toggleCombinedEntry: (Long) -> Unit,
+    val toggleBothSides: (Long) -> Unit,
+)
+
+private val LocalSideModes = androidx.compose.runtime.compositionLocalOf {
+    SideModes(emptySet(), emptySet(), {}, {})
+}
+
 /** Items LoggingContent's list renders before the first exercise card: activeHeader, activeSummary,
  *  favorites, quickAdd, logExerciseAction, exercisesHeader. Keep in sync when adding items above. */
 private const val FIRST_EXERCISE_ITEM_INDEX = 6
@@ -168,6 +181,9 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val exerciseLibrary by viewModel.exerciseLibrary.collectAsStateWithLifecycle()
     val activeProgramId by viewModel.activeProgramId.collectAsStateWithLifecycle()
     val calisthenicsTier by viewModel.calisthenicsTier.collectAsStateWithLifecycle()
+    val combinedEntryIds by viewModel.combinedEntryExerciseIds.collectAsStateWithLifecycle()
+    val bothSidesIds by viewModel.bothSidesExerciseIds.collectAsStateWithLifecycle()
+    val sideModes = SideModes(combinedEntryIds, bothSidesIds, viewModel::toggleCombinedEntry, viewModel::toggleBothSides)
     var peekingLanding by rememberSaveable { mutableStateOf(false) }
     var expandedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
     var librarySearchQuery by rememberSaveable { mutableStateOf("") }
@@ -204,6 +220,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
         }
     }
 
+    androidx.compose.runtime.CompositionLocalProvider(LocalSideModes provides sideModes) {
     AnimatedContent(
         targetState = sessionState,
         transitionSpec = {
@@ -312,6 +329,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 }
             }
         }
+    }
     }
     detailExercise?.let { exercise ->
         val guidance = exercise.catalogueKey?.let(guidanceByKey::get)
@@ -895,14 +913,26 @@ private fun LoggingContent(
     // Each exercise is its own lazy item, so the expanded one can be scrolled to exactly: top of the
     // viewport with a small gap. Scrolled twice because the previously expanded card is still collapsing
     // during the first scroll and shifts everything below it.
+    var focusAppliedOnce by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(focusedExerciseId) {
         val index = selectedExercises.indexOfFirst { it.id == focusedExerciseId }
         if (index < 0) return@LaunchedEffect
         val target = FIRST_EXERCISE_ITEM_INDEX + index
         val topGap = -with(density) { Spacing.Small.roundToPx() }
+        if (!focusAppliedOnce) {
+            // First arrival (e.g. back from the picker after logging): the page is already sliding in, so
+            // place the card instantly rather than layering a second scroll animation on top of it.
+            focusAppliedOnce = true
+            activeListState.scrollToItem(target, topGap)
+            return@LaunchedEffect
+        }
         activeListState.animateScrollToItem(target, topGap)
         delay(300)
-        activeListState.animateScrollToItem(target, topGap)
+        // Only correct if the previous card's collapse left this one off its mark.
+        val offset = activeListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == target }?.offset
+        if (offset == null || kotlin.math.abs(offset + topGap) > with(density) { 8.dp.roundToPx() }) {
+            activeListState.animateScrollToItem(target, topGap)
+        }
     }
 
     if (showEndSessionConfirmation) {
@@ -1096,6 +1126,7 @@ private fun LoggingContent(
                             onCancelTimer = { viewModel.clearActiveTimer(exercise.id) },
                         )
                         else -> StrengthLogRow(
+                            exerciseId = exercise.id,
                             exerciseName = exercise.name,
                             category = exercise.category,
                             suggestion = suggestions[exercise.id],
@@ -1387,6 +1418,7 @@ private fun ExercisePickerRow(
             onCancelTimer = onCancelTimer,
         )
         else -> StrengthLogRow(
+            exerciseId = exercise.id,
             exerciseName = exercise.name,
             category = exercise.category,
             suggestion = suggestion,
@@ -1547,6 +1579,7 @@ private fun AnimatedAssistChip(
 
 @Composable
 private fun StrengthLogRow(
+    exerciseId: Long,
     exerciseName: String,
     category: String,
     suggestion: com.lsing.timego.domain.OverloadSuggestion?,
@@ -1565,6 +1598,10 @@ private fun StrengthLogRow(
     // Bodyweight exercises (Pull-Up, Push-Up, Dip, ...) ask for just the added weight k (e.g. a
     // weighted vest) -- blank/0 means bodyweight-only, not "no weight logged." weightKg (the
     // absolute bodyweight+k total 1RM/PR/suggester math needs) is computed at log time, not typed.
+    val sideModes = LocalSideModes.current
+    // Combined entry only applies to loaded exercises; bodyweight moves keep their added-kg convention.
+    val combined = !isBodyweight && exerciseId in sideModes.combinedEntryIds
+    fun displayKg(stored: Double) = com.lsing.timego.domain.storedToCombinedEntry(stored, combined)
     var weightText by rememberSaveable(exerciseName) { mutableStateOf("") }
     var repsText by rememberSaveable(exerciseName) { mutableStateOf("") }
     var rpeText by rememberSaveable(exerciseName) { mutableStateOf("") }
@@ -1590,14 +1627,14 @@ private fun StrengthLogRow(
             val addedK = latestBodyWeightKg?.let { bw -> it.weightKg - bw } ?: it.weightKg
             "${formatCalisthenicsWeight(addedK)} x ${it.reps}"
         } else {
-            "${it.weightKg}kg x ${it.reps}"
+            "${displayKg(it.weightKg)}kg x ${it.reps}"
         }
     }
     val lastSetHint = lastWorkingSet?.let { set ->
         val weight = if (isBodyweight && set.addedWeightKg != null) {
             formatCalisthenicsWeight(set.addedWeightKg)
         } else {
-            "${set.weightKg}kg"
+            "${displayKg(set.weightKg)}kg"
         }
         "Last time: $weight x ${set.reps}"
     }
@@ -1636,7 +1673,7 @@ private fun StrengthLogRow(
             }
             if (currentSessionSets.isNotEmpty()) {
                 val setsSummary = currentSessionSets.mapIndexed { idx, s ->
-                    val w = if (isBodyweight && s.addedWeightKg != null) formatCalisthenicsWeight(s.addedWeightKg) else "${s.weightKg}kg"
+                    val w = if (isBodyweight && s.addedWeightKg != null) formatCalisthenicsWeight(s.addedWeightKg) else "${displayKg(s.weightKg)}kg"
                     "#${idx + 1}: $w x ${s.reps}"
                 }.joinToString("  •  ")
                 Text(
@@ -1660,13 +1697,17 @@ private fun StrengthLogRow(
             ) {
                 Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
                 Text("Warmup set", style = MaterialTheme.typography.bodySmall)
+                if (!isBodyweight) {
+                    Checkbox(checked = combined, onCheckedChange = { sideModes.toggleCombinedEntry(exerciseId) })
+                    Text("Both dumbbells combined", style = MaterialTheme.typography.bodySmall)
+                }
             }
             Column(modifier = Modifier.fillMaxWidth().padding(Spacing.Medium)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = weightText,
                         onValueChange = { weightText = it },
-                        label = { Text(if (isBodyweight) "added kg" else "kg") },
+                        label = { Text(if (isBodyweight) "added kg" else if (combined) "kg (both)" else "kg") },
                         placeholder = if (isBodyweight) { { Text("0") } } else null,
                         isError = weightText.isNotBlank() && (enteredWeight == null || (isBodyweight && totalBodyweightLoad == null)),
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
@@ -1782,7 +1823,7 @@ private fun StrengthLogRow(
                                 isWarmup = false
                             }
                         } else if (enteredWeight != null && reps != null) {
-                            onLog(enteredWeight, reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
+                            onLog(com.lsing.timego.domain.combinedEntryToStored(enteredWeight, combined), reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
                             weightText = ""
                             repsText = ""
                             rpeText = ""
@@ -1962,6 +2003,12 @@ private fun HoldLogRow(
     onStartTimer: () -> Unit,
     onCancelTimer: () -> Unit,
 ) {
+    val sideModes = LocalSideModes.current
+    val bothSides = exerciseId in sideModes.bothSidesIds
+    // 0 = first side, 1 = second side; justStopped lets onCancel (fired right after onStop) know the timer
+    // ended by logging rather than by the user cancelling.
+    var sideIndex by rememberSaveable(exerciseName) { mutableStateOf(0) }
+    var justStopped by remember { mutableStateOf(false) }
     var isWarmup by rememberSaveable(exerciseName) { mutableStateOf(false) }
     var useTimer by rememberSaveable(exerciseName) { mutableStateOf(true) }
     var manualDurationText by rememberSaveable(exerciseName) { mutableStateOf("") }
@@ -1999,6 +2046,16 @@ private fun HoldLogRow(
             ) {
                 Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
                 Text("Warmup set", style = MaterialTheme.typography.bodySmall)
+                Checkbox(checked = bothSides, onCheckedChange = { sideModes.toggleBothSides(exerciseId); sideIndex = 0 })
+                Text("Both sides", style = MaterialTheme.typography.bodySmall)
+            }
+            if (bothSides && timerVisible) {
+                Text(
+                    if (sideIndex == 0) "Side 1 of 2: timer covers one side" else "Side 2 of 2: switch sides now",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
+                )
             }
             if (!timerVisible) {
                 Row(
@@ -2054,12 +2111,27 @@ private fun HoldLogRow(
                     },
                     onStart = onStartTimer,
                     onCancel = {
-                        useTimer = false
-                        onCancelTimer()
+                        if (justStopped) {
+                            // Stop & Log finished a side: start the other side (its start delay is the switch
+                            // time), or end the exercise if both are done.
+                            justStopped = false
+                            if (bothSides && sideIndex == 0) {
+                                sideIndex = 1
+                                onStartTimer()
+                            } else {
+                                sideIndex = 0
+                                onCancelTimer()
+                            }
+                        } else {
+                            useTimer = false
+                            sideIndex = 0
+                            onCancelTimer()
+                        }
                     },
                     onStop = { seconds ->
                         onLog(seconds, suggestion?.targetDurationSeconds ?: seconds, isWarmup, targetProvenanceFor(suggestion != null))
-                        isWarmup = false
+                        justStopped = true
+                        if (!bothSides || sideIndex == 1) isWarmup = false
                     },
                 )
             }

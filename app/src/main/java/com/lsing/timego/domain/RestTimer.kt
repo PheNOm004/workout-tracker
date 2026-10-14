@@ -13,9 +13,20 @@ fun RestTimerState.remainingSeconds(nowMillis: Long): Int =
 fun RestTimerState.adjusted(deltaSeconds: Int): RestTimerState =
     copy(totalSeconds = (totalSeconds + deltaSeconds).coerceAtLeast(MIN_REST_SECONDS))
 
-/** The program's prescribed rest (midpoint of its range) when there is one, else the user's default. */
-fun restSecondsFor(prescription: Prescription?, defaultSeconds: Int): Int =
-    prescription?.let { (it.restMinSec + it.restMaxSec) / 2 } ?: defaultSeconds
+/** Rest for the set just logged. Static: always [defaultSeconds]. Adaptive: the program's prescribed rest
+ *  (midpoint of its range) when there is one, else [defaultSeconds], then nudged by how hard the set was:
+ *  RPE 9+ rests 30s longer, RPE 6 or lower 15s shorter. */
+fun restSecondsFor(prescription: Prescription?, defaultSeconds: Int, adaptive: Boolean = true, lastRpe: Int? = null): Int {
+    if (!adaptive) return defaultSeconds
+    val base = prescription?.let { (it.restMinSec + it.restMaxSec) / 2 } ?: defaultSeconds
+    val nudge = when {
+        lastRpe == null -> 0
+        lastRpe >= 9 -> 30
+        lastRpe <= 6 -> -15
+        else -> 0
+    }
+    return (base + nudge).coerceAtLeast(MIN_REST_SECONDS)
+}
 
 /** "2:05", or "+0:12" once over. */
 fun formatRestClock(remainingSeconds: Int): String {

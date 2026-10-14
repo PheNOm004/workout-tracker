@@ -48,6 +48,8 @@ fun SettingsBottomSheet(
     onSetHoldDelaySeconds: (Int) -> Unit,
     restTimerSeconds: Int,
     onSetRestTimerSeconds: (Int) -> Unit,
+    restAdaptive: Boolean,
+    onSetRestAdaptive: (Boolean) -> Unit,
     trainingLean: TrainingLean,
     onSetTrainingLean: (TrainingLean) -> Unit,
     onExportBackup: () -> Unit,
@@ -137,6 +139,22 @@ fun SettingsBottomSheet(
                 IconButton(onClick = { onSetRestTimerSeconds(restTimerSeconds + 15) }) {
                     Icon(Icons.Filled.Add, contentDescription = "Increase rest time")
                 }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Adaptive rest", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        if (restAdaptive) "Uses the program's rest and your last RPE; the value above is the fallback."
+                        else "Always the fixed value above.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                androidx.compose.material3.Switch(checked = restAdaptive, onCheckedChange = onSetRestAdaptive)
             }
 
             // Training lean

@@ -261,6 +261,11 @@ class LogViewModel(
     private val _restTimer = MutableStateFlow<com.lsing.timego.domain.RestTimerState?>(null)
     val restTimer: StateFlow<com.lsing.timego.domain.RestTimerState?> = _restTimer.asStateFlow()
     private val _restDefaultSeconds = MutableStateFlow(SettingsRepository.DEFAULT_REST_TIMER_SECONDS)
+    private val _restAdaptive = MutableStateFlow(true)
+    private val _combinedEntryExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
+    val combinedEntryExerciseIds: StateFlow<Set<Long>> = _combinedEntryExerciseIds.asStateFlow()
+    private val _bothSidesExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
+    val bothSidesExerciseIds: StateFlow<Set<Long>> = _bothSidesExerciseIds.asStateFlow()
     private var restAlertJob: kotlinx.coroutines.Job? = null
 
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
@@ -296,6 +301,15 @@ class LogViewModel(
                         }
                         launch {
                             settingsRepository.restTimerSeconds.collect { _restDefaultSeconds.value = it }
+                        }
+                        launch {
+                            settingsRepository.restAdaptive.collect { _restAdaptive.value = it }
+                        }
+                        launch {
+                            settingsRepository.combinedEntryExerciseIds.collect { _combinedEntryExerciseIds.value = it }
+                        }
+                        launch {
+                            settingsRepository.bothSidesExerciseIds.collect { _bothSidesExerciseIds.value = it }
                         }
                         launch {
                             settingsRepository.favoriteExerciseIds.collect { _favoriteExerciseIds.value = it }
@@ -740,7 +754,7 @@ class LogViewModel(
         viewModelScope.launch {
             repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name)
             emitSetLoggedPulse(exerciseId)
-            if (!isWarmup) startRest(exerciseId)
+            if (!isWarmup) startRest(exerciseId, rpe)
         }
     }
 
@@ -768,16 +782,24 @@ class LogViewModel(
         }
     }
 
+    fun toggleCombinedEntry(exerciseId: Long) {
+        viewModelScope.launch { settingsRepository.toggleCombinedEntry(exerciseId) }
+    }
+
+    fun toggleBothSides(exerciseId: Long) {
+        viewModelScope.launch { settingsRepository.toggleBothSides(exerciseId) }
+    }
+
     fun toggleFavoriteExercise(exerciseId: Long) {
         viewModelScope.launch { settingsRepository.toggleFavoriteExercise(exerciseId) }
     }
 
     /** Starts the rest countdown after a working set: the active program's prescribed rest when there is
      *  one, else the user's default. A default of 0 turns the timer off entirely. */
-    private fun startRest(exerciseId: Long) {
+    private fun startRest(exerciseId: Long, lastRpe: Int? = null) {
         if (_restDefaultSeconds.value <= 0) return
         val name = allExercises.firstOrNull { it.id == exerciseId }?.name
-        val seconds = com.lsing.timego.domain.restSecondsFor(activePrescriptions.value[name], _restDefaultSeconds.value)
+        val seconds = com.lsing.timego.domain.restSecondsFor(activePrescriptions.value[name], _restDefaultSeconds.value, _restAdaptive.value, lastRpe)
         setRest(com.lsing.timego.domain.RestTimerState(System.currentTimeMillis(), seconds))
     }
 
