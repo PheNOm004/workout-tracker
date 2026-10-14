@@ -111,9 +111,11 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     var weightText by remember { mutableStateOf("") }
     var waistText by remember { mutableStateOf("") }
     var heightText by remember { mutableStateOf("") }
-    val enteredWeight = weightText.toPositiveFiniteDoubleOrNull()
-    val enteredWaist = waistText.toPositiveFiniteDoubleOrNull()
-    val enteredHeight = heightText.toPositiveFiniteDoubleOrNull()
+    // Plausible-range gate on entry only (a stray extra digit once stored a 1,111,111,111 cm height);
+    // stored data and restores keep the looser persistence validation.
+    val enteredWeight = weightText.toPositiveFiniteDoubleOrNull()?.takeIf { it in 20.0..300.0 }
+    val enteredWaist = waistText.toPositiveFiniteDoubleOrNull()?.takeIf { it in 30.0..250.0 }
+    val enteredHeight = heightText.toPositiveFiniteDoubleOrNull()?.takeIf { it in 100.0..250.0 }
     val bodyMetricInputValid =
         (weightText.isBlank() || enteredWeight != null) &&
             (waistText.isBlank() || enteredWaist != null) &&
@@ -596,7 +598,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                         val summary = listOfNotNull(
                             metric.weightKg?.let { "%.1f kg".format(it) },
                             metric.waistCm?.let { "Waist: %.1f cm".format(it) },
-                            metric.heightCm?.let { "Height: %.1f cm".format(it) },
+                            // Height is carried on every entry; list it only for height-only entries.
+                            metric.heightCm?.takeIf { metric.weightKg == null && metric.waistCm == null }?.let { "Height: %.1f cm".format(it) },
                         ).joinToString("  •  ")
                         Text(
                             summary,

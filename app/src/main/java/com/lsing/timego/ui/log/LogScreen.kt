@@ -404,21 +404,23 @@ private fun LogLandingContent(
     val flexibleRoutinesList = remember(filteredRoutines) {
         flexibleRoutines(filteredRoutines)
     }
-    val defaultSuggestedFlexibleRoutine = remember(flexibleRoutinesList, routineLastCompleted, routineExercisesById, summary.lastWorkedByGroup) {
-        nextFlexibleRoutineByRecovery(
+    // One selectable list for the Today's Workout card: today's scheduled routine wins, otherwise the
+    // flexible routine whose muscles are most recovered, otherwise the first routine of the program.
+    val defaultSuggestedRoutine = remember(filteredRoutines, todaysScheduledRoutine, flexibleRoutinesList, routineLastCompleted, routineExercisesById, summary.lastWorkedByGroup) {
+        todaysScheduledRoutine ?: nextFlexibleRoutineByRecovery(
             flexibleRoutinesList,
             routinePrimaryGroups = routineExercisesById.mapValues { (_, exercises) -> exercises.flatMapTo(mutableSetOf()) { primaryMuscleGroups(it) } },
             lastWorkedByGroup = summary.lastWorkedByGroup,
             routineLastCompleted = routineLastCompleted,
             today = LocalDate.now(),
-        )
+        ) ?: filteredRoutines.firstOrNull()
     }
-    var userSelectedFlexibleRoutineId by remember(flexibleRoutinesList) {
+    var userSelectedRoutineId by remember(filteredRoutines) {
         mutableStateOf<Long?>(null)
     }
-    val activeFlexibleRoutine = remember(flexibleRoutinesList, defaultSuggestedFlexibleRoutine, userSelectedFlexibleRoutineId) {
-        userSelectedFlexibleRoutineId?.let { id -> flexibleRoutinesList.firstOrNull { it.id == id } }
-            ?: defaultSuggestedFlexibleRoutine
+    val activeRoutine = remember(filteredRoutines, defaultSuggestedRoutine, userSelectedRoutineId) {
+        userSelectedRoutineId?.let { id -> filteredRoutines.firstOrNull { it.id == id } }
+            ?: defaultSuggestedRoutine
     }
 
     // A routine's own exercises are the ground truth for its target muscles -- no recommender
@@ -461,53 +463,9 @@ private fun LogLandingContent(
         } else {
             // HERO: Today's Workout Command Center
             SectionHeader("Today's Workout", topPadding = Spacing.ExtraSmall)
-            if (todaysScheduledRoutine != null) {
-                SurfaceCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
-                        .padding(bottom = Spacing.Medium),
-                    hero = true,
-                    riveted = true,
-                ) {
-                    Column(modifier = Modifier.padding(Spacing.Medium)) {
-                        Text(
-                            "Scheduled for Today",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            todaysScheduledRoutine.name,
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(top = 2.dp, bottom = Spacing.ExtraSmall),
-                        )
-                        val lastTrainedStr = formatDaysSince(routineLastCompleted[todaysScheduledRoutine.id], LocalDate.now())
-                        Text(
-                            "Last completed: $lastTrainedStr",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = Spacing.Small),
-                        )
-                        val scheduledRegions = regionsForRoutine(todaysScheduledRoutine.id)
-                        if (scheduledRegions.isNotEmpty()) {
-                            CroppedMuscleDiagram(
-                                muscleGroups = diagramGroupsForBodyRegionCrop(scheduledRegions),
-                                accentColor = MaterialTheme.colorScheme.primary,
-                                highlightGroups = scheduledRegions,
-                                showNeutralContext = true,
-                                modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(bottom = Spacing.Small),
-                            )
-                        }
-                        Button(
-                            onClick = { onStartOrContinue(todaysScheduledRoutine.id) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("Start ${todaysScheduledRoutine.name}")
-                        }
-                    }
-                }
-            } else if (activeFlexibleRoutine != null) {
+            if (activeRoutine != null) {
+                val isScheduledToday = activeRoutine.id == todaysScheduledRoutine?.id
+                val isFlexible = activeRoutine.daysOfWeek.isEmpty()
                 SurfaceCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -523,41 +481,48 @@ private fun LogLandingContent(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
-                                if (flexibleRoutinesList.size > 1) "Flexible · Next in Rotation" else "Flexible Routine",
+                                when {
+                                    isScheduledToday -> "Scheduled for Today"
+                                    !isFlexible -> "Scheduled · " + activeRoutine.daysOfWeek.joinToString(", ") { it.take(3).lowercase().replaceFirstChar(Char::uppercase) }
+                                    activeRoutine.id == defaultSuggestedRoutine?.id && flexibleRoutinesList.size > 1 -> "Flexible · Next in Rotation"
+                                    else -> "Flexible Routine"
+                                },
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary,
                             )
-                            Icon(
-                                Icons.Filled.AllInclusive,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp),
-                            )
+                            if (isFlexible) {
+                                Icon(
+                                    Icons.Filled.AllInclusive,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                         }
                         Text(
-                            activeFlexibleRoutine.name,
+                            activeRoutine.name,
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(top = 2.dp, bottom = Spacing.ExtraSmall),
                         )
-                        val lastTrainedStr = formatDaysSince(routineLastCompleted[activeFlexibleRoutine.id], LocalDate.now())
+                        val lastTrainedStr = formatDaysSince(routineLastCompleted[activeRoutine.id], LocalDate.now())
                         Text(
                             "Last completed: $lastTrainedStr",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = Spacing.Small),
                         )
-                        val flexibleRegions = regionsForRoutine(activeFlexibleRoutine.id)
-                        if (flexibleRegions.isNotEmpty()) {
+                        val routineRegions = regionsForRoutine(activeRoutine.id)
+                        if (routineRegions.isNotEmpty()) {
                             CroppedMuscleDiagram(
-                                muscleGroups = diagramGroupsForBodyRegionCrop(flexibleRegions),
+                                muscleGroups = diagramGroupsForBodyRegionCrop(routineRegions),
                                 accentColor = MaterialTheme.colorScheme.primary,
-                                highlightGroups = flexibleRegions,
+                                highlightGroups = routineRegions,
                                 showNeutralContext = true,
                                 modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(bottom = Spacing.Small),
                             )
                         }
-                        if (flexibleRoutinesList.size > 1) {
+                        if (filteredRoutines.size > 1) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -565,20 +530,20 @@ private fun LogLandingContent(
                                     .padding(bottom = Spacing.Medium),
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
                             ) {
-                                flexibleRoutinesList.forEach { flexRoutine ->
+                                filteredRoutines.forEach { routine ->
                                     FilterChip(
-                                        selected = flexRoutine.id == activeFlexibleRoutine.id,
-                                        onClick = { userSelectedFlexibleRoutineId = flexRoutine.id },
-                                        label = { Text(flexRoutine.name) },
+                                        selected = routine.id == activeRoutine.id,
+                                        onClick = { userSelectedRoutineId = routine.id },
+                                        label = { Text(routine.name) },
                                     )
                                 }
                             }
                         }
                         Button(
-                            onClick = { onStartOrContinue(activeFlexibleRoutine.id) },
+                            onClick = { onStartOrContinue(activeRoutine.id) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("Start ${activeFlexibleRoutine.name}")
+                            Text("Start ${activeRoutine.name}")
                         }
                         TextButton(
                             onClick = { onStartOrContinue(null) },
@@ -760,27 +725,6 @@ private fun LogLandingContent(
                             onClick = { onSetCalisthenicsTier(tier) },
                             label = { Text(formatEnumLabel(tier.name)) },
                         )
-                    }
-                }
-            }
-
-            // Quick Routines Carousel -- filtered to the selected Program above.
-            if (filteredRoutines.isNotEmpty()) {
-                SectionHeader(if (activeProgramId == null) "Your Routines" else "Routines", topPadding = Spacing.Small)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = Spacing.Medium)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
-                ) {
-                    Button(onClick = { onStartOrContinue(null) }) {
-                        Text("Freeform")
-                    }
-                    filteredRoutines.forEach { routine ->
-                        OutlinedButton(onClick = { onStartOrContinue(routine.id) }) {
-                            Text(routine.name)
-                        }
                     }
                 }
             }
