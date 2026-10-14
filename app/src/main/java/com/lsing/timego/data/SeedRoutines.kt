@@ -96,5 +96,4 @@ val PROGRAM_DISPLAY_NAMES: Map<String, String> = mapOf(
     "gzclp" to "GZCLP",
     "westside_conjugate" to "Westside Conjugate",
     "calisthenics_progression" to "Calisthenics Progression",
-    RIR_PROGRAM_ID to "Upper/Lower AB (RIR)",
 )

@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.TrainingLean
+import com.lsing.timego.data.isUserOwned
 import com.lsing.timego.data.TIMEGO_BACKUP_MIME_TYPE
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.TimeGoDatabase
@@ -80,7 +81,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     // Program routines (seeded, programId != null) are managed from the landing page's Program
     // filter, not here -- this page is for the user's own routines, and listing every seeded
     // program routine alongside them would make "Your routines" unreadable.
-    val routines = viewModel.routines.collectAsStateWithLifecycle().value.filter { it.programId == null }
+    val routines = viewModel.routines.collectAsStateWithLifecycle().value.filter { it.isUserOwned() }
     val routineExercisesById by viewModel.routineExercisesById.collectAsStateWithLifecycle()
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
     val untrainedGroups by viewModel.untrainedGroups.collectAsStateWithLifecycle()

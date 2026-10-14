@@ -96,6 +96,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
+import com.lsing.timego.data.isUserOwned
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.TargetProvenance
 import com.lsing.timego.data.targetProvenanceFor
@@ -370,7 +371,7 @@ private fun LogLandingContent(
     val filteredRoutines = remember(routines, activeProgramId, calisthenicsTier) {
         routines.filter { routine ->
             when {
-                activeProgramId == null -> routine.programId == null
+                activeProgramId == null -> routine.isUserOwned()
                 routine.programId != activeProgramId -> false
                 activeProgramId == "calisthenics_progression" -> routine.tier == calisthenicsTier.name
                 else -> true
