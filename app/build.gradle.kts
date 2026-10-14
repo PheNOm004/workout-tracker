@@ -63,6 +63,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Side-by-side with the Play build (different signing key), so installs never touch real data.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             if (hasCompleteUploadSigning) {
                 signingConfig = signingConfigs.getByName("upload")
