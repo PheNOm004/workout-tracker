@@ -60,8 +60,8 @@ private val DarkColorScheme = darkColorScheme(
     surfaceBright = LedgerSurfaceBrightDark,
     surfaceContainerLowest = LedgerSurfaceContainerLowestDark,
     surfaceContainerLow = LedgerSurfaceContainerLowDark,
-    surfaceContainer = NightDeckLow,
-    surfaceContainerHigh = NightDeckHigh,
+    surfaceContainer = NightDeckLowDark,
+    surfaceContainerHigh = NightDeckHighDark,
     surfaceContainerHighest = Color(0xFF2E373B),
     outline = LedgerOutlineDark,
     outlineVariant = LedgerOutlineVariantDark,
@@ -104,8 +104,8 @@ private val LightColorScheme = lightColorScheme(
     surfaceContainerHighest = LedgerSurfaceContainerHighestLight,
     outline = LedgerOutlineLight,
     outlineVariant = LedgerOutlineVariantLight,
-    error = LedgerError,
-    onError = LedgerOnError,
+    error = Color(0xFFB3261E),
+    onError = Color.White,
     errorContainer = LedgerErrorContainerLight,
     onErrorContainer = LedgerOnErrorContainerLight,
     scrim = Color.Black,
@@ -120,10 +120,12 @@ fun TimeGoTheme(
     // "onyx" identity rather than borrowing whatever palette the phone's wallpaper produces.
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        shapes = TimeGoShapes,
-        content = content,
-    )
+    androidx.compose.runtime.CompositionLocalProvider(LocalTimeGoDark provides darkTheme) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            shapes = TimeGoShapes,
+            content = content,
+        )
+    }
 }

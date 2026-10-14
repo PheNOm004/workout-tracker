@@ -57,6 +57,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     private val _untrainedGroups = MutableStateFlow<List<String>>(emptyList())
     val untrainedGroups: StateFlow<List<String>> = _untrainedGroups.asStateFlow()
 
+    private val _themeMode = MutableStateFlow(com.lsing.timego.data.ThemeMode.DARK)
+    val themeMode: StateFlow<com.lsing.timego.data.ThemeMode> = _themeMode.asStateFlow()
+
     private val _restAdaptive = MutableStateFlow(true)
     val restAdaptive: StateFlow<Boolean> = _restAdaptive.asStateFlow()
 
@@ -131,11 +134,18 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
                             settingsRepository.restAdaptive.collect { _restAdaptive.value = it }
                         }
                         launch {
+                            settingsRepository.themeMode.collect { _themeMode.value = it }
+                        }
+                        launch {
                             settingsRepository.trainingLean.collect { _trainingLean.value = it }
                         }
                     }
                 }
         }
+    }
+
+    fun setThemeMode(mode: com.lsing.timego.data.ThemeMode) {
+        viewModelScope.launch { settingsRepository.setThemeMode(mode) }
     }
 
     fun setRestAdaptive(adaptive: Boolean) {

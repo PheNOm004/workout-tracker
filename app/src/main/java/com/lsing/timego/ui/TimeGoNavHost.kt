@@ -103,8 +103,17 @@ private const val EXIT_BACK_WINDOW_MILLIS = 2_000L
 fun TimeGoNavHost() {
     val context = LocalContext.current
     val profileRepository = remember { ProfileRepository(context.applicationContext) }
-    val profile by profileRepository.profile.collectAsStateWithLifecycle(initialValue = TrainingProfile())
+    // null until the saved profile has actually loaded. Defaulting to an empty TrainingProfile here made
+    // every launch look like a first run, flashing the questions page until DataStore answered.
+    val loadedProfile by profileRepository.profile.collectAsStateWithLifecycle<TrainingProfile?>(initialValue = null)
     var onboardingDismissedForSession by rememberSaveable { mutableStateOf(false) }
+    val profile = loadedProfile
+    if (profile == null) {
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        )
+        return
+    }
     if (
         profile.onboardingVersion < ProfileRepository.CURRENT_ONBOARDING_VERSION &&
         !profile.invitationDismissed &&

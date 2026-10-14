@@ -50,6 +50,8 @@ fun SettingsBottomSheet(
     onSetRestTimerSeconds: (Int) -> Unit,
     restAdaptive: Boolean,
     onSetRestAdaptive: (Boolean) -> Unit,
+    themeMode: com.lsing.timego.data.ThemeMode,
+    onSetThemeMode: (com.lsing.timego.data.ThemeMode) -> Unit,
     trainingLean: TrainingLean,
     onSetTrainingLean: (TrainingLean) -> Unit,
     onExportBackup: () -> Unit,
@@ -119,6 +121,22 @@ fun SettingsBottomSheet(
                 Text("${holdDelaySeconds}s", style = LedgerFigureEmphasis)
                 IconButton(onClick = { onSetHoldDelaySeconds(holdDelaySeconds + 1) }) {
                     Icon(Icons.Filled.Add, contentDescription = "Increase delay")
+                }
+            }
+
+            // Appearance
+            Text(
+                "Appearance",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = Spacing.Small, bottom = Spacing.ExtraSmall),
+            )
+            Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Spacing.Small)) {
+                com.lsing.timego.data.ThemeMode.entries.forEach { mode ->
+                    androidx.compose.material3.FilterChip(
+                        selected = themeMode == mode,
+                        onClick = { onSetThemeMode(mode) },
+                        label = { Text(mode.name.lowercase().replaceFirstChar(Char::uppercase)) },
+                    )
                 }
             }
 

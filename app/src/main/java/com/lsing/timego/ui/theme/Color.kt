@@ -72,11 +72,27 @@ val LedgerErrorContainerLight = Color(0xFFFFDAD5)
 val LedgerOnErrorContainerLight = Color(0xFF410002)
 
 // Semantic fitness colors. These never replace the brand accent for action chrome.
-val NightMint = Color(0xFF9BD8B2)
-val NightAmber = Color(0xFFF2B866)
-val NightViolet = Color(0xFFB8A7FF)
-val LedgerProgressing = NightMint
-val LedgerPlateauing = NightAmber
+val NightMintDark = Color(0xFF9BD8B2)
+val NightAmberDark = Color(0xFFF2B866)
+val NightVioletDark = Color(0xFFB8A7FF)
+val DaylightMint = Color(0xFF1E8A57)
+val DaylightAmber = Color(0xFFB36A00)
+val DaylightViolet = Color(0xFF6650D0)
+
+/** True while the dark palette is active; provided by [TimeGoTheme]. Token getters below read it so the
+ *  ~100 call sites that use Night* constants follow the theme without being touched. */
+val LocalTimeGoDark = androidx.compose.runtime.staticCompositionLocalOf { true }
+
+val NightMint: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightMintDark else DaylightMint
+val NightAmber: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightAmberDark else DaylightAmber
+val NightViolet: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightVioletDark else DaylightViolet
+val LedgerProgressing: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = NightMint
+val LedgerPlateauing: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = NightAmber
 val LedgerRegressing = LedgerError
 
 // Explicit aliases for new presentation code and design-token readability.
@@ -89,9 +105,22 @@ val NightCoralShade = LedgerAccentDim
 // Engine-Room Gauge Panel depth tokens. Unlike the retired Backlit rule (hairline-only, no
 // shadow), riveted panels are meant to read as three-dimensional plate: a real cast shadow plus
 // a brass-lit top bezel, not a flat tonal step.
-val NightDeckLow = Color(0xFF181F23)
-val NightDeckHigh = Color(0xFF212A2F)
-val NightEdgeHairline = Color(0x1EFFFFFF)
+val NightDeckLowDark = Color(0xFF181F23)
+val NightDeckHighDark = Color(0xFF212A2F)
+val NightEdgeHairlineDark = Color(0x1EFFFFFF)
+
+// Daylight plates: warm paper-white panels that lift off the stone background with a soft shadow, edged
+// by a dark hairline, so the same plate/brass construction reads in sunlight.
+val DaylightDeckLow = Color(0xFFFBFAF7)
+val DaylightDeckHigh = Color(0xFFFFFFFF)
+val DaylightEdgeHairline = Color(0x26202A2D)
+
+val NightDeckLow: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightDeckLowDark else DaylightDeckLow
+val NightDeckHigh: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightDeckHighDark else DaylightDeckHigh
+val NightEdgeHairline: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalTimeGoDark.current) NightEdgeHairlineDark else DaylightEdgeHairline
 val NightSheenTop = Color(0x14C9A24B)
 val NightGlow = Color(0x2AC9A24B)
 

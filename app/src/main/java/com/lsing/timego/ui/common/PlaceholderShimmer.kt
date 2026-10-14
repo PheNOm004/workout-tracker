@@ -69,15 +69,19 @@ fun rememberShimmerBrush(): Brush {
         label = "timeGoShimmerTranslate",
     )
 
+    val dark = com.lsing.timego.ui.theme.LocalTimeGoDark.current
+    val base = if (dark) Color(0xFF1B2226) else Color(0xFFE4E1DA)
+    val mid = if (dark) Color(0xFF2A343A) else Color(0xFFD6D2C9)
+    val crest = if (dark) Color(0xFF42515A) else Color(0xFFC4BFB3)
     return Brush.linearGradient(
         colors = listOf(
-            Color(0xFF1B2226),
-            Color(0xFF2A343A),
-            Color(0xFF42515A),
+            base,
+            mid,
+            crest,
             BrassHighlight.copy(alpha = 0.55f),
-            Color(0xFF42515A),
-            Color(0xFF2A343A),
-            Color(0xFF1B2226),
+            crest,
+            mid,
+            base,
         ),
         start = Offset(translateAnimation - 500f, 0f),
         end = Offset(translateAnimation + 200f, 250f),
@@ -229,6 +233,8 @@ fun ConsistencyHeatmapSkeleton(modifier: Modifier = Modifier) {
  */
 @Composable
 fun MuscleDistributionSkeleton(modifier: Modifier = Modifier) {
+    val edgeHairline = NightEdgeHairline
+    val mint = NightMint
     val brush = rememberShimmerBrush()
     val frontShapes = remember { buildShapes(FRONT_BODY_PATHS, FRONT_BODY_VIEWBOX) }
     val backShapes = remember { buildShapes(BACK_BODY_PATHS, BACK_BODY_VIEWBOX) }
@@ -298,7 +304,7 @@ fun MuscleDistributionSkeleton(modifier: Modifier = Modifier) {
                                     )
                                     drawPath(
                                         path = shape.path,
-                                        color = NightEdgeHairline.copy(alpha = 0.6f),
+                                        color = edgeHairline.copy(alpha = 0.6f),
                                         style = Stroke(width = 1f),
                                     )
                                 }
@@ -335,7 +341,7 @@ fun MuscleDistributionSkeleton(modifier: Modifier = Modifier) {
                                     )
                                     drawPath(
                                         path = shape.path,
-                                        color = NightEdgeHairline.copy(alpha = 0.6f),
+                                        color = edgeHairline.copy(alpha = 0.6f),
                                         style = Stroke(width = 1f),
                                     )
                                 }
@@ -405,6 +411,8 @@ private fun StatTileSkeleton(
  */
 @Composable
 fun ExercisePerformanceSkeleton(modifier: Modifier = Modifier) {
+    val edgeHairline = NightEdgeHairline
+    val mint = NightMint
     val brush = rememberShimmerBrush()
     Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader("Exercise Performance", topPadding = Spacing.Small)
@@ -451,7 +459,7 @@ fun ExercisePerformanceSkeleton(modifier: Modifier = Modifier) {
                     for (i in 1..3) {
                         val y = height * (i / 4f)
                         drawLine(
-                            color = NightEdgeHairline,
+                            color = edgeHairline,
                             start = Offset(0f, y),
                             end = Offset(width, y),
                             pathEffect = dashEffect,
@@ -480,7 +488,7 @@ fun ExercisePerformanceSkeleton(modifier: Modifier = Modifier) {
                     )
                     // Peak target dot
                     drawCircle(
-                        color = NightMint,
+                        color = mint,
                         radius = 4.dp.toPx(),
                         center = Offset(width, height * 0.15f),
                     )
