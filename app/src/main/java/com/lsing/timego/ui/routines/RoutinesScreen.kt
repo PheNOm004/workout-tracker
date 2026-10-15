@@ -539,7 +539,8 @@ private fun SessionHistoryDialog(
     }
 }
 
-private fun Set<String>.toggle(key: String) = if (key in this) this - key else this + key
+/** Accordion: opening a program closes the others; tapping the open one closes it. */
+private fun Set<String>.toggle(key: String): Set<String> = if (key in this) emptySet() else setOf(key)
 
 private class ProgramCardCallbacks(
     val onToggle: (String) -> Unit,
