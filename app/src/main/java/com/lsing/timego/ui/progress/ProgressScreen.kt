@@ -1,5 +1,7 @@
 package com.lsing.timego.ui.progress
 
+import com.lsing.timego.ui.theme.Hairline
+import com.lsing.timego.ui.theme.RaisedFill
 import com.lsing.timego.ui.common.LocalDockHeight
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -206,7 +208,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             LazyColumn(
                 state = if (segment == ProgressSegment.TRAINING) trainingListState else bodyListState,
                 modifier = Modifier.padding(horizontal = Spacing.Large).imePadding(),
-                contentPadding = PaddingValues(bottom = Spacing.Large + LocalDockHeight.current),
+                // Clears the dock and the segment selector floating above it.
+                contentPadding = PaddingValues(bottom = Spacing.Large + LocalDockHeight.current + SegmentSelectorClearance),
             ) {
                 item {
                     Text(
@@ -673,19 +676,14 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     }
 
     // Floating thumb-friendly Segment Selector at bottom of Progress screen
+    // Sits above the floating dock (LocalDockHeight), never behind it.
     Surface(
             shape = RoundedCornerShape(32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
-            tonalElevation = 6.dp,
-            shadowElevation = 8.dp,
+            color = RaisedFill,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 12.dp)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(32.dp),
-                ),
+                .padding(bottom = LocalDockHeight.current + 8.dp)
+                .border(width = 1.dp, color = Hairline, shape = RoundedCornerShape(32.dp)),
         ) {
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
@@ -703,6 +701,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         }
     }
 }
+
+private val SegmentSelectorClearance = 64.dp
 
 @Composable
 private fun AnimatedStrengthCurve(

@@ -1360,13 +1360,14 @@ private fun ExercisePickerContent(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(Spacing.ExtraLarge + 72.dp))
+            Spacer(modifier = Modifier.height(Spacing.ExtraLarge + 72.dp + LocalDockHeight.current))
         }
         SurfaceCard(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .navigationBarsPadding()
+                // LocalDockHeight already includes the system navigation-bar inset.
+                .padding(bottom = LocalDockHeight.current)
                 .padding(horizontal = Spacing.Large, vertical = Spacing.Small),
             hero = true,
         ) {
@@ -1393,8 +1394,7 @@ private fun ExercisePickerContent(
             onClick = { showAddDialog = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(end = Spacing.Large, bottom = 96.dp),
+                .padding(end = Spacing.Large, bottom = LocalDockHeight.current + 88.dp),
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Add custom exercise")
         }

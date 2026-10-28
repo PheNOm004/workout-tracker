@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
  * Every value is an OKLCH ramp step; text/background pairs are verified at >= 4.5:1 (graphics >= 3:1).
  *
  * Red is the single action colour (anything tappable). Plate colours otherwise encode meaning:
- * chest pink, back blue, shoulders yellow, legs green, arms white, core steel.
+ * chest violet, back blue, shoulders yellow, legs green, arms white, core steel.
  */
 
 // ---- Dark: rubber floor -------------------------------------------------------------------------
@@ -115,7 +115,7 @@ class TimeGoPalette(
 
 internal val DarkPalette = TimeGoPalette(
     red = DarkRed,
-    chest = Color(0xFFF072B3),
+    chest = Color(0xFFBB8AEF),
     blue = DarkBlue,
     yellow = DarkYellow,
     yellowFill = DarkYellow,
@@ -136,7 +136,7 @@ internal val DarkPalette = TimeGoPalette(
 
 internal val LightPalette = TimeGoPalette(
     red = LightRed,
-    chest = Color(0xFFB22578),
+    chest = Color(0xFF7F36BC),
     blue = LightBlue,
     yellow = LightAmber,
     yellowFill = LightYellowFill,

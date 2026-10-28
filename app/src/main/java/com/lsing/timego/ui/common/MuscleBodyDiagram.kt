@@ -345,10 +345,10 @@ fun CroppedMuscleDiagram(
     val neutralColor = MaterialTheme.colorScheme.surfaceVariant
     val drawableGroups = remember(muscleGroups) { diagramGroupsForHeatmap(muscleGroups) }
     val drawableHighlightGroups = remember(highlightGroups) { diagramGroupsForHeatmap(highlightGroups) }
-    // With colorByRegion each highlighted muscle takes its body region's plate colour instead of one accent.
+    // With colorByRegion each highlighted muscle takes its region's plate colour, shaded by sub-group.
     val hasBackMuscles = drawableHighlightGroups.any { it in BACK_REGION_GROUPS }
     val regionColors = MuscleGroup.entries.associate { group ->
-        group.name to regionColor(sessionDisplayRegion(group.name, hasBackMuscles)?.label.orEmpty())
+        group.name to muscleGroupColor(group.name, hasBackMuscles)
     }
     val groupColors = if (colorByRegion) regionColors else emptyMap()
     val frontSpecs = remember(drawableGroups) {

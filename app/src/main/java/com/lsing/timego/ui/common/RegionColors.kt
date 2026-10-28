@@ -1,5 +1,7 @@
 package com.lsing.timego.ui.common
 
+import com.lsing.timego.data.MuscleGroup
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,6 +37,33 @@ fun regionColor(label: String): Color = when (label) {
     SessionDisplayRegion.LEGS.label -> PlateGreen
     SessionDisplayRegion.ARMS.label -> PlateArms
     else -> PlateSteel
+}
+
+/** Lightness step of a muscle within its region colour: sub-groups share the region's hue and differ in shade
+ *  (lats vs upper back, biceps vs triceps vs forearms). Positive lightens, negative darkens; for arms (a neutral)
+ *  the step fades toward the background instead. */
+private val SUBGROUP_SHADE = mapOf(
+    MuscleGroup.CHEST.name to 0f,
+    MuscleGroup.LATS.name to 0f, MuscleGroup.UPPER_BACK.name to 0.3f, MuscleGroup.TRAPS.name to -0.25f, MuscleGroup.LOWER_BACK.name to -0.45f,
+    MuscleGroup.FRONT_DELTS.name to 0f, MuscleGroup.SIDE_DELTS.name to 0.3f, MuscleGroup.REAR_DELTS.name to -0.3f,
+    MuscleGroup.BICEPS.name to 0f, MuscleGroup.TRICEPS.name to -0.3f, MuscleGroup.FOREARMS.name to -0.55f,
+    MuscleGroup.QUADS.name to 0f, MuscleGroup.HAMSTRINGS.name to 0.3f, MuscleGroup.GLUTES.name to -0.3f,
+    MuscleGroup.ADDUCTORS.name to 0.5f, MuscleGroup.CALVES.name to -0.5f,
+    MuscleGroup.ABS.name to 0f, MuscleGroup.OBLIQUES.name to -0.35f,
+)
+
+/** The region colour of [group], shaded by its sub-group so neighbouring muscles stay distinguishable. */
+@Composable
+fun muscleGroupColor(group: String, hasBackMuscles: Boolean = false): Color {
+    val region = sessionDisplayRegion(group, hasBackMuscles) ?: return PlateSteel
+    val base = regionColor(region.label)
+    val shade = SUBGROUP_SHADE[group] ?: 0f
+    return when {
+        shade == 0f -> base
+        region == SessionDisplayRegion.ARMS -> lerp(base, MaterialTheme.colorScheme.surface, -shade)
+        shade > 0f -> lerp(base, Color.White, shade)
+        else -> lerp(base, Color.Black, -shade)
+    }
 }
 
 /** A region name with its plate-colour dot. */
