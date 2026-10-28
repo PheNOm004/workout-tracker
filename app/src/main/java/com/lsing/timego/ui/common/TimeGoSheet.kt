@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindowProvider
 import com.lsing.timego.ui.theme.LocalTimeGoPalette
-import com.lsing.timego.ui.theme.RaisedFill
 
 /**
  * Blurs the app behind the surrounding dialog or sheet window (Android 12+; the system ignores it where
@@ -26,7 +25,7 @@ import com.lsing.timego.ui.theme.RaisedFill
  * blur used by the dock cannot reach it; the window-level blur is how it gets the same frosted depth.
  */
 @Composable
-fun BlurBehindWindow(radius: Dp = 20.dp) {
+fun BlurBehindWindow(radius: Dp = GlassBlurRadius) {
     val view = LocalView.current
     val radiusPx = with(LocalDensity.current) { radius.roundToPx() }
     SideEffect {
@@ -40,8 +39,7 @@ fun BlurBehindWindow(radius: Dp = 20.dp) {
 }
 
 /**
- * The app's modal bottom sheet: a mostly opaque raised surface (about 90%, so text stays crisp) over a
- * blurred, dimmed app, with a rounded top and the standard drag handle. Always opens fully expanded.
+ * The app's modal bottom sheet: the shared glass surface over a blurred, dimmed app, with a rounded top and the standard drag handle. Always opens fully expanded.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,7 +51,7 @@ fun TimeGoBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
-        containerColor = RaisedFill.copy(alpha = 0.9f),
+        containerColor = LocalTimeGoPalette.current.glass,
         contentColor = MaterialTheme.colorScheme.onSurface,
         scrimColor = LocalTimeGoPalette.current.scrim,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),

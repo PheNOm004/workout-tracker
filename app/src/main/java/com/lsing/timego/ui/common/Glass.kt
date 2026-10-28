@@ -19,6 +19,9 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 
+/** Blur radius shared by in-app frosted surfaces and the window blur behind sheets and dialogs. */
+val GlassBlurRadius = 24.dp
+
 /** The one [HazeState] for the app's content layer. Frosted surfaces blur whatever is marked as a source
  *  in this state; null (previews, tests) makes [frosted] fall back to a plain translucent fill. */
 val LocalHazeState = compositionLocalOf<HazeState?> { null }
@@ -63,7 +66,7 @@ fun ScreenOverlay(content: @Composable BoxScope.() -> Unit) {
  * effect blur, so Haze draws only the tint, which is still a translucent, legible surface.
  */
 @Composable
-fun Modifier.frosted(shape: Shape, blurRadius: Dp = 24.dp, borderWidth: Dp = 1.dp): Modifier {
+fun Modifier.frosted(shape: Shape, blurRadius: Dp = GlassBlurRadius, borderWidth: Dp = 1.dp): Modifier {
     val palette = LocalTimeGoPalette.current
     val haze = LocalHazeState.current
     val base = clip(shape)

@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.common
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,8 @@ fun SurfaceCard(
     modifier: Modifier = Modifier,
     hero: Boolean = false,
     cornerRadius: Dp = 24.dp,
+    /** Overrides the fill, e.g. with the glass tint for dialogs. */
+    containerColor: Color? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
@@ -34,7 +37,7 @@ fun SurfaceCard(
         modifier = Modifier
             .clip(shape)
             .then(modifier)
-            .background(if (hero) RaisedFill else CardFill, shape)
+            .background(containerColor ?: if (hero) RaisedFill else CardFill, shape)
             .border(1.dp, Hairline, shape),
         content = content,
     )
