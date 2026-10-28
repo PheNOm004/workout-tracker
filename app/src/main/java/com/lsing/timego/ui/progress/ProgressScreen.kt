@@ -306,6 +306,14 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     when (mode) {
                         CurveMode.EXERCISE -> {
                             Column {
+                                if (exercises.isEmpty()) {
+                                    Text(
+                                        "Log a workout to see your exercise records and strength curve here.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(vertical = Spacing.Medium),
+                                    )
+                                }
                                 if (exercises.isNotEmpty()) {
                                     val selectedIndex = exercises.indexOfFirst { it.id == selectedExerciseId }.coerceAtLeast(0)
                                     HorizontalWheelPicker(

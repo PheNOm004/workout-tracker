@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.progress
 
+import com.lsing.timego.domain.trackedExercises
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -156,10 +157,6 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                                 latestSessions = sessions
                                 latestSetLogs = allSets
                                 latestExercises = exerciseList
-                                _exercises.value = exerciseList
-                                if (_selectedExerciseId.value == null) {
-                                    _selectedExerciseId.value = exerciseList.firstOrNull()?.id
-                                }
                                 // All of the derivations below are pure functions of the observed
                                 // snapshots, some over the full unbounded set history (records,
                                 // volume ratios). LogViewModel already runs its equivalent block
@@ -168,6 +165,13 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                                     val sessionDateById = sessions.associate { it.id to it.date }
                                     val exercisesById = exerciseList.associateBy { it.id }
                                     val today = LocalDate.now()
+
+                                    // Only exercises with logged work are selectable; keep the selection valid.
+                                    val tracked = trackedExercises(allSets, sessions, exerciseList)
+                                    _exercises.value = tracked
+                                    if (tracked.none { it.id == _selectedExerciseId.value }) {
+                                        _selectedExerciseId.value = tracked.firstOrNull()?.id
+                                    }
 
                                     _volumeRatios.value = workoutVolumeRatios(sessions, allSets)
                                     _records.value = personalRecords(allSets, sessionDateById, exercisesById)
