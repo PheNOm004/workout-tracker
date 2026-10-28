@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -38,6 +38,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -133,7 +134,14 @@ fun RestTimerBar(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            RestRing(remaining, state.totalSeconds, size = 58.dp, fontSize = 14)
+            RestRing(
+                remaining, state.totalSeconds, size = 58.dp, fontSize = 14,
+                modifier = if (onMinimize != null) {
+                    Modifier.clip(CircleShape).clickable(onClickLabel = "Minimise rest timer", onClick = onMinimize)
+                } else {
+                    Modifier
+                },
+            )
             Column(modifier = Modifier.weight(1f)) {
                 Text(if (over) "Rest over" else "Rest", style = MaterialTheme.typography.titleMedium)
                 Text(
@@ -144,7 +152,7 @@ fun RestTimerBar(
             }
             if (onMinimize != null) {
                 IconButton(onClick = onMinimize) {
-                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Minimise rest timer")
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Minimise rest timer")
                 }
             }
             Button(onClick = onDismiss, modifier = Modifier.height(44.dp)) { Text(if (over) "Done" else "Skip") }

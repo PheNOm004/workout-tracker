@@ -199,7 +199,11 @@ fun TimeGoNavHost() {
                     expandedOffLog = restExpandedOffLog,
                     onExpandedOffLogChange = { restExpandedOffLog = it },
                     onAdjust = logViewModel::adjustRest,
-                    onDismiss = logViewModel::dismissRest,
+                    onDismiss = {
+                        // Skipping or finishing a rest means you are about to log: take them to the logging page.
+                        logViewModel.dismissRest()
+                        selectedRoute = "log"
+                    },
                     onBarHeightChange = { restBarHeightPx = it },
                     modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = dockHeight),
                 )
@@ -258,7 +262,7 @@ private fun RestTimerOverlay(
                 RestTimerChip(
                     state = shown,
                     onClick = { onExpandedOffLogChange(true) },
-                    modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
+                    modifier = Modifier.padding(start = 8.dp),
                 )
             }
             else -> RestTimerBar(

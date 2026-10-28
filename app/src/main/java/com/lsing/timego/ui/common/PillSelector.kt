@@ -58,7 +58,7 @@ fun PillSelector(
             modifier = Modifier
                 .offset { IntOffset(indicatorX.roundToPx(), 0) }
                 .width(optionWidth)
-                .height(44.dp)
+                .height(46.dp)
                 .clip(shape)
                 .background(accent.copy(alpha = 0.2f))
                 .border(1.dp, accent.copy(alpha = 0.4f), shape),
@@ -75,7 +75,7 @@ fun PillSelector(
                 Box(
                     modifier = Modifier
                         .width(optionWidth)
-                        .height(44.dp)
+                        .height(46.dp)
                         .clip(shape)
                         .tactilePress(source, pressedScale = 0.96f)
                         .clickable(interactionSource = source, indication = null) { onSelect(index) }
