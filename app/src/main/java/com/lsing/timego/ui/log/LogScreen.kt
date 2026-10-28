@@ -1,5 +1,9 @@
 package com.lsing.timego.ui.log
 
+import androidx.compose.runtime.CompositionLocalProvider
+import com.lsing.timego.ui.common.LocalHazeState
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.shape.CircleShape
 import com.lsing.timego.ui.common.RegionChipRow
@@ -990,11 +994,15 @@ private fun LoggingContent(
     }
 
     androidx.compose.runtime.CompositionLocalProvider(LocalAutoScrollExpandedCard provides false) {
+    // The rest bar blurs the session list directly. It lives inside the app-wide blur source the dock uses,
+    // and Haze cannot blur a surface from a source that contains it, so it gets its own source/state.
+    val restHaze = rememberHazeState()
     Box(modifier = Modifier.fillMaxSize().imePadding()) {
     LazyColumn(
         state = activeListState,
         modifier = Modifier
             .fillMaxSize()
+            .hazeSource(restHaze)
             .padding(horizontal = Spacing.Large),
         contentPadding = PaddingValues(bottom = Spacing.ExtraLarge + LocalDockHeight.current + if (restTimer != null) RestBarClearance else 0.dp),
     ) {
@@ -1180,7 +1188,9 @@ private fun LoggingContent(
             enter = androidx.compose.animation.slideInVertically(TimeGoMotion.navigationInOffset) { it } + androidx.compose.animation.fadeIn(TimeGoMotion.fadeEnter),
             exit = androidx.compose.animation.slideOutVertically(TimeGoMotion.navigationOutOffset) { it } + androidx.compose.animation.fadeOut(TimeGoMotion.fadeExit),
         ) {
-            lastRestTimer?.let { RestTimerBar(state = it, onAdjust = viewModel::adjustRest, onDismiss = viewModel::dismissRest) }
+            CompositionLocalProvider(LocalHazeState provides restHaze) {
+                lastRestTimer?.let { RestTimerBar(state = it, onAdjust = viewModel::adjustRest, onDismiss = viewModel::dismissRest) }
+            }
         }
     }
     }

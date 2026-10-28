@@ -34,7 +34,7 @@ Used primarily standing in a gym between sets — logging must be fast, thumb-re
 
 ## Brand Commitments
 
-App name: TimeGo (`com.lsing.timego`). No committed visual identity going into this redesign — the existing Onyx dark theme, Manrope/Fraunces font pairing, and current motion system (tween-based AnimatedExpand/AnimatedContent/crossfade) are all explicitly in scope to be replaced, not preserved as constraints. This redesign supersedes the Aug 10 "visual-identity pass," which the user still considers crude/generic app-wide (chrome, spacing rhythm, typography, buttons — systemic, not one screen) despite icons/elevation/SectionHeader already being applied.
+App name: TimeGo (`com.lsing.timego`). Visual identity: Plate Colours (see DESIGN.md), light and dark both first-class. Red is reserved for actions; plate colours encode body regions. Glass is limited to the dock, the rest-timer bar and sheets/dialogs. Motion is spring-based.
 
 ## Evidence on Hand
 
