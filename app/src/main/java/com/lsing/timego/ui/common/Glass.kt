@@ -1,5 +1,11 @@
 package com.lsing.timego.ui.common
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
@@ -27,6 +33,29 @@ val LocalRestClearance = compositionLocalOf { 0.dp }
 /** True while the rest bar is expanded over a non-Log tab; floating controls (e.g. Progress's segment selector)
  *  hide while it covers their spot. */
 val LocalRestBarCovering = compositionLocalOf { false }
+
+/** Holds the one floating overlay a screen has asked the app shell to draw (see [ScreenOverlay]). */
+class ScreenOverlayHost {
+    var content by mutableStateOf<(@Composable BoxScope.() -> Unit)?>(null)
+}
+
+val LocalScreenOverlayHost = compositionLocalOf<ScreenOverlayHost?> { null }
+
+/**
+ * Floats [content] above the screen by drawing it in the app shell, as a sibling of the blur source rather than
+ * inside it. A frosted surface cannot blur a source that contains it, so any screen-owned floating control that
+ * wants glass (like Progress's segment selector) goes through here. [content] aligns itself within the shell's
+ * full-screen box (e.g. `Modifier.align(Alignment.BottomCenter)`).
+ */
+@Composable
+fun ScreenOverlay(content: @Composable BoxScope.() -> Unit) {
+    val host = LocalScreenOverlayHost.current ?: return
+    val latest by rememberUpdatedState(content)
+    DisposableEffect(host) {
+        host.content = { latest() }
+        onDispose { host.content = null }
+    }
+}
 
 /**
  * Frosted glass: blurs the content behind it and tints it with the palette's glass colour. Reserved for

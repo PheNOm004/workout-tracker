@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.progress
 
+import com.lsing.timego.ui.common.ScreenOverlay
 import com.lsing.timego.ui.common.ChartSummary
 import androidx.compose.ui.graphics.Color
 import androidx.compose.animation.slideOutVertically
@@ -201,11 +202,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         )
     }
 
-    // The selector floats inside the app-wide blur source, so it blurs the list through its own state.
-    val selectorHaze = rememberHazeState()
     Box(modifier = Modifier.fillMaxSize()) {
         AnimatedContent(
-            modifier = Modifier.hazeSource(selectorHaze),
             targetState = selectedSegment,
             transitionSpec = {
                 val movingForward = targetState.ordinal > initialState.ordinal
@@ -691,15 +689,16 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     }
 
     // Floating thumb-friendly Segment Selector at bottom of Progress screen
-    // Sits above the floating dock (LocalDockHeight), never behind it, and steps aside while the rest bar is
-    // expanded over this tab.
+    // Drawn by the app shell (as a sibling of the blur source) so its glass works; it sits above the floating
+    // dock, never behind it, and steps aside while the rest bar is expanded over this tab.
+    ScreenOverlay {
     AnimatedVisibility(
         visible = !LocalRestBarCovering.current,
         modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = LocalDockHeight.current + 8.dp),
         enter = fadeIn(TimeGoMotion.fadeEnter) + slideInVertically(TimeGoMotion.navigationInOffset) { it / 2 },
         exit = fadeOut(TimeGoMotion.fadeExit) + slideOutVertically(TimeGoMotion.navigationOutOffset) { it / 2 },
     ) {
-        CompositionLocalProvider(LocalHazeState provides selectorHaze) {
+        run {
             val accent = MaterialTheme.colorScheme.primary
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier.frosted(RoundedCornerShape(32.dp)).padding(horizontal = 6.dp, vertical = 4.dp),
@@ -723,6 +722,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 }
             }
         }
+    }
     }
 }
 }

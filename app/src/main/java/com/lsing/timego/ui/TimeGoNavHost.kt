@@ -1,5 +1,7 @@
 package com.lsing.timego.ui
 
+import com.lsing.timego.ui.common.ScreenOverlayHost
+import com.lsing.timego.ui.common.LocalScreenOverlayHost
 import com.lsing.timego.ui.common.LocalRestClearance
 import com.lsing.timego.ui.common.LocalRestBarCovering
 import com.lsing.timego.ui.log.RestTimerChip
@@ -177,18 +179,21 @@ fun TimeGoNavHost() {
     var restExpandedOffLog by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(selectedRoute, restTimer == null) { restExpandedOffLog = false }
     val restBarShowing = restTimer != null && (selectedRoute == "log" || restExpandedOffLog)
+    val overlayHost = remember { ScreenOverlayHost() }
     Scaffold(contentWindowInsets = WindowInsets.statusBars) { innerPadding ->
         CompositionLocalProvider(
             LocalHazeState provides hazeState,
             LocalDockHeight provides dockHeight,
             LocalRestClearance provides if (restBarShowing) RestBarClearance else 0.dp,
             LocalRestBarCovering provides (restBarShowing && selectedRoute != "log"),
+            LocalScreenOverlayHost provides overlayHost,
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 RetainedNavContent(
                     selectedRoute = selectedRoute,
                     modifier = Modifier.padding(innerPadding).hazeSource(hazeState),
                 )
+                overlayHost.content?.let { overlay -> Box(modifier = Modifier.fillMaxSize()) { overlay() } }
                 RestTimerOverlay(
                     timer = restTimer,
                     onLogTab = selectedRoute == "log",
