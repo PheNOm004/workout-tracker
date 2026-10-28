@@ -53,7 +53,7 @@ import com.lsing.timego.ui.common.categoryVisual
 import com.lsing.timego.ui.common.exerciseDisplayRegion
 import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.LedgerFigureValue
-import com.lsing.timego.ui.theme.NightMint
+import com.lsing.timego.ui.theme.PlateGreen
 import com.lsing.timego.ui.theme.Spacing
 import com.lsing.timego.ui.theme.TimeGoMotion
 
@@ -78,7 +78,6 @@ fun ActiveWorkoutSection(
 
         SurfaceCard(
             hero = true,
-            riveted = true,
             modifier = modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
         ) {
             Column(modifier = Modifier.padding(Spacing.Medium)) {
@@ -248,7 +247,7 @@ private fun CompletedSetBadge(
             modifier = Modifier
                 .size(16.dp)
                 .clip(CircleShape)
-                .background(if (set.isWarmup) MaterialTheme.colorScheme.outline else NightMint),
+                .background(if (set.isWarmup) MaterialTheme.colorScheme.outline else PlateGreen),
         ) {
             if (set.isWarmup) {
                 Text(

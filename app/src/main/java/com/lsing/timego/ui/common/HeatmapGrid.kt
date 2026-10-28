@@ -42,7 +42,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.lsing.timego.ui.theme.NightEdgeHairline
+import com.lsing.timego.ui.theme.Hairline
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -201,7 +201,7 @@ private fun HeatmapWeekDots(
         } else {
             Modifier
         }
-        val edge = Modifier.border(0.75.dp, NightEdgeHairline, CircleShape)
+        val edge = Modifier.border(0.75.dp, Hairline, CircleShape)
         if (date.isAfter(today) || ratio == null || ratio <= 0f) {
             Box(
                 modifier = modifier

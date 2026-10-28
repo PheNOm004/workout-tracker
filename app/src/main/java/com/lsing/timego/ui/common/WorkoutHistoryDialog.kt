@@ -56,8 +56,8 @@ import com.lsing.timego.data.SetLog
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.domain.primaryMuscleGroups
 import com.lsing.timego.ui.theme.LedgerFigureValue
-import com.lsing.timego.ui.theme.NightDeckHigh
-import com.lsing.timego.ui.theme.NightEyebrow
+import com.lsing.timego.ui.theme.RaisedFill
+import com.lsing.timego.ui.theme.EyebrowStyle
 import com.lsing.timego.ui.theme.Spacing
 import com.lsing.timego.ui.theme.TimeGoMotion
 import java.time.LocalDate
@@ -157,7 +157,7 @@ fun buildGroupedDayHistory(
 /** Shared by the Progress screen's tap-a-heatmap-day history and the logging landing page's
  *  tap-the-summary-card history. When [label] is non-null it appears as a subtitle below the date
  *  (e.g. the routine name that was run that day). Duration appears on its own line when present.
- *  Uses the signature [TimeGoDialog] hardware plate with top brass bezel sheen and NightDeckHigh plate. */
+ *  Uses the signature [TimeGoDialog] hardware plate with top brass bezel sheen and RaisedFill plate. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun WorkoutHistoryDialog(
@@ -175,7 +175,7 @@ fun WorkoutHistoryDialog(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = NightDeckHigh,
+        containerColor = RaisedFill,
         contentColor = MaterialTheme.colorScheme.onSurface,
         dragHandle = {
             BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
@@ -192,7 +192,7 @@ fun WorkoutHistoryDialog(
             // Eyebrow
             Text(
                 text = "WORKOUT SUMMARY",
-                style = NightEyebrow,
+                style = EyebrowStyle,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 2.dp),
             )

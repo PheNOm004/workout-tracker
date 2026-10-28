@@ -45,11 +45,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lsing.timego.ui.theme.BrassHighlight
-import com.lsing.timego.ui.theme.NightDeckHigh
-import com.lsing.timego.ui.theme.NightDeckLow
-import com.lsing.timego.ui.theme.NightEdgeHairline
-import com.lsing.timego.ui.theme.NightMint
+import com.lsing.timego.ui.theme.RaisedFill
+import com.lsing.timego.ui.theme.CardFill
+import com.lsing.timego.ui.theme.Hairline
+import com.lsing.timego.ui.theme.PlateGreen
 import com.lsing.timego.ui.theme.Spacing
 
 /**
@@ -69,18 +68,16 @@ fun rememberShimmerBrush(): Brush {
         label = "timeGoShimmerTranslate",
     )
 
-    val dark = com.lsing.timego.ui.theme.LocalTimeGoDark.current
-    val base = if (dark) Color(0xFF1B2226) else Color(0xFFE4E1DA)
-    val mid = if (dark) Color(0xFF2A343A) else Color(0xFFD6D2C9)
-    val crest = if (dark) Color(0xFF42515A) else Color(0xFFC4BFB3)
+    val colors = MaterialTheme.colorScheme
+    val base = colors.surfaceContainerHigh
+    val crest = colors.surfaceContainerHighest
+    val accent = colors.primary.copy(alpha = 0.35f)
     return Brush.linearGradient(
         colors = listOf(
             base,
-            mid,
             crest,
-            BrassHighlight.copy(alpha = 0.55f),
+            accent,
             crest,
-            mid,
             base,
         ),
         start = Offset(translateAnimation - 500f, 0f),
@@ -103,7 +100,7 @@ fun ShimmerLine(
             .height(height)
             .clip(RoundedCornerShape(cornerRadius))
             .background(brush)
-            .border(0.5.dp, NightEdgeHairline, RoundedCornerShape(cornerRadius)),
+            .border(0.5.dp, Hairline, RoundedCornerShape(cornerRadius)),
     )
 }
 
@@ -116,16 +113,17 @@ fun ShimmerChip(
     highlighted: Boolean = false,
 ) {
     val brush = rememberShimmerBrush()
+    val accent = MaterialTheme.colorScheme.primary
     Box(
         modifier = modifier
             .width(width)
             .height(height)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(brush)
             .border(
                 width = if (highlighted) 1.dp else 0.5.dp,
-                color = if (highlighted) BrassHighlight.copy(alpha = 0.6f) else NightEdgeHairline,
-                shape = RoundedCornerShape(8.dp),
+                color = if (highlighted) accent.copy(alpha = 0.6f) else Hairline,
+                shape = RoundedCornerShape(12.dp),
             ),
     )
 }
@@ -185,7 +183,7 @@ fun ConsistencyHeatmapSkeleton(modifier: Modifier = Modifier) {
                                             .size(dotSize)
                                             .clip(CircleShape)
                                             .background(brush)
-                                            .border(0.75.dp, NightEdgeHairline.copy(alpha = cellAlpha), CircleShape),
+                                            .border(0.75.dp, Hairline.copy(alpha = cellAlpha), CircleShape),
                                     )
                                 }
                             }
@@ -211,7 +209,7 @@ fun ConsistencyHeatmapSkeleton(modifier: Modifier = Modifier) {
                                 .size(9.dp)
                                 .clip(CircleShape)
                                 .background(brush)
-                                .border(0.75.dp, NightEdgeHairline, CircleShape),
+                                .border(0.75.dp, Hairline, CircleShape),
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                     }
@@ -233,8 +231,8 @@ fun ConsistencyHeatmapSkeleton(modifier: Modifier = Modifier) {
  */
 @Composable
 fun MuscleDistributionSkeleton(modifier: Modifier = Modifier) {
-    val edgeHairline = NightEdgeHairline
-    val mint = NightMint
+    val edgeHairline = Hairline
+    val mint = PlateGreen
     val brush = rememberShimmerBrush()
     val frontShapes = remember { buildShapes(FRONT_BODY_PATHS, FRONT_BODY_VIEWBOX) }
     val backShapes = remember { buildShapes(BACK_BODY_PATHS, BACK_BODY_VIEWBOX) }
@@ -398,7 +396,7 @@ private fun StatTileSkeleton(
                     .height(20.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .background(brush)
-                    .border(0.5.dp, NightEdgeHairline, RoundedCornerShape(4.dp)),
+                    .border(0.5.dp, Hairline, RoundedCornerShape(4.dp)),
             )
         }
     }
@@ -411,8 +409,8 @@ private fun StatTileSkeleton(
  */
 @Composable
 fun ExercisePerformanceSkeleton(modifier: Modifier = Modifier) {
-    val edgeHairline = NightEdgeHairline
-    val mint = NightMint
+    val edgeHairline = Hairline
+    val mint = PlateGreen
     val brush = rememberShimmerBrush()
     Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader("Exercise Performance", topPadding = Spacing.Small)
@@ -550,7 +548,7 @@ fun RoutineCardSkeleton(modifier: Modifier = Modifier) {
                                 .background(brush)
                                 .border(
                                     width = if (active) 1.dp else 0.5.dp,
-                                    color = if (active) BrassHighlight.copy(alpha = 0.7f) else NightEdgeHairline,
+                                    color = if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else Hairline,
                                     shape = CircleShape,
                                 ),
                             contentAlignment = Alignment.Center,
@@ -561,7 +559,7 @@ fun RoutineCardSkeleton(modifier: Modifier = Modifier) {
                                     fontSize = 10.sp,
                                     fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
                                 ),
-                                color = if (active) BrassHighlight else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             )
                         }
                     }
@@ -574,7 +572,7 @@ fun RoutineCardSkeleton(modifier: Modifier = Modifier) {
                     .size(28.dp)
                     .clip(CircleShape)
                     .background(brush)
-                    .border(0.5.dp, NightEdgeHairline, CircleShape),
+                    .border(0.5.dp, Hairline, CircleShape),
             )
         }
     }

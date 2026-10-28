@@ -70,9 +70,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import com.lsing.timego.ui.common.tactilePress
-import com.lsing.timego.ui.theme.NightDeckHigh
-import com.lsing.timego.ui.theme.NightEdgeHairline
-import com.lsing.timego.ui.theme.NightSheenTop
+import com.lsing.timego.ui.theme.RaisedFill
+import com.lsing.timego.ui.theme.Hairline
 import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.profile.ProfileRepository
 import com.lsing.timego.profile.TrainingProfile
@@ -205,25 +204,17 @@ private fun TimeGoBottomDock(
     ) {
         Surface(
             shape = RoundedCornerShape(22.dp),
-            color = NightDeckHigh,
+            color = RaisedFill,
             tonalElevation = 6.dp,
             shadowElevation = 8.dp,
             modifier = Modifier
                 .border(
                     width = 1.dp,
-                    color = NightEdgeHairline,
+                    color = Hairline,
                     shape = RoundedCornerShape(22.dp),
                 ),
         ) {
-            Box(
-                modifier = Modifier
-                    .background(
-                        Brush.verticalGradient(
-                            0f to NightSheenTop,
-                            0.35f to androidx.compose.ui.graphics.Color.Transparent,
-                        ),
-                    ),
-            ) {
+            Box {
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()

@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.lsing.timego.ui.theme.NightEyebrow
+import com.lsing.timego.ui.theme.EyebrowStyle
 import com.lsing.timego.ui.theme.Spacing
 
 import androidx.compose.runtime.snapshotFlow
@@ -52,14 +52,12 @@ import kotlinx.coroutines.flow.first
 val LocalTimeGoDialogDismiss = compositionLocalOf<() -> Unit> { {} }
 
 /**
- * The Gauge Panel's signature hardware dialog plate.
+ * The app's dialog: a raised card centred over an animated scrim.
  *
  * Features:
- * - [SurfaceCard] plate with [NightDeckHigh] steel background and [riveted] brass fasteners
- * - Real cast shadow elevation
- * - Brass-lit top bezel reflection ([NightSheenTop])
- * - Precision 1.dp hairline border ([NightEdgeHairline])
- * - Signature [NightEyebrow] uppercase accent header
+ * - [SurfaceCard] plate on the [RaisedFill] tonal step
+ * - Precision 1.dp hairline border ([Hairline])
+ * - Signature [EyebrowStyle] uppercase accent header
  * - Symmetric EaseInOut enter/exit animations (scale + alpha) matching heatmap glide
  * - Animated scrim fade on entrance and dismissal
  * - Built-in scroll-to-fit constraint and IME keyboard avoidance
@@ -148,7 +146,6 @@ fun TimeGoDialog(
                     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
                     SurfaceCard(
                         hero = true,
-                        riveted = true,
                         cornerRadius = cornerRadius,
                         modifier = modifier
                             .fillMaxWidth(0.92f)
@@ -173,7 +170,7 @@ fun TimeGoDialog(
                                     if (eyebrow != null) {
                                         Text(
                                             text = eyebrow.uppercase(),
-                                            style = NightEyebrow,
+                                            style = EyebrowStyle,
                                             color = MaterialTheme.colorScheme.primary,
                                         )
                                     }

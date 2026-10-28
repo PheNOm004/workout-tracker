@@ -65,7 +65,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import com.lsing.timego.ui.theme.NightEdgeHairline
+import com.lsing.timego.ui.theme.Hairline
 import com.lsing.timego.ui.common.TimeGoDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -374,7 +374,7 @@ private fun LogLoadingContent() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Medium),
         )
-        SurfaceCard(modifier = Modifier.fillMaxWidth(), hero = true, riveted = true) {
+        SurfaceCard(modifier = Modifier.fillMaxWidth(), hero = true) {
             Column(modifier = Modifier.padding(Spacing.Medium)) {
                 ShimmerLine(width = 112.dp, height = 12.dp)
                 Spacer(modifier = Modifier.height(Spacing.Small))
@@ -476,7 +476,6 @@ private fun LogLandingContent(
             SurfaceCard(
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
                 hero = true,
-                riveted = true,
             ) {
                 Column(modifier = Modifier.padding(Spacing.Medium)) {
                     Text(
@@ -510,7 +509,6 @@ private fun LogLandingContent(
                         .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
                         .padding(bottom = Spacing.Medium),
                     hero = true,
-                    riveted = true,
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Medium)) {
                         Row(
@@ -604,7 +602,6 @@ private fun LogLandingContent(
                         .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
                         .padding(bottom = Spacing.Medium),
                     hero = true,
-                    riveted = true,
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Medium)) {
                         Text(
@@ -689,7 +686,6 @@ private fun LogLandingContent(
             SurfaceCard(
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
                 hero = false,
-                riveted = false,
             ) {
                 Column(modifier = Modifier.fillMaxWidth().padding(Spacing.Medium)) {
                     Text(
@@ -1512,8 +1508,8 @@ private fun ExerciseRowHeader(
 
 /**
  * Modern Engine-Room Gauge Panel card for active exercise logging:
- * Mounted console plate (SurfaceCard, 10.dp rounded corners, NightDeckLow, hairline border)
- * when collapsed, elevating to an active glowing instrument panel (NightDeckHigh, hero brass
+ * Mounted console plate (SurfaceCard, 10.dp rounded corners, CardFill, hairline border)
+ * when collapsed, elevating to an active glowing instrument panel (RaisedFill, hero brass
  * sheen) when expanded, with TrainingPulse on set log.
  */
 @Composable
@@ -1664,7 +1660,7 @@ private fun StrengthLogRow(
         ) { onToggle() }
         AnimatedExpand(expanded) {
             HorizontalDivider(
-                color = NightEdgeHairline.copy(alpha = 0.5f),
+                color = Hairline.copy(alpha = 0.5f),
                 thickness = 0.5.dp,
                 modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
             )
@@ -1728,7 +1724,7 @@ private fun StrengthLogRow(
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = NightEdgeHairline,
+                            unfocusedBorderColor = Hairline,
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
@@ -1744,7 +1740,7 @@ private fun StrengthLogRow(
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = NightEdgeHairline,
+                            unfocusedBorderColor = Hairline,
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
@@ -1762,7 +1758,7 @@ private fun StrengthLogRow(
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = NightEdgeHairline,
+                            unfocusedBorderColor = Hairline,
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
@@ -1887,7 +1883,7 @@ private fun CardioLogRow(
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded, isFavorite, onToggleFavorite, onToggle)
         AnimatedExpand(expanded) {
             HorizontalDivider(
-                color = NightEdgeHairline.copy(alpha = 0.5f),
+                color = Hairline.copy(alpha = 0.5f),
                 thickness = 0.5.dp,
                 modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
             )
@@ -1917,7 +1913,7 @@ private fun CardioLogRow(
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = NightEdgeHairline,
+                    unfocusedBorderColor = Hairline,
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                 ),
@@ -1938,7 +1934,7 @@ private fun CardioLogRow(
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = NightEdgeHairline,
+                            unfocusedBorderColor = Hairline,
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
@@ -2041,7 +2037,7 @@ private fun HoldLogRow(
         ) { onToggle() }
         AnimatedExpand(expanded) {
             HorizontalDivider(
-                color = NightEdgeHairline.copy(alpha = 0.5f),
+                color = Hairline.copy(alpha = 0.5f),
                 thickness = 0.5.dp,
                 modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
             )
@@ -2088,7 +2084,7 @@ private fun HoldLogRow(
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = NightEdgeHairline,
+                            unfocusedBorderColor = Hairline,
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),

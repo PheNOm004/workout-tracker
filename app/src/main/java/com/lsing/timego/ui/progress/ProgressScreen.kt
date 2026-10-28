@@ -80,10 +80,8 @@ import com.lsing.timego.ui.common.toPositiveFiniteDoubleOrNull
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.common.timeframeLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
-import com.lsing.timego.ui.theme.NightAmber
-import com.lsing.timego.ui.theme.NightCoral
-import com.lsing.timego.ui.theme.NightCoralShade
-import com.lsing.timego.ui.theme.NightMint
+import com.lsing.timego.ui.theme.PlateYellow
+import com.lsing.timego.ui.theme.PlateGreen
 import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.ui.theme.Spacing
 import androidx.compose.material3.HorizontalDivider
@@ -228,8 +226,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 ) {
                     HeatmapGrid(
                         ratios = volumeRatios,
-                        lightColor = NightCoral,
-                        darkColor = NightCoralShade,
+                        lightColor = MaterialTheme.colorScheme.primary,
+                        darkColor = MaterialTheme.colorScheme.primaryContainer,
                         onDateClick = { date -> viewModel.selectHistoryDate(date) },
                     )
                 }
@@ -328,7 +326,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                         SurfaceCard(
                                             modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                                             hero = true,
-                                            riveted = true,
                                         ) {
                                             Column(modifier = Modifier.padding(Spacing.Medium)) {
                                                 Text(
@@ -408,7 +405,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                     SurfaceCard(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                                         hero = true,
-                                        riveted = true,
                                     ) {
                                         Column(modifier = Modifier.padding(Spacing.Medium)) {
                                             Text(
@@ -445,7 +441,6 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                     SurfaceCard(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                                         hero = true,
-                                        riveted = true,
                                     ) {
                                         Column(modifier = Modifier.padding(Spacing.Medium)) {
                                             Text(
@@ -477,14 +472,13 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 SurfaceCard(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                     hero = true,
-                    riveted = true,
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Medium)) {
                         if (currentBmi != null) {
                             val category = bmiCategory(currentBmi!!)
                             val bmiColor = when (category) {
-                                BmiCategory.NORMAL -> NightMint
-                                BmiCategory.OVERWEIGHT -> NightAmber
+                                BmiCategory.NORMAL -> PlateGreen
+                                BmiCategory.OVERWEIGHT -> PlateYellow
                                 BmiCategory.UNDERWEIGHT, BmiCategory.OBESE -> MaterialTheme.colorScheme.error
                             }
                             Text(

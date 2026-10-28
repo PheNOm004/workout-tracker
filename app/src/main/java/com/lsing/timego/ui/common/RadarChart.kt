@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lsing.timego.ui.theme.NightViolet
+import com.lsing.timego.ui.theme.PlateBlue
 import com.lsing.timego.ui.theme.TimeGoMotion
 import kotlin.math.cos
 import kotlin.math.min
@@ -88,7 +88,7 @@ fun RadarChart(
     val displayedValues = lerpValues(animationStart, animationTarget, progress.value)
     val displayedComparison = lerpValues(comparisonAnimationStart, comparisonAnimationTarget, progress.value)
 
-    val violet = NightViolet
+    val violet = PlateBlue
     Canvas(modifier = modifier) {
         val axisCount = displayedValues.size
         if (axisCount < 3) return@Canvas
