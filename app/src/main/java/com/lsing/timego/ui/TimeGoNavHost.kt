@@ -248,7 +248,8 @@ private fun TimeGoBottomDock(
                     .height(56.dp)
                     .padding(horizontal = 4.dp)
                     .clip(RoundedCornerShape(26.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(26.dp)),
             )
 
             Row(
@@ -258,7 +259,7 @@ private fun TimeGoBottomDock(
                 destinations.forEach { destination ->
                     val isSelected = selectedRoute == destination.route
                     val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         label = "navColor",
                     )
                     val interactionSource = remember { MutableInteractionSource() }

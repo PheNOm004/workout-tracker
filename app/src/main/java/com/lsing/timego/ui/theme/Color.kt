@@ -14,21 +14,21 @@ import androidx.compose.ui.graphics.Color
  * Every value is an OKLCH ramp step; text/background pairs are verified at >= 4.5:1 (graphics >= 3:1).
  *
  * Red is the single action colour (anything tappable). Plate colours otherwise encode meaning:
- * chest red, back blue, shoulders yellow, legs green, arms white, core steel.
+ * chest pink, back blue, shoulders yellow, legs green, arms white, core steel.
  */
 
 // ---- Dark: rubber floor -------------------------------------------------------------------------
 
-private val DarkBackground = Color(0xFF130E0B)
-private val DarkSurface = Color(0xFF1A1511)
-private val DarkContainerLow = Color(0xFF18130F)
-private val DarkContainer = Color(0xFF201B16)
-private val DarkContainerHigh = Color(0xFF2A241F)
-private val DarkContainerHighest = Color(0xFF352E28)
-private val DarkOnSurface = Color(0xFFF5F1EC)
-private val DarkOnSurfaceVariant = Color(0xFFBCB6AF)
-private val DarkOutline = Color(0xFF7A736D)
-private val DarkOutlineVariant = Color(0xFF423C37)
+private val DarkBackground = Color(0xFF0E0F12)
+private val DarkSurface = Color(0xFF151619)
+private val DarkContainerLow = Color(0xFF121417)
+private val DarkContainer = Color(0xFF1A1C1F)
+private val DarkContainerHigh = Color(0xFF232529)
+private val DarkContainerHighest = Color(0xFF2D2F34)
+private val DarkOnSurface = Color(0xFFF0F2F4)
+private val DarkOnSurfaceVariant = Color(0xFFB5B7BD)
+private val DarkOutline = Color(0xFF72747B)
+private val DarkOutlineVariant = Color(0xFF3A3D43)
 
 private val DarkRed = Color(0xFFFB6C3E)
 private val DarkOnRed = Color(0xFF1D0D08)
@@ -51,16 +51,16 @@ private val DarkOnErrorContainer = Color(0xFFFFDBD8)
 
 // ---- Light: chalk ---------------------------------------------------------------------------------
 
-private val LightBackground = Color(0xFFF2F0EB)
-private val LightSurface = Color(0xFFFCFAF6)
-private val LightContainerLow = Color(0xFFF7F5F1)
-private val LightContainer = Color(0xFFEEEBE5)
-private val LightContainerHigh = Color(0xFFE6E3DC)
-private val LightContainerHighest = Color(0xFFDEDAD3)
-private val LightOnSurface = Color(0xFF1A1511)
-private val LightOnSurfaceVariant = Color(0xFF534B45)
-private val LightOutline = Color(0xFF756D66)
-private val LightOutlineVariant = Color(0xFFD1CDC7)
+private val LightBackground = Color(0xFFEFF0F3)
+private val LightSurface = Color(0xFFF9FAFC)
+private val LightContainerLow = Color(0xFFF4F5F7)
+private val LightContainer = Color(0xFFE9EBEF)
+private val LightContainerHigh = Color(0xFFE1E3E7)
+private val LightContainerHighest = Color(0xFFD8DBDF)
+private val LightOnSurface = Color(0xFF14161A)
+private val LightOnSurfaceVariant = Color(0xFF4A4D54)
+private val LightOutline = Color(0xFF6B6F76)
+private val LightOutlineVariant = Color(0xFFCBCED3)
 
 private val LightRed = Color(0xFFBD2900)
 private val LightOnRed = Color(0xFFFFFBF9)
@@ -88,6 +88,8 @@ private val LightOnErrorContainer = Color(0xFF620A0B)
 @Immutable
 class TimeGoPalette(
     val red: Color,
+    /** Chest. Distinct from [red], which only ever means an action. */
+    val chest: Color,
     val blue: Color,
     /** Yellow for small graphics (dots, bars, lines, text-on-dark). Darker gold in light mode. */
     val yellow: Color,
@@ -113,6 +115,7 @@ class TimeGoPalette(
 
 internal val DarkPalette = TimeGoPalette(
     red = DarkRed,
+    chest = Color(0xFFF072B3),
     blue = DarkBlue,
     yellow = DarkYellow,
     yellowFill = DarkYellow,
@@ -125,14 +128,15 @@ internal val DarkPalette = TimeGoPalette(
     arms = DarkOnSurface,
     card = DarkContainer,
     raised = DarkContainerHigh,
-    hairline = Color(0x24F5F1EC),
-    glass = Color(0x84201B16),
-    glassEdge = Color(0x24F5F1EC),
+    hairline = Color(0x24F0F2F4),
+    glass = Color(0x841A1C1F),
+    glassEdge = Color(0x24F0F2F4),
     scrim = Color(0x59000000),
 )
 
 internal val LightPalette = TimeGoPalette(
     red = LightRed,
+    chest = Color(0xFFB22578),
     blue = LightBlue,
     yellow = LightAmber,
     yellowFill = LightYellowFill,
@@ -142,13 +146,13 @@ internal val LightPalette = TimeGoPalette(
     green = LightGreen,
     onGreen = Color(0xFFF9FDFA),
     steel = LightSteel,
-    arms = Color(0xFF40362E),
+    arms = Color(0xFF34373D),
     card = LightSurface,
     raised = LightContainerLow,
-    hairline = Color(0x261A1511),
-    glass = Color(0x8FFCFAF6),
-    glassEdge = Color(0x1F1A1511),
-    scrim = Color(0x2E1A1511),
+    hairline = Color(0x2614161A),
+    glass = Color(0x8FF9FAFC),
+    glassEdge = Color(0x1F14161A),
+    scrim = Color(0x2E14161A),
 )
 
 /** The active palette; provided by [TimeGoTheme]. Static: it changes only on a light/dark switch. */
@@ -158,6 +162,7 @@ val LocalTimeGoPalette = staticCompositionLocalOf { DarkPalette }
 val LocalTimeGoDark = staticCompositionLocalOf { true }
 
 val PlateRed: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.red
+val PlateChest: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.chest
 val PlateBlue: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.blue
 val PlateYellow: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.yellow
 val PlateGreen: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.green

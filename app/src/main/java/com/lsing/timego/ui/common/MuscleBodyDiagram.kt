@@ -340,10 +340,17 @@ fun CroppedMuscleDiagram(
     highlightStrengths: Map<String, Float> = emptyMap(),
     showNeutralContext: Boolean = false,
     emptyLabel: String = "Nothing yet",
+    colorByRegion: Boolean = false,
 ) {
     val neutralColor = MaterialTheme.colorScheme.surfaceVariant
     val drawableGroups = remember(muscleGroups) { diagramGroupsForHeatmap(muscleGroups) }
     val drawableHighlightGroups = remember(highlightGroups) { diagramGroupsForHeatmap(highlightGroups) }
+    // With colorByRegion each highlighted muscle takes its body region's plate colour instead of one accent.
+    val hasBackMuscles = drawableHighlightGroups.any { it in BACK_REGION_GROUPS }
+    val regionColors = MuscleGroup.entries.associate { group ->
+        group.name to regionColor(sessionDisplayRegion(group.name, hasBackMuscles)?.label.orEmpty())
+    }
+    val groupColors = if (colorByRegion) regionColors else emptyMap()
     val frontSpecs = remember(drawableGroups) {
         FRONT_BODY_PATHS.filter { it.muscleGroup != null && it.muscleGroup.name in drawableGroups }
     }
@@ -396,6 +403,7 @@ fun CroppedMuscleDiagram(
                     showNeutralContext = showNeutralContext,
                     neutralColor = neutralColor,
                     accentColor = accentColor,
+                    groupColors = groupColors,
                     intensities = intensities,
                     modifier = Modifier.fillMaxHeight(),
                 )
@@ -408,6 +416,7 @@ fun CroppedMuscleDiagram(
                     showNeutralContext = showNeutralContext,
                     neutralColor = neutralColor,
                     accentColor = accentColor,
+                    groupColors = groupColors,
                     intensities = intensities,
                     modifier = Modifier.fillMaxHeight(),
                 )
@@ -440,6 +449,7 @@ private fun CroppedMuscleHalf(
     showNeutralContext: Boolean,
     neutralColor: Color,
     accentColor: Color,
+    groupColors: Map<String, Color>,
     intensities: Map<String, Float>,
     modifier: Modifier = Modifier,
 ) {
@@ -463,7 +473,7 @@ private fun CroppedMuscleHalf(
                     !isHighlighted -> return@forEach
                     intensity != null && intensity > 0f ->
                         hexToColor(recolorByLightness(heatColor(intensity), shape.lightness))
-                    else -> accentColor.copy(
+                    else -> (shape.muscleGroup?.name?.let(groupColors::get) ?: accentColor).copy(
                         alpha = (
                             (0.55f + shape.lightness * 0.45f) *
                                 (shape.muscleGroup?.name?.let(highlightStrengths::get) ?: 1f)
@@ -509,3 +519,5 @@ private fun HeatLegend(detailColor: Color, periodLabel: String, modifier: Modifi
 fun MuscleHeatLegend(detailColor: Color, periodLabel: String, modifier: Modifier = Modifier) {
     HeatLegend(detailColor = detailColor, periodLabel = periodLabel, modifier = modifier)
 }
+
+private val BACK_REGION_GROUPS = setOf(MuscleGroup.LATS.name, MuscleGroup.UPPER_BACK.name, MuscleGroup.LOWER_BACK.name, MuscleGroup.TRAPS.name)

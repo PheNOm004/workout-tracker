@@ -20,16 +20,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.lsing.timego.ui.theme.PlateArms
 import com.lsing.timego.ui.theme.PlateBlue
+import com.lsing.timego.ui.theme.PlateChest
 import com.lsing.timego.ui.theme.PlateGreen
-import com.lsing.timego.ui.theme.PlateRed
 import com.lsing.timego.ui.theme.PlateSteel
 import com.lsing.timego.ui.theme.PlateYellow
 
-/** The plate colour that identifies a body region everywhere it appears: chest red, back blue, shoulders
+/** The plate colour that identifies a body region everywhere it appears: chest pink, back blue, shoulders
  *  yellow, legs green, arms white, core and anything else steel. */
 @Composable
 fun regionColor(label: String): Color = when (label) {
-    SessionDisplayRegion.CHEST.label -> PlateRed
+    SessionDisplayRegion.CHEST.label -> PlateChest
     SessionDisplayRegion.BACK.label -> PlateBlue
     SessionDisplayRegion.SHOULDERS.label -> PlateYellow
     SessionDisplayRegion.LEGS.label -> PlateGreen

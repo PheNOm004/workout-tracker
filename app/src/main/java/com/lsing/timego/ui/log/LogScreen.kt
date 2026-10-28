@@ -529,7 +529,7 @@ private fun LogLandingContent(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.tertiaryContainer) {
+                            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)) {
                                 Text(
                                     when {
                                         isScheduledToday -> "Scheduled for today"
@@ -577,6 +577,7 @@ private fun LogLandingContent(
                                 accentColor = MaterialTheme.colorScheme.primary,
                                 highlightGroups = routineRegions,
                                 showNeutralContext = true,
+                                colorByRegion = true,
                                 modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(bottom = Spacing.Small),
                             )
                         }
@@ -678,6 +679,7 @@ private fun LogLandingContent(
                                 highlightGroups = summary.recommendedMuscleGroups.toSet(),
                                 highlightStrengths = summary.recommendationHighlightStrengths,
                                 showNeutralContext = true,
+                                colorByRegion = true,
                                 modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(vertical = Spacing.Small),
                             )
                         } else {

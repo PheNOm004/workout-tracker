@@ -5,8 +5,8 @@ The visual world is the barbell plate: calibrated plate colours on warm rubber-b
 ## Colour
 
 - **Red is the action colour.** Only tappable things are red (buttons, the selected nav pill's container). Labels, eyebrows and captions use `onSurfaceVariant`.
-- **Plate colours carry meaning**, never decoration: chest red, back blue, shoulders yellow, legs green, arms white, core and cardio steel (`regionColor`, `RegionChip`). Blue is informational (coach targets, strength charts). Green is progress and consistency. Yellow is plateau, records and the "recommended" pill.
-- **Neutrals are warm-tinted** (OKLCH hue 60 to 85, chroma 0.005 to 0.014), never flat grey.
+- **Plate colours carry meaning**, never decoration: chest pink (never red, which is the action colour), back blue, shoulders yellow, legs green, arms white, core and cardio steel (`regionColor`, `RegionChip`; the body diagram colours each muscle by its region). Blue is informational (coach targets, strength charts). Green is progress and consistency. Yellow is plateau, records and the "recommended" pill.
+- **Neutrals are near-colourless with a slight cool tint** (OKLCH hue 265, chroma 0.003 to 0.01). A warm tint read as brown on OLED and made everything amber; neutral greys let the plate colours do the work.
 - **Light-mode yellow is split**: `yellowFill` (bright, only behind dark ink text) and `yellow` (darker amber for dots, bars and lines, >= 3:1).
 - All text pairs are >= 4.5:1 and graphics >= 3:1 at the default palette. Tokens are `TimeGoPalette` (via `Plate*`, `CardFill`, `RaisedFill`, `Hairline`) plus the Material roles. No hard-coded colours outside `Color.kt`.
 
