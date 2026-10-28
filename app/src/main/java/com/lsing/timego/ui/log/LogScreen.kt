@@ -1,5 +1,18 @@
 package com.lsing.timego.ui.log
 
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
+import com.lsing.timego.ui.common.rememberDismissKeyboard
+import com.lsing.timego.ui.common.rememberAdvanceKeyboardActions
+import androidx.compose.ui.text.input.ImeAction
+import com.lsing.timego.ui.common.LocalRestClearance
+import com.lsing.timego.ui.common.regionLabelsFor
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.CircleShape
+import com.lsing.timego.ui.common.RegionChipRow
+import com.lsing.timego.ui.common.exerciseDisplayRegion
+import com.lsing.timego.ui.common.LocalDockHeight
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -13,7 +26,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.ui.graphics.graphicsLayer
 import com.lsing.timego.ui.theme.TimeGoMotion
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +41,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,7 +52,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.ChevronRight
@@ -65,7 +75,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import com.lsing.timego.ui.theme.NightEdgeHairline
+import com.lsing.timego.ui.theme.Hairline
 import com.lsing.timego.ui.common.TimeGoDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -122,7 +132,6 @@ import com.lsing.timego.ui.common.AnimatedExpand
 import com.lsing.timego.ui.common.CroppedMuscleDiagram
 import com.lsing.timego.ui.common.ExerciseSections
 import com.lsing.timego.ui.common.ExerciseListOrder
-import com.lsing.timego.ui.common.MuscleHeatLegend
 import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SurfaceCard
@@ -217,6 +226,19 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
             activeLogPageName = ActiveLogPage.SESSION.name
             selectedExerciseIds = pendingRoutineExerciseIds ?: emptyList()
             pendingRoutineExerciseIds = null
+        }
+    }
+
+    val continuePrompt by viewModel.continuePrompt.collectAsStateWithLifecycle()
+    if (continuePrompt != null) {
+        TimeGoDialog(
+            onDismissRequest = viewModel::dismissContinuePrompt,
+            eyebrow = "SESSION",
+            title = "Continue today's session?",
+            confirmButton = { TextButton(onClick = viewModel::continueFinishedSession) { Text("Continue it") } },
+            dismissButton = { TextButton(onClick = viewModel::startNewInstead) { Text("Start new") } },
+        ) {
+            Text("You finished this workout earlier today. Continue it to add a forgotten exercise, or start a separate session.", style = MaterialTheme.typography.bodyMedium)
         }
     }
 
@@ -361,7 +383,7 @@ private fun LogLoadingContent() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Medium),
         )
-        SurfaceCard(modifier = Modifier.fillMaxWidth(), hero = true, riveted = true) {
+        SurfaceCard(modifier = Modifier.fillMaxWidth(), hero = true) {
             Column(modifier = Modifier.padding(Spacing.Medium)) {
                 ShimmerLine(width = 112.dp, height = 12.dp)
                 Spacer(modifier = Modifier.height(Spacing.Small))
@@ -457,19 +479,19 @@ private fun LogLandingContent(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
+            .padding(bottom = LocalDockHeight.current + LocalRestClearance.current)
             .padding(Spacing.Large),
     ) {
         if (isSessionActive) {
             SurfaceCard(
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
                 hero = true,
-                riveted = true,
             ) {
                 Column(modifier = Modifier.padding(Spacing.Medium)) {
                     Text(
                         "Session In Progress",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         "You have an active workout open.",
@@ -497,7 +519,6 @@ private fun LogLandingContent(
                         .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
                         .padding(bottom = Spacing.Medium),
                     hero = true,
-                    riveted = true,
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Medium)) {
                         Row(
@@ -505,30 +526,33 @@ private fun LogLandingContent(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(
-                                when {
-                                    isScheduledToday -> "Scheduled for Today"
-                                    !isFlexible -> "Scheduled · " + activeRoutine.daysOfWeek.joinToString(", ") { it.take(3).lowercase().replaceFirstChar(Char::uppercase) }
-                                    activeRoutine.id == defaultSuggestedRoutine?.id && flexibleRoutinesList.size > 1 -> "Flexible · Next in Rotation"
-                                    else -> "Flexible Routine"
-                                },
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
+                            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)) {
+                                Text(
+                                    when {
+                                        isScheduledToday -> "Scheduled for today"
+                                        !isFlexible -> "Scheduled · " + activeRoutine.daysOfWeek.joinToString(", ") { it.take(3).lowercase().replaceFirstChar(Char::uppercase) }
+                                        activeRoutine.id == defaultSuggestedRoutine?.id && flexibleRoutinesList.size > 1 -> "Next in rotation"
+                                        else -> "Flexible routine"
+                                    },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                                )
+                            }
                             if (isFlexible) {
                                 Icon(
                                     Icons.Filled.AllInclusive,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    contentDescription = "Flexible routine",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(18.dp),
                                 )
                             }
                         }
                         Text(
                             activeRoutine.name,
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(top = 2.dp, bottom = Spacing.ExtraSmall),
+                            modifier = Modifier.padding(top = Spacing.Small, bottom = Spacing.ExtraSmall),
                         )
                         val lastTrainedStr = formatDaysSince(routineLastCompleted[activeRoutine.id], LocalDate.now())
                         Text(
@@ -538,12 +562,19 @@ private fun LogLandingContent(
                             modifier = Modifier.padding(bottom = Spacing.Small),
                         )
                         val routineRegions = regionsForRoutine(activeRoutine.id)
+                        val regionLabels = remember(activeRoutine.id, routineExercisesById) {
+                            routineExercisesById[activeRoutine.id].orEmpty().map { exerciseDisplayRegion(it) }.distinct()
+                        }
+                        if (regionLabels.isNotEmpty()) {
+                            RegionChipRow(regionLabels, modifier = Modifier.padding(bottom = Spacing.Medium))
+                        }
                         if (routineRegions.isNotEmpty()) {
                             CroppedMuscleDiagram(
                                 muscleGroups = diagramGroupsForBodyRegionCrop(routineRegions),
                                 accentColor = MaterialTheme.colorScheme.primary,
                                 highlightGroups = routineRegions,
                                 showNeutralContext = true,
+                                colorByRegion = true,
                                 modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(bottom = Spacing.Small),
                             )
                         }
@@ -566,9 +597,9 @@ private fun LogLandingContent(
                         }
                         Button(
                             onClick = { onStartOrContinue(activeRoutine.id) },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
                         ) {
-                            Text("Start ${activeRoutine.name}")
+                            Text("Start ${activeRoutine.name}", style = MaterialTheme.typography.titleMedium)
                         }
                         TextButton(
                             onClick = { onStartOrContinue(null) },
@@ -591,7 +622,6 @@ private fun LogLandingContent(
                         .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
                         .padding(bottom = Spacing.Medium),
                     hero = true,
-                    riveted = true,
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Medium)) {
                         Text(
@@ -646,6 +676,7 @@ private fun LogLandingContent(
                                 highlightGroups = summary.recommendedMuscleGroups.toSet(),
                                 highlightStrengths = summary.recommendationHighlightStrengths,
                                 showNeutralContext = true,
+                                colorByRegion = true,
                                 modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(vertical = Spacing.Small),
                             )
                         } else {
@@ -676,7 +707,6 @@ private fun LogLandingContent(
             SurfaceCard(
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
                 hero = false,
-                riveted = false,
             ) {
                 Column(modifier = Modifier.fillMaxWidth().padding(Spacing.Medium)) {
                     Text(
@@ -797,13 +827,19 @@ private fun LogLandingContent(
                         accentColor = MaterialTheme.colorScheme.tertiary,
                         highlightGroups = summary.lastSession.muscleGroups,
                         showNeutralContext = true,
+                        colorByRegion = true,
                         modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(top = Spacing.Small),
                     )
                     if (summary.lastSession.muscleGroups.isNotEmpty()) {
-                        MuscleHeatLegend(
-                            detailColor = MaterialTheme.colorScheme.surfaceVariant,
-                            periodLabel = "this session",
-                            modifier = Modifier.padding(top = Spacing.ExtraSmall),
+                        RegionChipRow(
+                            regionLabelsFor(summary.lastSession.muscleGroups),
+                            modifier = Modifier.padding(top = Spacing.Small),
+                        )
+                        Text(
+                            "Brighter means more work this session.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = Spacing.Small),
                         )
                     }
                 }
@@ -963,22 +999,13 @@ private fun LoggingContent(
     }
 
     androidx.compose.runtime.CompositionLocalProvider(LocalAutoScrollExpandedCard provides false) {
-    Column(modifier = Modifier.fillMaxSize().imePadding()) {
-    androidx.compose.animation.AnimatedVisibility(
-        visible = restTimer != null,
-        enter = androidx.compose.animation.expandVertically(TimeGoMotion.expandEnter) + androidx.compose.animation.fadeIn(TimeGoMotion.fadeEnter),
-        exit = androidx.compose.animation.shrinkVertically(TimeGoMotion.expandExit) + androidx.compose.animation.fadeOut(TimeGoMotion.fadeExit),
-    ) {
-        restTimer?.let { timer ->
-            RestTimerBar(state = timer, onAdjust = viewModel::adjustRest, onDismiss = viewModel::dismissRest)
-        }
-    }
+    Box(modifier = Modifier.fillMaxSize().imePadding()) {
     LazyColumn(
         state = activeListState,
         modifier = Modifier
-            .weight(1f)
+            .fillMaxSize()
             .padding(horizontal = Spacing.Large),
-        contentPadding = PaddingValues(bottom = Spacing.ExtraLarge),
+        contentPadding = PaddingValues(bottom = Spacing.ExtraLarge + LocalDockHeight.current + LocalRestClearance.current),
     ) {
             item(key = "activeHeader") {
                 Text(
@@ -1265,7 +1292,7 @@ private fun ExercisePickerContent(
                         Text(
                             muscleContext,
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                         )
                     }
@@ -1319,13 +1346,14 @@ private fun ExercisePickerContent(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(Spacing.ExtraLarge + 72.dp))
+            Spacer(modifier = Modifier.height(Spacing.ExtraLarge + 72.dp + LocalDockHeight.current))
         }
         SurfaceCard(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .navigationBarsPadding()
+                // LocalDockHeight already includes the system navigation-bar inset.
+                .padding(bottom = LocalDockHeight.current)
                 .padding(horizontal = Spacing.Large, vertical = Spacing.Small),
             hero = true,
         ) {
@@ -1352,8 +1380,7 @@ private fun ExercisePickerContent(
             onClick = { showAddDialog = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(end = Spacing.Large, bottom = 96.dp),
+                .padding(end = Spacing.Large, bottom = LocalDockHeight.current + 88.dp),
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Add custom exercise")
         }
@@ -1478,7 +1505,7 @@ private fun ExerciseRowHeader(
             Text(
                 suggestionSummary,
                 style = LedgerFigureValue.copy(fontSize = 14.sp),
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.padding(end = Spacing.Small),
             )
         }
@@ -1499,8 +1526,8 @@ private fun ExerciseRowHeader(
 
 /**
  * Modern Engine-Room Gauge Panel card for active exercise logging:
- * Mounted console plate (SurfaceCard, 10.dp rounded corners, NightDeckLow, hairline border)
- * when collapsed, elevating to an active glowing instrument panel (NightDeckHigh, hero brass
+ * Mounted console plate (SurfaceCard, 10.dp rounded corners, CardFill, hairline border)
+ * when collapsed, elevating to an active glowing instrument panel (RaisedFill, hero brass
  * sheen) when expanded, with TrainingPulse on set log.
  */
 @Composable
@@ -1531,7 +1558,6 @@ private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Compos
 
     SurfaceCard(
         hero = expanded,
-        cornerRadius = 10.dp,
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize(animationSpec = TimeGoMotion.expandEnter)
@@ -1621,6 +1647,29 @@ private fun StrengthLogRow(
         null
     }
     val canLog = reps != null && validRpe && if (isBodyweight) totalBodyweightLoad != null else enteredWeight != null
+    val dismissKeyboard = rememberDismissKeyboard()
+    val weightFocus = remember { FocusRequester() }
+    val repsFocus = remember { FocusRequester() }
+    val rpeFocus = remember { FocusRequester() }
+    val logSet: () -> Unit = {
+        if (isBodyweight) {
+            if (reps != null && enteredWeight != null && totalBodyweightLoad != null) {
+                onLog(totalBodyweightLoad, reps, suggestion?.reps ?: reps, isWarmup, enteredWeight, rpe, targetProvenanceFor(suggestion != null))
+                weightText = ""
+                repsText = ""
+                rpeText = ""
+                isWarmup = false
+                dismissKeyboard()
+            }
+        } else if (enteredWeight != null && reps != null) {
+            onLog(com.lsing.timego.domain.combinedEntryToStored(enteredWeight, combined), reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
+            weightText = ""
+            repsText = ""
+            rpeText = ""
+            isWarmup = false
+            dismissKeyboard()
+        }
+    }
     val visual = categoryVisual(category)
     val suggestionHint = suggestion?.let {
         if (isBodyweight) {
@@ -1651,7 +1700,7 @@ private fun StrengthLogRow(
         ) { onToggle() }
         AnimatedExpand(expanded) {
             HorizontalDivider(
-                color = NightEdgeHairline.copy(alpha = 0.5f),
+                color = Hairline.copy(alpha = 0.5f),
                 thickness = 0.5.dp,
                 modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
             )
@@ -1659,7 +1708,7 @@ private fun StrengthLogRow(
                 Text(
                     suggestion.note,
                     style = LedgerFigureValue.copy(fontSize = 13.sp),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
                 )
             }
@@ -1679,7 +1728,7 @@ private fun StrengthLogRow(
                 Text(
                     "Today: $setsSummary",
                     style = LedgerFigureValue.copy(fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
                 )
             }
@@ -1711,15 +1760,17 @@ private fun StrengthLogRow(
                         placeholder = if (isBodyweight) { { Text("0") } } else null,
                         isError = weightText.isNotBlank() && (enteredWeight == null || (isBodyweight && totalBodyweightLoad == null)),
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                        keyboardActions = rememberAdvanceKeyboardActions(onNext = { repsFocus.requestFocus() }),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = NightEdgeHairline,
+                            unfocusedBorderColor = Hairline,
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
-                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                        modifier = Modifier.weight(1f).padding(end = Spacing.Small).focusRequester(weightFocus),
                     )
                     OutlinedTextField(
                         value = repsText,
@@ -1727,15 +1778,17 @@ private fun StrengthLogRow(
                         label = { Text("reps") },
                         isError = repsText.isNotBlank() && reps == null,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                        keyboardActions = rememberAdvanceKeyboardActions(onNext = { rpeFocus.requestFocus() }),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = NightEdgeHairline,
+                            unfocusedBorderColor = Hairline,
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
-                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                        modifier = Modifier.weight(1f).padding(end = Spacing.Small).focusRequester(repsFocus),
                     )
                     OutlinedTextField(
                         value = rpeText,
@@ -1745,15 +1798,16 @@ private fun StrengthLogRow(
                         isError = !validRpe,
                         singleLine = true,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                        keyboardActions = rememberAdvanceKeyboardActions(onDone = { if (canLog) logSet() }),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = NightEdgeHairline,
+                            unfocusedBorderColor = Hairline,
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).focusRequester(rpeFocus),
                     )
                 }
                 // Quick Stepper Chips for Fast In-Gym Adjustment
@@ -1813,23 +1867,7 @@ private fun StrengthLogRow(
                         .heightIn(min = 52.dp)
                         .padding(top = Spacing.Small)
                         .tactilePress(logInteractionSource, pressedScale = 0.97f),
-                    onClick = {
-                        if (isBodyweight) {
-                            if (reps != null && enteredWeight != null && totalBodyweightLoad != null) {
-                                onLog(totalBodyweightLoad, reps, suggestion?.reps ?: reps, isWarmup, enteredWeight, rpe, targetProvenanceFor(suggestion != null))
-                                weightText = ""
-                                repsText = ""
-                                rpeText = ""
-                                isWarmup = false
-                            }
-                        } else if (enteredWeight != null && reps != null) {
-                            onLog(com.lsing.timego.domain.combinedEntryToStored(enteredWeight, combined), reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
-                            weightText = ""
-                            repsText = ""
-                            rpeText = ""
-                            isWarmup = false
-                        }
-                    }
+                    onClick = logSet,
                 ) {
                     Text(
                         if (isWarmup) "Log warmup set" else "Log set $workingSetNumber",
@@ -1866,6 +1904,16 @@ private fun CardioLogRow(
     val duration = durationText.toPositiveFiniteDoubleOrNull()
     val distance = distanceText.toPositiveFiniteDoubleOrNull()
     val validDistance = distanceText.isBlank() || distance != null
+    val dismissKeyboardCardio = rememberDismissKeyboard()
+    val minutesFocus = remember { FocusRequester() }
+    val logCardio: () -> Unit = {
+        if (duration != null && validDistance) {
+            onLog(duration, distance)
+            durationText = ""
+            distanceText = ""
+            dismissKeyboardCardio()
+        }
+    }
     val visual = categoryVisual(category)
     val timerOwnsExercise = activeTimer?.exerciseId == exerciseId
     val timerVisible = useTimer || timerOwnsExercise
@@ -1874,7 +1922,7 @@ private fun CardioLogRow(
         ExerciseRowHeader(exerciseName, visual.icon, visual.accent, null, expanded, isFavorite, onToggleFavorite, onToggle)
         AnimatedExpand(expanded) {
             HorizontalDivider(
-                color = NightEdgeHairline.copy(alpha = 0.5f),
+                color = Hairline.copy(alpha = 0.5f),
                 thickness = 0.5.dp,
                 modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
             )
@@ -1889,7 +1937,7 @@ private fun CardioLogRow(
                     Text(
                         details,
                         style = LedgerFigureValue.copy(fontSize = 13.sp),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.padding(horizontal = Spacing.Medium),
                     )
                 }
@@ -1900,11 +1948,13 @@ private fun CardioLogRow(
                 label = { Text("km (optional)") },
                 isError = !validDistance,
                 textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                        keyboardActions = rememberAdvanceKeyboardActions(onNext = { minutesFocus.requestFocus() }),
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = NightEdgeHairline,
+                    unfocusedBorderColor = Hairline,
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                 ),
@@ -1921,15 +1971,17 @@ private fun CardioLogRow(
                         label = { Text("minutes") },
                         isError = durationText.isNotBlank() && duration == null,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                        keyboardActions = rememberAdvanceKeyboardActions(onDone = logCardio),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = NightEdgeHairline,
+                            unfocusedBorderColor = Hairline,
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
-                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                        modifier = Modifier.weight(1f).padding(end = Spacing.Small).focusRequester(minutesFocus),
                     )
                     val cardioLogInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Button(
@@ -1937,13 +1989,7 @@ private fun CardioLogRow(
                         shape = RoundedCornerShape(8.dp),
                         interactionSource = cardioLogInteractionSource,
                         modifier = Modifier.tactilePress(cardioLogInteractionSource, pressedScale = 0.94f),
-                        onClick = {
-                            if (duration != null && validDistance) {
-                                onLog(duration, distance)
-                                durationText = ""
-                                distanceText = ""
-                            }
-                        }
+                        onClick = logCardio,
                     ) {
                         Text("Log", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                     }
@@ -2028,7 +2074,7 @@ private fun HoldLogRow(
         ) { onToggle() }
         AnimatedExpand(expanded) {
             HorizontalDivider(
-                color = NightEdgeHairline.copy(alpha = 0.5f),
+                color = Hairline.copy(alpha = 0.5f),
                 thickness = 0.5.dp,
                 modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
             )
@@ -2036,7 +2082,7 @@ private fun HoldLogRow(
                 Text(
                     suggestion.note,
                     style = LedgerFigureValue.copy(fontSize = 13.sp),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
                 )
             }
@@ -2055,7 +2101,7 @@ private fun HoldLogRow(
                 Text(
                     if (sideIndex == 0) "Side 1 of 2: timer covers one side" else "Side 2 of 2: switch sides now",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
                 )
             }
@@ -2065,17 +2111,28 @@ private fun HoldLogRow(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     val manualDuration = manualDurationText.toPositiveIntOrNull()
+                    val dismissKeyboardHold = rememberDismissKeyboard()
+                    val logHold: () -> Unit = {
+                        if (manualDuration != null) {
+                            onLog(manualDuration, suggestion?.targetDurationSeconds ?: manualDuration, isWarmup, targetProvenanceFor(suggestion != null))
+                            manualDurationText = ""
+                            isWarmup = false
+                            dismissKeyboardHold()
+                        }
+                    }
                     OutlinedTextField(
                         value = manualDurationText,
                         onValueChange = { manualDurationText = it },
                         label = { Text("seconds") },
                         isError = manualDurationText.isNotBlank() && manualDuration == null,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                        keyboardActions = rememberAdvanceKeyboardActions(onDone = logHold),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = NightEdgeHairline,
+                            unfocusedBorderColor = Hairline,
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
@@ -2087,13 +2144,7 @@ private fun HoldLogRow(
                         shape = RoundedCornerShape(8.dp),
                         interactionSource = holdLogInteractionSource,
                         modifier = Modifier.tactilePress(holdLogInteractionSource, pressedScale = 0.94f),
-                        onClick = {
-                            if (manualDuration != null) {
-                                onLog(manualDuration, suggestion?.targetDurationSeconds ?: manualDuration, isWarmup, targetProvenanceFor(suggestion != null))
-                                manualDurationText = ""
-                                isWarmup = false
-                            }
-                        }
+                        onClick = logHold,
                     ) { Text("Log set", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) }
                 }
                 TextButton(

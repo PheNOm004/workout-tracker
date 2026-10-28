@@ -1,15 +1,17 @@
 ﻿package com.lsing.timego.ui.routines
 
-import androidx.compose.material3.BottomSheetDefaults
-import com.lsing.timego.ui.theme.NightDeckHigh
-import com.lsing.timego.ui.theme.NightEyebrow
+import com.lsing.timego.ui.common.TimeGoBottomSheet
+import com.lsing.timego.ui.theme.EyebrowStyle
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import com.lsing.timego.profile.TrainingProfile
+import com.lsing.timego.ui.common.formatEnumLabel
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,7 +25,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -57,6 +58,7 @@ fun SettingsBottomSheet(
     onSetTrainingLean: (TrainingLean) -> Unit,
     onExportBackup: () -> Unit,
     onRestoreBackup: () -> Unit,
+    trainingProfile: TrainingProfile,
     onEditTrainingProfile: () -> Unit,
     onOpenAccount: () -> Unit,
     sessionHistoryCount: Int,
@@ -77,26 +79,19 @@ fun SettingsBottomSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = NightDeckHigh,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.outlineVariant)
-        },
-    ) {
+    TimeGoBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(horizontal = Spacing.Large)
-                .padding(bottom = Spacing.ExtraLarge + 24.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = Spacing.ExtraLarge + 24.dp),
         ) {
             Text(
                 "SETTINGS",
-                style = NightEyebrow,
-                color = MaterialTheme.colorScheme.primary,
+                style = EyebrowStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 2.dp),
             )
             Text(
@@ -207,11 +202,12 @@ fun SettingsBottomSheet(
 
             SectionHeader(title = "Training Profile", topPadding = Spacing.Small)
             Text(
-                "Review the explicit preferences TimeGo uses to filter and explain recommendations.",
+                "The preferences TimeGo uses to filter and explain recommendations.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = Spacing.Small),
             )
+            TrainingProfileSummary(trainingProfile)
             OutlinedButton(
                 onClick = { dismissThen(onEditTrainingProfile) },
                 modifier = Modifier.fillMaxWidth(),
@@ -285,5 +281,39 @@ private fun SettingSwitch(label: String, supporting: String, checked: Boolean, o
             Text(supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         androidx.compose.material3.Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+/** Read-only view of what TimeGo knows from the training profile (the private limitation note stays out of sight). */
+@Composable
+private fun TrainingProfileSummary(profile: TrainingProfile) {
+    fun label(value: Enum<*>) = formatEnumLabel(value.name.removePrefix("AGE_"))
+    val rows = listOfNotNull(
+        profile.goal?.let { "Goal" to label(it) },
+        profile.experience?.let { "Experience" to label(it) },
+        profile.modality?.let { "Training style" to label(it) },
+        profile.equipment.takeIf { it.isNotEmpty() }?.let { "Equipment" to it.joinToString(", ") { e -> label(e) } },
+        profile.trainingDaysPerWeek?.let { "Days per week" to it.toString() },
+        profile.sessionDuration?.let { "Session length" to label(it).replace("Minutes ", "").replace(" To ", "-") + " min" },
+        profile.ageRange?.takeIf { it != com.lsing.timego.profile.AgeRange.PREFER_NOT_TO_SAY }?.let { "Age" to label(it) },
+        profile.heightCm?.let { "Height" to "${it.toInt()} cm" },
+        profile.weightKg?.let { "Weight" to "${"%.1f".format(it)} kg" },
+        profile.movementLimitations.takeIf { it.isNotEmpty() }?.let { "Avoids" to it.joinToString(", ") { m -> label(m) } },
+    )
+    if (rows.isEmpty()) {
+        Text(
+            "Not set up yet.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(bottom = Spacing.Small),
+        )
+        return
+    }
+    Column(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
+        rows.forEach { (name, value) ->
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                Text(name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(0.4f))
+                Text(value, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.6f))
+            }
+        }
     }
 }

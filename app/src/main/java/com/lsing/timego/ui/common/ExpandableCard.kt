@@ -6,9 +6,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -35,7 +33,7 @@ import com.lsing.timego.ui.theme.TimeGoMotion
 fun ExpandChevron(expanded: Boolean, modifier: Modifier = Modifier) {
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
-        animationSpec = tween(280, easing = EaseInOut),
+        animationSpec = TimeGoMotion.rotate,
         label = "chevronRotation",
     )
     Icon(
@@ -56,7 +54,6 @@ fun ExpandableCard(
 ) {
     SurfaceCard(
         hero = expanded,
-        cornerRadius = 10.dp,
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize(animationSpec = TimeGoMotion.expandEnter)

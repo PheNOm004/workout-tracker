@@ -51,13 +51,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lsing.timego.ui.theme.NightDeckHigh
-import com.lsing.timego.ui.theme.NightEdgeHairline
-import com.lsing.timego.ui.theme.NightMint
+import com.lsing.timego.ui.theme.RaisedFill
+import com.lsing.timego.ui.theme.Hairline
+import com.lsing.timego.ui.theme.OnPlateGreen
+import com.lsing.timego.ui.theme.PlateGreen
 
 /** Poll cadence, not tick size. The displayed value is recomputed from the wall clock every pass
  *  (see [timerPhaseAt]), so this only controls how promptly a second-boundary crossing shows up;
@@ -131,13 +131,13 @@ fun TimerControls(
 
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = NightDeckHigh,
+        color = RaisedFill,
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.Medium, vertical = Spacing.Small)
             .border(
                 width = 1.dp,
-                color = if (isActive) NightMint.copy(alpha = 0.5f) else NightEdgeHairline,
+                color = if (isActive) PlateGreen.copy(alpha = 0.5f) else Hairline,
                 shape = RoundedCornerShape(14.dp),
             ),
     ) {
@@ -162,8 +162,8 @@ fun TimerControls(
                             interactionSource = startInteractionSource,
                             modifier = Modifier.tactilePress(startInteractionSource, pressedScale = 0.95f),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = NightMint,
-                                contentColor = Color(0xFF0A1810),
+                                containerColor = PlateGreen,
+                                contentColor = OnPlateGreen,
                             ),
                             onClick = {
                                 onStart()
@@ -173,7 +173,7 @@ fun TimerControls(
                         }
                         Spacer(modifier = Modifier.width(Spacing.Small))
                         TextButton(onClick = onEnterManually) {
-                            Text("Enter manually", color = NightMint)
+                            Text("Enter manually", color = PlateGreen)
                         }
                     }
                     TimerControlsState.COUNTDOWN -> {
@@ -183,7 +183,7 @@ fun TimerControls(
                             modifier = Modifier
                                 .size(10.dp)
                                 .clip(CircleShape)
-                                .background(NightMint.copy(alpha = beaconAlpha)),
+                                .background(PlateGreen.copy(alpha = beaconAlpha)),
                         )
                         Spacer(modifier = Modifier.width(Spacing.Small))
                         Column(modifier = Modifier.weight(1f)) {
@@ -194,11 +194,11 @@ fun TimerControls(
                                     letterSpacing = 1.sp,
                                     fontWeight = FontWeight.Bold,
                                 ),
-                                color = NightMint.copy(alpha = 0.75f),
+                                color = PlateGreen.copy(alpha = 0.75f),
                             )
                             Text(
                                 "Starting in ${countdownPhase?.secondsRemaining ?: 0}s...",
-                                style = LedgerFigureValue.copy(fontSize = 18.sp, color = NightMint),
+                                style = LedgerFigureValue.copy(fontSize = 18.sp, color = PlateGreen),
                             )
                         }
                         val cancelInteractionSource = remember { MutableInteractionSource() }
@@ -217,7 +217,7 @@ fun TimerControls(
                             modifier = Modifier
                                 .size(10.dp)
                                 .clip(CircleShape)
-                                .background(NightMint.copy(alpha = beaconAlpha)),
+                                .background(PlateGreen.copy(alpha = beaconAlpha)),
                         )
                         Spacer(modifier = Modifier.width(Spacing.Small))
                         Column(modifier = Modifier.weight(1f)) {
@@ -228,14 +228,14 @@ fun TimerControls(
                                     letterSpacing = 1.sp,
                                     fontWeight = FontWeight.Bold,
                                 ),
-                                color = NightMint.copy(alpha = 0.75f),
+                                color = PlateGreen.copy(alpha = 0.75f),
                             )
                             Text(
                                 formatElapsed(runningPhase?.elapsedSeconds ?: 0),
                                 style = LedgerFigureValue.copy(
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = NightMint,
+                                    color = PlateGreen,
                                 ),
                             )
                         }
@@ -244,8 +244,8 @@ fun TimerControls(
                             interactionSource = stopInteractionSource,
                             modifier = Modifier.tactilePress(stopInteractionSource, pressedScale = 0.95f),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = NightMint,
-                                contentColor = Color(0xFF0A1810),
+                                containerColor = PlateGreen,
+                                contentColor = OnPlateGreen,
                             ),
                             onClick = {
                                 onStop(runningPhase?.elapsedSeconds ?: 0)

@@ -19,9 +19,6 @@ import com.lsing.timego.ui.theme.TimeGoMotion
 import kotlinx.coroutines.delay
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.EaseInOut
-import androidx.compose.foundation.layout.fillMaxSize
 
 /** A quiet coral edge that marks the active exercise and briefly expands with a soft celebratory glow when a set is saved. */
 @Composable
@@ -46,7 +43,7 @@ fun TrainingPulse(
     )
     val glowAlpha by animateFloatAsState(
         targetValue = if (isBursting) 0.14f else 0f,
-        animationSpec = tween(durationMillis = 240, easing = EaseInOut),
+        animationSpec = TimeGoMotion.fadeEnter,
         label = "training pulse glow",
     )
 

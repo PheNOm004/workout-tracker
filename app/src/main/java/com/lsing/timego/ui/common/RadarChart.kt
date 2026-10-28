@@ -18,7 +18,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lsing.timego.ui.theme.NightViolet
+import com.lsing.timego.ui.theme.PlateBlue
+import com.lsing.timego.ui.theme.PlateSteel
 import com.lsing.timego.ui.theme.TimeGoMotion
 import kotlin.math.cos
 import kotlin.math.min
@@ -62,7 +63,7 @@ fun RadarChart(
     val resolvedValues = remember(values) { prepareRadarValues(values) }
     val resolvedComparison = remember(comparisonValues) { prepareRadarValues(comparisonValues) }
 
-    val fillColor = MaterialTheme.colorScheme.primary
+    val fillColor = PlateBlue
     val gridColor = MaterialTheme.colorScheme.onSurfaceVariant
     val labelColor = MaterialTheme.colorScheme.onSurface
     val density = LocalDensity.current
@@ -88,7 +89,7 @@ fun RadarChart(
     val displayedValues = lerpValues(animationStart, animationTarget, progress.value)
     val displayedComparison = lerpValues(comparisonAnimationStart, comparisonAnimationTarget, progress.value)
 
-    val violet = NightViolet
+    val ghost = PlateSteel
     Canvas(modifier = modifier) {
         val axisCount = displayedValues.size
         if (axisCount < 3) return@Canvas
@@ -129,7 +130,7 @@ fun RadarChart(
                 if (index == 0) comparisonPath.moveTo(point.x, point.y) else comparisonPath.lineTo(point.x, point.y)
             }
             comparisonPath.close()
-            drawPath(comparisonPath, color = violet.copy(alpha = 0.45f), style = Stroke(width = 2f))
+            drawPath(comparisonPath, color = ghost.copy(alpha = 0.45f), style = Stroke(width = 2f))
         }
 
         // The current-period value polygon.

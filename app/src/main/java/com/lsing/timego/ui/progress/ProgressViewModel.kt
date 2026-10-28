@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.progress
 
+import com.lsing.timego.domain.trackedExercises
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,16 +12,14 @@ import com.lsing.timego.domain.DayTrainingStats
 import com.lsing.timego.domain.PersonalRecord
 import com.lsing.timego.domain.TrainingStats
 import com.lsing.timego.domain.bodyMassIndex
-import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.latestHeightCm
 import com.lsing.timego.domain.latestWeightKg
 import com.lsing.timego.domain.muscleGroupStrengthCurve
 import com.lsing.timego.domain.MuscleSetSummary
 import com.lsing.timego.domain.muscleDistributionForTimeframe
 import com.lsing.timego.domain.muscleGroupSetSummaryForTimeframe
-import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.personalRecords
-import com.lsing.timego.domain.strengthCurve
+import com.lsing.timego.domain.exerciseProgressCurve
 import com.lsing.timego.domain.trainingStats
 import com.lsing.timego.domain.trainingStatsByDay
 import com.lsing.timego.domain.workoutVolumeRatios
@@ -89,6 +88,10 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _strengthCurve = MutableStateFlow<List<Pair<LocalDate, Double>>>(emptyList())
     val strengthCurve: StateFlow<List<Pair<LocalDate, Double>>> = _strengthCurve.asStateFlow()
 
+    /** What [strengthCurve] values mean: "kg" (estimated 1RM), "reps", or "s" (hold seconds). */
+    private val _strengthCurveUnit = MutableStateFlow("kg")
+    val strengthCurveUnit: StateFlow<String> = _strengthCurveUnit.asStateFlow()
+
     private val _selectedHistoryDate = MutableStateFlow<LocalDate?>(null)
     val selectedHistoryDate: StateFlow<LocalDate?> = _selectedHistoryDate.asStateFlow()
 
@@ -156,10 +159,6 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                                 latestSessions = sessions
                                 latestSetLogs = allSets
                                 latestExercises = exerciseList
-                                _exercises.value = exerciseList
-                                if (_selectedExerciseId.value == null) {
-                                    _selectedExerciseId.value = exerciseList.firstOrNull()?.id
-                                }
                                 // All of the derivations below are pure functions of the observed
                                 // snapshots, some over the full unbounded set history (records,
                                 // volume ratios). LogViewModel already runs its equivalent block
@@ -169,8 +168,17 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                                     val exercisesById = exerciseList.associateBy { it.id }
                                     val today = LocalDate.now()
 
+                                    val records = personalRecords(allSets, sessionDateById, exercisesById)
+                                    _records.value = records
+
+                                    // Only exercises with a record are selectable; keep the selection valid.
+                                    val tracked = trackedExercises(allSets, sessions, exerciseList, records.mapTo(HashSet()) { it.exerciseId })
+                                    _exercises.value = tracked
+                                    if (tracked.none { it.id == _selectedExerciseId.value }) {
+                                        _selectedExerciseId.value = tracked.firstOrNull()?.id
+                                    }
+
                                     _volumeRatios.value = workoutVolumeRatios(sessions, allSets)
-                                    _records.value = personalRecords(allSets, sessionDateById, exercisesById)
                                     _trainingStats.value = trainingStats(
                                         sessions,
                                         allSets,
@@ -269,10 +277,14 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
         _strengthCurve.value = when (_curveMode.value) {
             CurveMode.EXERCISE -> {
                 val exerciseId = _selectedExerciseId.value ?: return
-                strengthCurve(latestSetLogs.filter { it.exerciseId == exerciseId }, sessionDateById)
+                val exercise = latestExercises.firstOrNull { it.id == exerciseId } ?: return
+                val curve = exerciseProgressCurve(exercise, latestSetLogs.filter { it.exerciseId == exerciseId }, sessionDateById)
+                _strengthCurveUnit.value = curve.unit
+                curve.points
             }
             CurveMode.MUSCLE_GROUP -> {
                 val group = _selectedMuscleGroup.value ?: return
+                _strengthCurveUnit.value = "kg"
                 muscleGroupStrengthCurve(
                     latestSetLogs,
                     latestExercises.associateBy { it.id },

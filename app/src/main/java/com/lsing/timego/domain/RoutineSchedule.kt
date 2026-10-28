@@ -1,10 +1,13 @@
 package com.lsing.timego.domain
 
+import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.Routine
+import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.WorkoutSession
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import kotlin.math.roundToInt
 
 fun routinesForToday(routines: List<Routine>, today: DayOfWeek): List<Routine> =
     routines.filter { today.name in it.daysOfWeek }
@@ -67,7 +70,54 @@ fun nextFlexibleRoutineByRecovery(
         }.toDouble() / groups.size
     }
     return flexibleRoutines.maxWithOrNull(
-        compareBy<Routine> { score(it) }
-            .thenByDescending { routineLastCompleted[it.id]?.let { d -> ChronoUnit.DAYS.between(d, today) } ?: Long.MAX_VALUE },
+        // Whole-day buckets: overlapping routines (Upper A/B) score within a fraction of a day of each
+        // other, which must read as a tie so the least-recently-done routine decides.
+        compareBy<Routine> { score(it).roundToInt() }
+            .thenBy { routineLastCompleted[it.id]?.let { d -> ChronoUnit.DAYS.between(d, today) } ?: Long.MAX_VALUE },
     )
+}
+
+private const val INFERRED_MIN_COVERAGE = 0.5
+
+/** Credits each finished freeform session (no routine tag) to the routine it most resembles, so a
+ *  forgotten tag doesn't hide what was done. A routine exercise counts as covered by a logged exercise
+ *  with the same id/name, else one with identical primary muscles (one-to-one). A session maps to its
+ *  best routine only when that routine is covered >= 50% and no other routine ties it. */
+fun inferredRoutineLastDone(
+    sessions: List<WorkoutSession>,
+    setLogs: List<SetLog>,
+    routineExercises: Map<Long, List<Exercise>>,
+    exercisesById: Map<Long, Exercise>,
+): Map<Long, LocalDate> {
+    val logsBySession = setLogs.groupBy { it.sessionId }
+    val result = mutableMapOf<Long, LocalDate>()
+    for (session in sessions) {
+        if (session.routineId != null || session.endEpochMillis == null) continue
+        val done = logsBySession[session.id].orEmpty()
+            .mapNotNull { log -> exercisesById[log.exerciseId]?.takeIf { isTrainingSet(log, it) } }
+            .distinctBy { it.id }
+        if (done.isEmpty()) continue
+        val scored = routineExercises.filterValues { it.isNotEmpty() }.map { (id, steps) -> id to routineCoverage(steps, done) }
+        val best = scored.maxOfOrNull { it.second } ?: continue
+        val winners = scored.filter { it.second == best }
+        if (best < INFERRED_MIN_COVERAGE || winners.size != 1) continue
+        result.merge(winners.single().first, session.date) { a, b -> maxOf(a, b) }
+    }
+    return result
+}
+
+private fun routineCoverage(steps: List<Exercise>, done: List<Exercise>): Double {
+    val free = done.toMutableList()
+    var matched = 0
+    val unmatched = mutableListOf<Exercise>()
+    for (step in steps) {
+        val hit = free.firstOrNull { it.id == step.id || it.name == step.name }
+        if (hit != null) { free.remove(hit); matched++ } else unmatched += step
+    }
+    for (step in unmatched) {
+        val groups = primaryMuscleGroups(step)
+        val hit = free.firstOrNull { groups.isNotEmpty() && primaryMuscleGroups(it) == groups }
+        if (hit != null) { free.remove(hit); matched++ }
+    }
+    return matched.toDouble() / steps.size
 }

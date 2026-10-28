@@ -1,146 +1,213 @@
 package com.lsing.timego.ui.theme
 
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-// Engine-Room Gauge Panel palette: riveted steel surfaces read as machinery, not a themed dark
-// mode. Ledger-prefixed names remain stable for existing call sites while the values move to the
-// new semantic system -- only Brass/Dial/Rivet tokens below are new symbols.
+/*
+ * PLATE COLOURS. The accents are calibrated barbell-plate colours (red, blue, yellow, green, white,
+ * steel) on warm rubber-black (dark) and chalk (light). Neutrals are tinted warm instead of flat grey.
+ * Every value is an OKLCH ramp step; text/background pairs are verified at >= 4.5:1 (graphics >= 3:1).
+ *
+ * Red is the single action colour (anything tappable). Plate colours otherwise encode meaning:
+ * chest violet, back blue, shoulders yellow, legs green, arms white, core steel.
+ */
 
-// Dark-first surfaces (gunmetal steel, not neutral charcoal).
-val LedgerBackgroundDark = Color(0xFF0D1113)
-val LedgerSurfaceDark = Color(0xFF161B1E)
-val LedgerSurfaceVariantDark = Color(0xFF1F262A)
-val LedgerOnSurfaceDark = Color(0xFFF4F1EA)
-val LedgerOnSurfaceVariantDark = Color(0xFFAAB2B3)
-val LedgerOutlineDark = Color(0xFF596366)
-val LedgerOutlineVariantDark = Color(0xFF343B3E)
+// ---- Dark: rubber floor -------------------------------------------------------------------------
 
-val LedgerSurfaceDimDark = Color(0xFF0C0F10)
-val LedgerSurfaceBrightDark = Color(0xFF30383B)
-val LedgerSurfaceContainerLowestDark = Color(0xFF0B0E0F)
-val LedgerSurfaceContainerLowDark = Color(0xFF151A1C)
-val LedgerSurfaceContainerDark = Color(0xFF1C2224)
-val LedgerSurfaceContainerHighDark = Color(0xFF252C2F)
-val LedgerSurfaceContainerHighestDark = Color(0xFF30383B)
+private val DarkBackground = Color(0xFF0E0F12)
+private val DarkSurface = Color(0xFF151619)
+private val DarkContainerLow = Color(0xFF121417)
+private val DarkContainer = Color(0xFF1A1C1F)
+private val DarkContainerHigh = Color(0xFF232529)
+private val DarkContainerHighest = Color(0xFF2D2F34)
+private val DarkOnSurface = Color(0xFFF0F2F4)
+private val DarkOnSurfaceVariant = Color(0xFFB5B7BD)
+private val DarkOutline = Color(0xFF72747B)
+private val DarkOutlineVariant = Color(0xFF3A3D43)
 
-// Warm light companion, intentionally not a mechanical inversion of dark mode.
-val LedgerBackgroundLight = Color(0xFFD9DFE1)
-val LedgerSurfaceLight = Color(0xFFEDF0F1)
-val LedgerSurfaceVariantLight = Color(0xFFCFD6D9)
-val LedgerOnSurfaceLight = Color(0xFF11171A)
-val LedgerOnSurfaceVariantLight = Color(0xFF46535A)
-val LedgerOutlineLight = Color(0xFF67737A)
-val LedgerOutlineVariantLight = Color(0xFFB6C0C4)
+private val DarkRed = Color(0xFFFB6C3E)
+private val DarkOnRed = Color(0xFF1D0D08)
+private val DarkRedContainer = Color(0xFF561F11)
+private val DarkOnRedContainer = Color(0xFFFCDECD)
+private val DarkBlue = Color(0xFF65A7FA)
+private val DarkOnBlue = Color(0xFF051223)
+private val DarkBlueContainer = Color(0xFF183356)
+private val DarkOnBlueContainer = Color(0xFFD6E7F8)
+private val DarkYellow = Color(0xFFF8CC2F)
+private val DarkOnYellow = Color(0xFF1D1500)
+private val DarkYellowContainer = Color(0xFF453600)
+private val DarkOnYellowContainer = Color(0xFFF2E8C3)
+private val DarkGreen = Color(0xFF3EC87D)
+private val DarkSteel = Color(0xFFA7AFB5)
+private val DarkError = Color(0xFFFD7273)
+private val DarkOnError = Color(0xFF200909)
+private val DarkErrorContainer = Color(0xFF581B1B)
+private val DarkOnErrorContainer = Color(0xFFFFDBD8)
 
-val LedgerSurfaceDimLight = Color(0xFFCBD2D5)
-val LedgerSurfaceBrightLight = Color(0xFFFFFFFF)
-val LedgerSurfaceContainerLowestLight = Color(0xFFFFFFFF)
-val LedgerSurfaceContainerLowLight = Color(0xFFF2F4F5)
-val LedgerSurfaceContainerLight = Color(0xFFE6EAEC)
-val LedgerSurfaceContainerHighLight = Color(0xFFDDE3E5)
-val LedgerSurfaceContainerHighestLight = Color(0xFFD3DADD)
+// ---- Light: chalk ---------------------------------------------------------------------------------
 
-// Brand/action color: brass instrument trim, not the old coral accent -- toggles, the FAB, and
-// selected nav read as a machined brass fitting on the steel panel.
-val LedgerAccent = Color(0xFFC9A24B)
-val LedgerAccentDim = Color(0xFF8F7233)
+private val LightBackground = Color(0xFFEFF0F3)
+private val LightSurface = Color(0xFFF9FAFC)
+private val LightContainerLow = Color(0xFFF4F5F7)
+private val LightContainer = Color(0xFFE9EBEF)
+private val LightContainerHigh = Color(0xFFE1E3E7)
+private val LightContainerHighest = Color(0xFFD8DBDF)
+private val LightOnSurface = Color(0xFF14161A)
+private val LightOnSurfaceVariant = Color(0xFF4A4D54)
+private val LightOutline = Color(0xFF6B6F76)
+private val LightOutlineVariant = Color(0xFFCBCED3)
 
-/** Primary on daylight surfaces: a deeper, more saturated brass than the dark theme's, so buttons keep their punch. */
-val DaylightBrass = Color(0xFF93680A)
-val LedgerOnAccent = Color(0xFF241C0A)
-val LedgerSecondary = Color(0xFF9BA6A8)
-val LedgerOnSecondary = Color(0xFF172022)
-val LedgerTertiary = Color(0xFFB8A7FF)
-val LedgerTertiaryDim = Color(0xFF7668B5)
-val LedgerOnTertiary = Color(0xFF211A49)
-val LedgerError = Color(0xFFFF8A80)
-val LedgerOnError = Color(0xFF3B0906)
+private val LightRed = Color(0xFFBD2900)
+private val LightOnRed = Color(0xFFFFFBF9)
+private val LightRedContainer = Color(0xFFFFDBCA)
+private val LightOnRedContainer = Color(0xFF5B1908)
+private val LightBlue = Color(0xFF145EC1)
+private val LightOnBlue = Color(0xFFFAFCFF)
+private val LightBlueContainer = Color(0xFFD3E7FF)
+private val LightOnBlueContainer = Color(0xFF062B5F)
+/** Light-mode yellow is split: [LightYellowFill] is the bright plate yellow, used only behind dark ink
+ *  text; [LightAmber] is the darker gold for small graphics (dots, bars, lines) that need >= 3:1. */
+private val LightYellowFill = Color(0xFFF8CC2F)
+private val LightAmber = Color(0xFFB37900)
+private val LightOnYellow = Color(0xFF1A1000)
+private val LightYellowContainer = Color(0xFFF8E8AB)
+private val LightOnYellowContainer = Color(0xFF452E00)
+private val LightGreen = Color(0xFF007840)
+private val LightSteel = Color(0xFF5D646A)
+private val LightError = Color(0xFFB7191C)
+private val LightOnError = Color(0xFFFFFBFA)
+private val LightErrorContainer = Color(0xFFFFD8D4)
+private val LightOnErrorContainer = Color(0xFF620A0B)
 
-val LedgerAccentContainerDark = Color(0xFF4A3B18)
-val LedgerOnAccentContainerDark = Color(0xFFF3E3B8)
-val LedgerSecondaryContainerDark = Color(0xFF30393B)
-val LedgerOnSecondaryContainerDark = Color(0xFFD8E1E2)
-val LedgerTertiaryContainerDark = Color(0xFF39305F)
-val LedgerOnTertiaryContainerDark = Color(0xFFE6DEFF)
-val LedgerErrorContainerDark = Color(0xFF5C1A16)
-val LedgerOnErrorContainerDark = Color(0xFFFFDAD5)
+/** Everything beyond the Material roles: the plate colours as meaning, tonal card steps, glass. */
+@Immutable
+class TimeGoPalette(
+    val red: Color,
+    /** Chest. Distinct from [red], which only ever means an action. */
+    val chest: Color,
+    val blue: Color,
+    /** Yellow for small graphics (dots, bars, lines, text-on-dark). Darker gold in light mode. */
+    val yellow: Color,
+    /** Bright plate yellow, only ever a fill behind [onYellow] text. */
+    val yellowFill: Color,
+    val onYellow: Color,
+    val yellowContainer: Color,
+    val onYellowContainer: Color,
+    val green: Color,
+    val onGreen: Color,
+    val steel: Color,
+    /** The white plate: arms. Near-white on dark, deep ink on light. */
+    val arms: Color,
+    /** Resting card fill and the one step above it (sheets, selected rows). */
+    val card: Color,
+    val raised: Color,
+    val hairline: Color,
+    /** The single translucent surface (34%) shared by every frosted element: dock, rest bar, selector, sheets, dialogs. */
+    val glass: Color,
+    val glassEdge: Color,
+    val scrim: Color,
+)
 
-val LedgerAccentContainerLight = Color(0xFFF2DFA4)
-val LedgerOnAccentContainerLight = Color(0xFF3F3008)
-val LedgerSecondaryContainerLight = Color(0xFFCBD7DB)
-val LedgerOnSecondaryContainerLight = Color(0xFF182123)
-val LedgerTertiaryContainerLight = Color(0xFFE8E0FF)
-val LedgerOnTertiaryContainerLight = Color(0xFF251B52)
-val LedgerErrorContainerLight = Color(0xFFFFDAD5)
-val LedgerOnErrorContainerLight = Color(0xFF410002)
+internal val DarkPalette = TimeGoPalette(
+    red = DarkRed,
+    chest = Color(0xFFBB8AEF),
+    blue = DarkBlue,
+    yellow = DarkYellow,
+    yellowFill = DarkYellow,
+    onYellow = DarkOnYellow,
+    yellowContainer = DarkYellowContainer,
+    onYellowContainer = DarkOnYellowContainer,
+    green = DarkGreen,
+    onGreen = Color(0xFF021709),
+    steel = DarkSteel,
+    arms = DarkOnSurface,
+    card = DarkContainer,
+    raised = DarkContainerHigh,
+    hairline = Color(0x24F0F2F4),
+    glass = Color(0x571A1C1F),
+    glassEdge = Color(0x24F0F2F4),
+    scrim = Color(0x59000000),
+)
 
-// Semantic fitness colors. These never replace the brand accent for action chrome.
-val NightMintDark = Color(0xFF9BD8B2)
-val NightAmberDark = Color(0xFFF2B866)
-val NightVioletDark = Color(0xFFB8A7FF)
-val DaylightMint = Color(0xFF1E8A57)
-val DaylightAmber = Color(0xFFB36A00)
-val DaylightViolet = Color(0xFF6650D0)
+internal val LightPalette = TimeGoPalette(
+    red = LightRed,
+    chest = Color(0xFF7F36BC),
+    blue = LightBlue,
+    yellow = LightAmber,
+    yellowFill = LightYellowFill,
+    onYellow = LightOnYellow,
+    yellowContainer = LightYellowContainer,
+    onYellowContainer = LightOnYellowContainer,
+    green = LightGreen,
+    onGreen = Color(0xFFF9FDFA),
+    steel = LightSteel,
+    arms = Color(0xFF34373D),
+    card = LightSurface,
+    raised = LightContainerLow,
+    hairline = Color(0x2614161A),
+    glass = Color(0x57F9FAFC),
+    glassEdge = Color(0x1F14161A),
+    scrim = Color(0x2E14161A),
+)
 
-/** True while the dark palette is active; provided by [TimeGoTheme]. Token getters below read it so the
- *  ~100 call sites that use Night* constants follow the theme without being touched. */
-val LocalTimeGoDark = androidx.compose.runtime.staticCompositionLocalOf { true }
+/** The active palette; provided by [TimeGoTheme]. Static: it changes only on a light/dark switch. */
+val LocalTimeGoPalette = staticCompositionLocalOf { DarkPalette }
 
-val NightMint: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
-    get() = if (LocalTimeGoDark.current) NightMintDark else DaylightMint
-val NightAmber: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
-    get() = if (LocalTimeGoDark.current) NightAmberDark else DaylightAmber
-val NightViolet: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
-    get() = if (LocalTimeGoDark.current) NightVioletDark else DaylightViolet
-val LedgerProgressing: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
-    get() = NightMint
-val LedgerPlateauing: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
-    get() = NightAmber
-val LedgerRegressing = LedgerError
+/** True while the dark palette is active; provided by [TimeGoTheme]. */
+val LocalTimeGoDark = staticCompositionLocalOf { true }
 
-// Explicit aliases for new presentation code and design-token readability.
-val NightBackground = LedgerBackgroundDark
-val NightSurface = LedgerSurfaceDark
-val NightSurfaceRaised = LedgerSurfaceVariantDark
-val NightCoral = LedgerAccent
-val NightCoralShade = LedgerAccentDim
+val PlateRed: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.red
+val PlateChest: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.chest
+val PlateBlue: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.blue
+val PlateYellow: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.yellow
+val PlateGreen: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.green
+val OnPlateGreen: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.onGreen
+val PlateSteel: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.steel
+val PlateArms: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.arms
+val CardFill: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.card
+val RaisedFill: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.raised
+val Hairline: Color @Composable @ReadOnlyComposable get() = LocalTimeGoPalette.current.hairline
 
-// Engine-Room Gauge Panel depth tokens. Unlike the retired Backlit rule (hairline-only, no
-// shadow), riveted panels are meant to read as three-dimensional plate: a real cast shadow plus
-// a brass-lit top bezel, not a flat tonal step.
-val NightDeckLowDark = Color(0xFF181F23)
-val NightDeckHighDark = Color(0xFF212A2F)
-val NightEdgeHairlineDark = Color(0x1EFFFFFF)
+val StatusProgressing: Color @Composable @ReadOnlyComposable get() = PlateGreen
+val StatusPlateauing: Color @Composable @ReadOnlyComposable get() = PlateYellow
 
-// Daylight plates: warm paper-white panels that lift off the stone background with a soft shadow, edged
-// by a dark hairline, so the same plate/brass construction reads in sunlight.
-val DaylightDeckLow = Color(0xFFF3F5F6)
-val DaylightDeckHigh = Color(0xFFFFFBF0)
-val DaylightEdgeHairline = Color(0x3A1C2A30)
+// Every Material3 role is set explicitly: unset roles fall back to the baseline violet palette and leak
+// into components the app never styles directly (NavigationBar, ModalBottomSheet, AlertDialog).
+internal val DarkScheme = darkColorScheme(
+    primary = DarkRed, onPrimary = DarkOnRed, primaryContainer = DarkRedContainer, onPrimaryContainer = DarkOnRedContainer,
+    inversePrimary = LightRed,
+    secondary = DarkBlue, onSecondary = DarkOnBlue, secondaryContainer = DarkBlueContainer, onSecondaryContainer = DarkOnBlueContainer,
+    tertiary = DarkYellow, onTertiary = DarkOnYellow, tertiaryContainer = DarkYellowContainer, onTertiaryContainer = DarkOnYellowContainer,
+    background = DarkBackground, onBackground = DarkOnSurface,
+    surface = DarkSurface, onSurface = DarkOnSurface, surfaceVariant = DarkContainerHigh, onSurfaceVariant = DarkOnSurfaceVariant,
+    surfaceTint = DarkRed,
+    inverseSurface = DarkOnSurface, inverseOnSurface = DarkBackground,
+    surfaceDim = DarkBackground, surfaceBright = DarkContainerHighest,
+    surfaceContainerLowest = DarkBackground, surfaceContainerLow = DarkContainerLow, surfaceContainer = DarkContainer,
+    surfaceContainerHigh = DarkContainerHigh, surfaceContainerHighest = DarkContainerHighest,
+    outline = DarkOutline, outlineVariant = DarkOutlineVariant,
+    error = DarkError, onError = DarkOnError, errorContainer = DarkErrorContainer, onErrorContainer = DarkOnErrorContainer,
+    scrim = Color.Black,
+)
 
-val NightDeckLow: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
-    get() = if (LocalTimeGoDark.current) NightDeckLowDark else DaylightDeckLow
-val NightDeckHigh: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
-    get() = if (LocalTimeGoDark.current) NightDeckHighDark else DaylightDeckHigh
-val NightEdgeHairline: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
-    get() = if (LocalTimeGoDark.current) NightEdgeHairlineDark else DaylightEdgeHairline
-val NightSheenTopDark = Color(0x14C9A24B)
-val NightGlowDark = Color(0x2AC9A24B)
-val DaylightSheenTop = Color(0x24C9A24B)
-val DaylightGlow = Color(0x2EC9A24B)
-
-val NightSheenTop: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
-    get() = if (LocalTimeGoDark.current) NightSheenTopDark else DaylightSheenTop
-val NightGlow: Color @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable
-    get() = if (LocalTimeGoDark.current) NightGlowDark else DaylightGlow
-
-// Brass instrument trim -- the panel's one warm metal, reserved for controls and active state.
-// Never used as a flat fill; always a rim, ring, or fitting.
-val Brass = LedgerAccent
-val BrassDim = LedgerAccentDim
-val BrassHighlight = Color(0xFFE7C878)
-
-// Rivets are drawn as small radial highlight/shadow pairs at panel corners -- see SurfaceCard's
-// `riveted` flag.
-val RivetHighlight = Color(0x4DFFFFFF)
-val RivetShadow = Color(0x66000000)
+internal val LightScheme = lightColorScheme(
+    primary = LightRed, onPrimary = LightOnRed, primaryContainer = LightRedContainer, onPrimaryContainer = LightOnRedContainer,
+    inversePrimary = DarkRed,
+    secondary = LightBlue, onSecondary = LightOnBlue, secondaryContainer = LightBlueContainer, onSecondaryContainer = LightOnBlueContainer,
+    tertiary = LightAmber, onTertiary = LightOnRed, tertiaryContainer = LightYellowContainer, onTertiaryContainer = LightOnYellowContainer,
+    background = LightBackground, onBackground = LightOnSurface,
+    surface = LightSurface, onSurface = LightOnSurface, surfaceVariant = LightContainerHigh, onSurfaceVariant = LightOnSurfaceVariant,
+    surfaceTint = LightRed,
+    inverseSurface = LightOnSurface, inverseOnSurface = LightBackground,
+    surfaceDim = LightContainerHighest, surfaceBright = LightSurface,
+    surfaceContainerLowest = LightSurface, surfaceContainerLow = LightContainerLow, surfaceContainer = LightContainer,
+    surfaceContainerHigh = LightContainerHigh, surfaceContainerHighest = LightContainerHighest,
+    outline = LightOutline, outlineVariant = LightOutlineVariant,
+    error = LightError, onError = LightOnError, errorContainer = LightErrorContainer, onErrorContainer = LightOnErrorContainer,
+    scrim = Color.Black,
+)

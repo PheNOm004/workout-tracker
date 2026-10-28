@@ -1,8 +1,7 @@
 package com.lsing.timego.ui.common
 
-import androidx.compose.animation.core.Spring
+import com.lsing.timego.ui.theme.TimeGoMotion
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -30,7 +29,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -380,7 +378,7 @@ private fun AlphabeticalExerciseList(
                     Text(
                         letter,
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = Spacing.Small, bottom = Spacing.ExtraSmall)
@@ -581,7 +579,7 @@ fun ExerciseSections(
                             Text(
                                 formatEnumLabel(subGroup),
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = Spacing.Medium, bottom = Spacing.ExtraSmall),
                             )
                         }
@@ -613,7 +611,7 @@ fun ExerciseSections(
                 }
                 val catChevronRotation by animateFloatAsState(
                     targetValue = if (expanded) 90f else 0f,
-                    animationSpec = androidx.compose.animation.core.tween(280, easing = androidx.compose.animation.core.EaseInOut),
+                    animationSpec = TimeGoMotion.rotate,
                     label = "catChevronRotation",
                 )
                 Column(

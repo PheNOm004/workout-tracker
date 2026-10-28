@@ -1,18 +1,18 @@
 package com.lsing.timego.ui.common
 
+import com.lsing.timego.ui.theme.PlateSteel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Whatshot
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.lsing.timego.data.ExerciseCategory
-import com.lsing.timego.ui.theme.NightAmber
-import com.lsing.timego.ui.theme.NightMint
-import com.lsing.timego.ui.theme.NightViolet
+import com.lsing.timego.ui.theme.PlateYellow
+import com.lsing.timego.ui.theme.PlateGreen
+import com.lsing.timego.ui.theme.PlateBlue
 
 /** Icon and semantic accent shown per [ExerciseCategory]. */
 data class CategoryVisual(val icon: ImageVector, val accent: Color)
@@ -35,10 +35,10 @@ fun categoryVisual(category: ExerciseCategory): CategoryVisual {
         ExerciseCategory.WARMUP -> Icons.Filled.Whatshot
     }
     val accent = when (category) {
-        ExerciseCategory.STRENGTH -> MaterialTheme.colorScheme.primary
-        ExerciseCategory.CALISTHENICS -> NightMint
-        ExerciseCategory.CARDIO -> NightViolet
-        ExerciseCategory.WARMUP -> NightAmber
+        ExerciseCategory.STRENGTH -> PlateBlue
+        ExerciseCategory.CALISTHENICS -> PlateGreen
+        ExerciseCategory.CARDIO -> PlateSteel
+        ExerciseCategory.WARMUP -> PlateYellow
     }
     return CategoryVisual(icon, accent)
 }

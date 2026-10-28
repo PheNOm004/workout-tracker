@@ -1,5 +1,15 @@
 package com.lsing.timego.ui.routines
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.sp
+import com.lsing.timego.ui.theme.LedgerFigureValue
+import com.lsing.timego.ui.common.exerciseDisplayRegion
+import com.lsing.timego.ui.common.regionColor
+import com.lsing.timego.ui.common.RegionChipRow
+import com.lsing.timego.ui.common.InfoChip
+import androidx.compose.foundation.layout.PaddingValues
+import com.lsing.timego.ui.common.LocalDockHeight
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -11,14 +21,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.animation.togetherWith
 import androidx.compose.material.icons.filled.Delete
@@ -26,18 +34,14 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import com.lsing.timego.ui.common.ExpandableCard
 import com.lsing.timego.ui.common.ExpandableHeader
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Settings
 import com.lsing.timego.ui.common.TimeGoDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,7 +59,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.TIMEGO_BACKUP_MIME_TYPE
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.TimeGoDatabase
@@ -64,7 +67,6 @@ import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.common.RoutineCardSkeleton
 import com.lsing.timego.ui.common.formatEnumLabel
-import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -111,6 +113,8 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     var showReports by remember { mutableStateOf(false) }
     var showCloudBackup by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val trainingProfile by remember(context) { com.lsing.timego.profile.ProfileRepository(context.applicationContext).profile }
+        .collectAsStateWithLifecycle(initialValue = com.lsing.timego.profile.TrainingProfile())
     val accountRepository = remember(context) { FirebaseAuthRepository.createIfConfigured(context) }
     val accountViewModel: AccountViewModel = viewModel(key = "account", factory = AccountViewModel.factory(accountRepository))
     val cloudBackupViewModel: CloudBackupViewModel = viewModel(key = "cloud_backup")
@@ -237,6 +241,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             onRestoreBackup = {
                 restoreLauncher.launch(arrayOf("*/*"))
             },
+            trainingProfile = trainingProfile,
             onEditTrainingProfile = {
                 showTrainingProfile = true
             },
@@ -299,7 +304,10 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
         },
         label = "programsPageTransition",
     ) { onPreinstalledPage ->
-        LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
+        LazyColumn(
+            modifier = Modifier.padding(horizontal = Spacing.Large),
+            contentPadding = PaddingValues(top = Spacing.Large, bottom = Spacing.Large + LocalDockHeight.current),
+        ) {
             item {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -385,7 +393,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                     )
                 }
                 item(key = "preinstalledEntry") {
-                    SurfaceCard(modifier = Modifier.fillMaxWidth().padding(top = Spacing.Large, bottom = 4.dp), cornerRadius = 10.dp) {
+                    SurfaceCard(modifier = Modifier.fillMaxWidth().padding(top = Spacing.Large, bottom = 4.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -470,20 +478,21 @@ private fun RoutineSteps(exercises: List<Exercise>, onOpenDetails: (Exercise) ->
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(28.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 ) {
                     Text(
                         text = (index + 1).toString(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        style = LedgerFigureValue.copy(fontSize = 12.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Text(
                     exercise.name,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(start = Spacing.Small),
+                    modifier = Modifier.weight(1f).padding(start = Spacing.Medium),
                 )
+                Box(Modifier.size(9.dp).clip(CircleShape).background(regionColor(exerciseDisplayRegion(exercise))))
             }
         }
     }
@@ -539,7 +548,8 @@ private fun SessionHistoryDialog(
     }
 }
 
-private fun Set<String>.toggle(key: String) = if (key in this) this - key else this + key
+/** Accordion: opening a program closes the others; tapping the open one closes it. */
+private fun Set<String>.toggle(key: String): Set<String> = if (key in this) emptySet() else setOf(key)
 
 private class ProgramCardCallbacks(
     val onToggle: (String) -> Unit,
@@ -611,7 +621,7 @@ private fun RoutineBody(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(
                 routine.name,
-                style = LedgerFigureEmphasis,
+                style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f).padding(Spacing.Medium, Spacing.Medium, Spacing.Medium, Spacing.ExtraSmall),
             )
             IconButton(onClick = onEdit) {
@@ -628,39 +638,20 @@ private fun RoutineBody(
                 }
             }
         }
-        FlowRow(modifier = Modifier.padding(Spacing.Small, 0.dp, Spacing.Small, Spacing.Small)) {
+        FlowRow(
+            modifier = Modifier.padding(Spacing.Medium, 0.dp, Spacing.Medium, Spacing.Small),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Small),
+        ) {
             when {
-                routine.daysOfWeek.isEmpty() -> AssistChip(
-                    onClick = {},
-                    leadingIcon = {
-                        Icon(
-                            Icons.Filled.AllInclusive,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    },
-                    label = { Text("Flexible · Any day") },
-                    colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.primary),
-                    border = AssistChipDefaults.assistChipBorder(
-                        enabled = true,
-                        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                    ),
-                    modifier = Modifier.padding(Spacing.ExtraSmall),
-                )
-                routine.daysOfWeek.size >= 7 -> AssistChip(
-                    onClick = {},
-                    label = { Text("Every day (Mon–Sun)") },
-                    modifier = Modifier.padding(Spacing.ExtraSmall),
-                )
-                else -> routine.daysOfWeek.forEach { day ->
-                    AssistChip(
-                        onClick = {},
-                        label = { Text(day.take(3).lowercase().replaceFirstChar(Char::uppercase)) },
-                        modifier = Modifier.padding(Spacing.ExtraSmall),
-                    )
-                }
+                routine.daysOfWeek.isEmpty() -> InfoChip("Flexible · Any day", icon = Icons.Filled.AllInclusive)
+                routine.daysOfWeek.size >= 7 -> InfoChip("Every day (Mon–Sun)")
+                else -> routine.daysOfWeek.forEach { day -> InfoChip(day.take(3).lowercase().replaceFirstChar(Char::uppercase)) }
             }
+        }
+        val regionLabels = remember(steps) { steps.map { exerciseDisplayRegion(it) }.distinct() }
+        if (regionLabels.isNotEmpty()) {
+            RegionChipRow(regionLabels, modifier = Modifier.padding(Spacing.Medium, 0.dp, Spacing.Medium, Spacing.Small))
         }
         if (steps.isNotEmpty()) RoutineSteps(steps, onOpenDetails = onOpenDetails)
     }

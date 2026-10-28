@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -28,12 +28,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -55,8 +53,8 @@ import com.lsing.timego.data.SetLog
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.domain.primaryMuscleGroups
 import com.lsing.timego.ui.theme.LedgerFigureValue
-import com.lsing.timego.ui.theme.NightDeckHigh
-import com.lsing.timego.ui.theme.NightEyebrow
+import com.lsing.timego.ui.theme.RaisedFill
+import com.lsing.timego.ui.theme.EyebrowStyle
 import com.lsing.timego.ui.theme.Spacing
 import com.lsing.timego.ui.theme.TimeGoMotion
 import java.time.LocalDate
@@ -156,7 +154,7 @@ fun buildGroupedDayHistory(
 /** Shared by the Progress screen's tap-a-heatmap-day history and the logging landing page's
  *  tap-the-summary-card history. When [label] is non-null it appears as a subtitle below the date
  *  (e.g. the routine name that was run that day). Duration appears on its own line when present.
- *  Uses the signature [TimeGoDialog] hardware plate with top brass bezel sheen and NightDeckHigh plate. */
+ *  Uses the signature [TimeGoDialog] hardware plate with top brass bezel sheen and RaisedFill plate. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun WorkoutHistoryDialog(
@@ -171,27 +169,20 @@ fun WorkoutHistoryDialog(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = NightDeckHigh,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-        },
-    ) {
+    TimeGoBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 32.dp),
         ) {
             // Eyebrow
             Text(
                 text = "WORKOUT SUMMARY",
-                style = NightEyebrow,
-                color = MaterialTheme.colorScheme.primary,
+                style = EyebrowStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 2.dp),
             )
 
@@ -223,7 +214,7 @@ fun WorkoutHistoryDialog(
                     Text(
                         text = label,
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f, fill = false),
                     )
                 }
@@ -316,14 +307,14 @@ fun WorkoutHistoryDialog(
                         Icon(
                             Icons.Filled.FitnessCenter,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = regionColor(group.regionLabel),
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = group.regionLabel.uppercase(),
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.weight(1f),
                         )
                         Surface(
@@ -454,7 +445,7 @@ fun WorkoutHistoryDialog(
 fun StatTile(label: String, value: String, modifier: Modifier = Modifier, caption: String? = null) {
     SurfaceCard(
         modifier = modifier.padding(Spacing.ExtraSmall),
-        cornerRadius = 4.dp,
+        cornerRadius = 18.dp,
     ) {
         Column(modifier = Modifier.padding(Spacing.Medium)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

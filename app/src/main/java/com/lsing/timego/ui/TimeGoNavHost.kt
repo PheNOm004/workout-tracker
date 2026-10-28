@@ -1,5 +1,17 @@
 package com.lsing.timego.ui
 
+import com.lsing.timego.ui.common.ScreenOverlayHost
+import com.lsing.timego.ui.common.LocalScreenOverlayHost
+import com.lsing.timego.ui.common.LocalRestClearance
+import com.lsing.timego.ui.log.RestTimerChip
+import com.lsing.timego.ui.log.RestTimerBar
+import com.lsing.timego.ui.log.LogViewModel
+import com.lsing.timego.domain.RestTimerState
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.SizeTransform
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedContent
@@ -8,9 +20,20 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import com.lsing.timego.ui.common.LocalDockHeight
+import com.lsing.timego.ui.common.LocalHazeState
+import com.lsing.timego.ui.common.frosted
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,7 +56,6 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,33 +68,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.zIndex
-import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import com.lsing.timego.ui.common.tactilePress
-import com.lsing.timego.ui.theme.NightDeckHigh
-import com.lsing.timego.ui.theme.NightEdgeHairline
-import com.lsing.timego.ui.theme.NightSheenTop
 import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.profile.ProfileRepository
 import com.lsing.timego.profile.TrainingProfile
@@ -142,18 +153,113 @@ fun TimeGoNavHost() {
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            TimeGoBottomDock(
-                selectedRoute = selectedRoute,
-                onSelectRoute = { selectedRoute = it },
-            )
+    // Content runs under the floating dock so its glass has something to blur; the dock height is shared
+    // so each scrolling screen can pad its last item clear of it.
+    val hazeState = rememberHazeState()
+    var dockHeightPx by remember { mutableIntStateOf(0) }
+    val dockHeight = with(LocalDensity.current) { dockHeightPx.toDp() }
+    // The rest timer belongs to the whole app, not the Log tab: full bar on Log, a corner circle elsewhere.
+    val logViewModel: LogViewModel = viewModel()
+    val restTimer by logViewModel.restTimer.collectAsStateWithLifecycle()
+    var restExpandedOffLog by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(selectedRoute, restTimer == null) { restExpandedOffLog = false }
+    val restBarShowing = restTimer != null && (selectedRoute == "log" || restExpandedOffLog)
+    val overlayHost = remember { ScreenOverlayHost() }
+    var restBarHeightPx by remember { mutableIntStateOf(0) }
+    val restBarHeight = with(LocalDensity.current) { restBarHeightPx.toDp() }
+    Scaffold(contentWindowInsets = WindowInsets.statusBars) { innerPadding ->
+        CompositionLocalProvider(
+            LocalHazeState provides hazeState,
+            LocalDockHeight provides dockHeight,
+            LocalRestClearance provides if (restBarShowing) restBarHeight else 0.dp,
+            LocalScreenOverlayHost provides overlayHost,
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                RetainedNavContent(
+                    selectedRoute = selectedRoute,
+                    modifier = Modifier.padding(innerPadding).hazeSource(hazeState),
+                )
+                overlayHost.content?.let { overlay -> Box(modifier = Modifier.fillMaxSize()) { overlay() } }
+                RestTimerOverlay(
+                    timer = restTimer,
+                    onLogTab = selectedRoute == "log",
+                    expandedOffLog = restExpandedOffLog,
+                    onExpandedOffLogChange = { restExpandedOffLog = it },
+                    onAdjust = logViewModel::adjustRest,
+                    onDismiss = {
+                        // Skipping or finishing a rest means you are about to log: take them to the logging page.
+                        logViewModel.dismissRest()
+                        selectedRoute = "log"
+                    },
+                    onBarHeightChange = { restBarHeightPx = it },
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = dockHeight),
+                )
+                TimeGoBottomDock(
+                    selectedRoute = selectedRoute,
+                    onSelectRoute = { selectedRoute = it },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .onSizeChanged { dockHeightPx = it.height },
+                )
+            }
+        }
+    }
+}
+
+private enum class RestOverlayMode { Hidden, Chip, Bar }
+
+/** Hosts the rest timer above the dock: the full bar on the Log tab (or when expanded), a circle at the lower
+ *  left elsewhere. Morphs between the two with a spring scale from the bottom-left corner. */
+@Composable
+private fun RestTimerOverlay(
+    timer: RestTimerState?,
+    onLogTab: Boolean,
+    expandedOffLog: Boolean,
+    onExpandedOffLogChange: (Boolean) -> Unit,
+    onAdjust: (Int) -> Unit,
+    onDismiss: () -> Unit,
+    onBarHeightChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Keep the last timer so the exit animation still has something to draw after the state clears.
+    var lastTimer by remember { mutableStateOf<RestTimerState?>(null) }
+    if (timer != null) lastTimer = timer
+    val mode = when {
+        timer == null -> RestOverlayMode.Hidden
+        onLogTab || expandedOffLog -> RestOverlayMode.Bar
+        else -> RestOverlayMode.Chip
+    }
+    val origin = TransformOrigin(0f, 1f)
+    LaunchedEffect(mode) { if (mode != RestOverlayMode.Bar) onBarHeightChange(0) }
+    AnimatedContent(
+        targetState = mode,
+        modifier = modifier,
+        contentAlignment = Alignment.BottomStart,
+        transitionSpec = {
+            (fadeIn(TimeGoMotion.fadeEnter) + scaleIn(TimeGoMotion.contentEnter, initialScale = 0.7f, transformOrigin = origin)) togetherWith
+                (fadeOut(TimeGoMotion.fadeExit) + scaleOut(TimeGoMotion.contentExit, targetScale = 0.7f, transformOrigin = origin)) using
+                SizeTransform(clip = false)
         },
-    ) { innerPadding ->
-        RetainedNavContent(
-            selectedRoute = selectedRoute,
-            modifier = Modifier.padding(innerPadding),
-        )
+        label = "restOverlay",
+    ) { current ->
+        val shown = lastTimer
+        when {
+            current == RestOverlayMode.Hidden || shown == null -> Spacer(Modifier.size(0.dp))
+            current == RestOverlayMode.Chip -> Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomStart) {
+                RestTimerChip(
+                    state = shown,
+                    onClick = { onExpandedOffLogChange(true) },
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+            else -> RestTimerBar(
+                state = shown,
+                onAdjust = onAdjust,
+                onDismiss = onDismiss,
+                onMinimize = if (onLogTab) null else ({ onExpandedOffLogChange(false) }),
+                modifier = Modifier.onSizeChanged { onBarHeightChange(it.height) },
+            )
+        }
     }
 }
 
@@ -193,137 +299,86 @@ private fun RetainedNavContent(
 private fun TimeGoBottomDock(
     selectedRoute: String,
     onSelectRoute: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val selectedIndex = destinations.indexOfRoute(selectedRoute).coerceAtLeast(0)
+    val shape = RoundedCornerShape(32.dp)
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 6.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Surface(
-            shape = RoundedCornerShape(22.dp),
-            color = NightDeckHigh,
-            tonalElevation = 6.dp,
-            shadowElevation = 8.dp,
+        BoxWithConstraints(
             modifier = Modifier
-                .border(
-                    width = 1.dp,
-                    color = NightEdgeHairline,
-                    shape = RoundedCornerShape(22.dp),
-                ),
+                .fillMaxWidth()
+                .frosted(shape)
+                .padding(6.dp),
         ) {
+            val tabWidth = maxWidth / destinations.size
+            val indicatorX by animateDpAsState(
+                targetValue = tabWidth * selectedIndex,
+                animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
+                label = "navIndicatorOffset",
+            )
+
+            // The active pill slides between tabs; its offset is read in the layout phase, so the spring
+            // never recomposes the dock.
             Box(
                 modifier = Modifier
-                    .background(
-                        Brush.verticalGradient(
-                            0f to NightSheenTop,
-                            0.35f to androidx.compose.ui.graphics.Color.Transparent,
-                        ),
-                    ),
+                    .offset { IntOffset(indicatorX.roundToPx(), 0) }
+                    .width(tabWidth)
+                    .height(56.dp)
+                    .padding(horizontal = 4.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(26.dp)),
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 6.dp, vertical = 6.dp),
-                ) {
-                    val tabWidth = maxWidth / destinations.size
-                    val indicatorOffset by animateDpAsState(
-                        targetValue = tabWidth * selectedIndex,
-                        animationSpec = tween(durationMillis = 260, easing = EaseInOut),
-                        label = "navIndicatorOffset",
+                destinations.forEach { destination ->
+                    val isSelected = selectedRoute == destination.route
+                    val contentColor by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        label = "navColor",
                     )
-
-                    // Sliding active highlight capsule behind selected tab
-                    Box(
+                    val interactionSource = remember { MutableInteractionSource() }
+                    Column(
                         modifier = Modifier
-                            .offset(x = indicatorOffset)
-                            .width(tabWidth)
-                            .height(52.dp)
-                            .padding(horizontal = 4.dp, vertical = 2.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
-                    )
-
-                    // Sliding top precision notch on active tab
-                    Box(
-                        modifier = Modifier
-                            .offset(x = indicatorOffset)
-                            .width(tabWidth)
-                            .padding(top = 1.dp),
-                        contentAlignment = Alignment.TopCenter,
+                            .weight(1f)
+                            .height(56.dp)
+                            .clip(RoundedCornerShape(26.dp))
+                            .tactilePress(interactionSource, pressedScale = 0.94f)
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onClick = { onSelectRoute(destination.route) },
+                            )
+                            .semantics(mergeDescendants = true) {
+                                role = Role.Tab
+                                selected = isSelected
+                                contentDescription = destination.label
+                            },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .width(26.dp)
-                                .height(2.5.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(MaterialTheme.colorScheme.primary),
+                        Icon(
+                            imageVector = destination.icon,
+                            contentDescription = null,
+                            tint = contentColor,
+                            modifier = Modifier.size(22.dp),
                         )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        destinations.forEach { destination ->
-                            val isSelected = selectedRoute == destination.route
-                            val contentColor by animateColorAsState(
-                                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                label = "navColor",
-                            )
-                            val iconScale by animateFloatAsState(
-                                targetValue = if (isSelected) 1.08f else 1.0f,
-                                animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
-                                label = "navIconScale",
-                            )
-
-                            val interactionSource = remember { MutableInteractionSource() }
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(52.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .tactilePress(interactionSource, pressedScale = 0.92f)
-                                    .clickable(
-                                        interactionSource = interactionSource,
-                                        indication = null,
-                                        onClick = { onSelectRoute(destination.route) },
-                                    )
-                                    .semantics(mergeDescendants = true) {
-                                        role = Role.Tab
-                                        selected = isSelected
-                                        contentDescription = destination.label
-                                    },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center,
-                                ) {
-                                    Icon(
-                                        imageVector = destination.icon,
-                                        contentDescription = null,
-                                        tint = contentColor,
-                                        modifier = Modifier
-                                            .size(22.dp)
-                                            .scale(iconScale),
-                                    )
-                                    Text(
-                                        text = destination.label,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 11.sp,
-                                            fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Medium,
-                                        ),
-                                        color = contentColor,
-                                        modifier = Modifier.padding(top = 2.dp),
-                                    )
-                                }
-                            }
-                        }
+                        Text(
+                            text = destination.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = contentColor,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
                     }
                 }
             }

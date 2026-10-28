@@ -1,5 +1,7 @@
 package com.lsing.timego.ui.common
 
+import com.lsing.timego.ui.theme.TimeGoMotion
+import com.lsing.timego.ui.theme.LocalTimeGoPalette
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.MutableTransitionState
@@ -36,13 +38,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.lsing.timego.ui.theme.NightEyebrow
+import com.lsing.timego.ui.theme.EyebrowStyle
 import com.lsing.timego.ui.theme.Spacing
 
 import androidx.compose.runtime.snapshotFlow
@@ -52,14 +53,12 @@ import kotlinx.coroutines.flow.first
 val LocalTimeGoDialogDismiss = compositionLocalOf<() -> Unit> { {} }
 
 /**
- * The Gauge Panel's signature hardware dialog plate.
+ * The app's dialog: a raised card centred over an animated scrim.
  *
  * Features:
- * - [SurfaceCard] plate with [NightDeckHigh] steel background and [riveted] brass fasteners
- * - Real cast shadow elevation
- * - Brass-lit top bezel reflection ([NightSheenTop])
- * - Precision 1.dp hairline border ([NightEdgeHairline])
- * - Signature [NightEyebrow] uppercase accent header
+ * - [SurfaceCard] plate on the [RaisedFill] tonal step
+ * - Precision 1.dp hairline border ([Hairline])
+ * - Signature [EyebrowStyle] uppercase accent header
  * - Symmetric EaseInOut enter/exit animations (scale + alpha) matching heatmap glide
  * - Animated scrim fade on entrance and dismissal
  * - Built-in scroll-to-fit constraint and IME keyboard avoidance
@@ -74,7 +73,7 @@ fun TimeGoDialog(
     headerContent: (@Composable () -> Unit)? = null,
     confirmButton: (@Composable () -> Unit)? = null,
     dismissButton: (@Composable () -> Unit)? = null,
-    cornerRadius: Dp = 16.dp,
+    cornerRadius: Dp = 28.dp,
     properties: DialogProperties = DialogProperties(
         usePlatformDefaultWidth = false,
         decorFitsSystemWindows = false,
@@ -104,8 +103,8 @@ fun TimeGoDialog(
     }
 
     val scrimAlpha by animateFloatAsState(
-        targetValue = if (transitionState.targetState) 0.65f else 0f,
-        animationSpec = tween(durationMillis = 260, easing = EaseInOut),
+        targetValue = if (transitionState.targetState) 1f else 0f,
+        animationSpec = tween(durationMillis = 200),
         label = "dialogScrimAlpha",
     )
 
@@ -117,11 +116,12 @@ fun TimeGoDialog(
         },
         properties = properties,
     ) {
+        BlurBehindWindow()
         CompositionLocalProvider(LocalTimeGoDialogDismiss provides animateAndDismiss) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = scrimAlpha))
+                    .background(LocalTimeGoPalette.current.scrim.copy(alpha = LocalTimeGoPalette.current.scrim.alpha * scrimAlpha))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -133,22 +133,17 @@ fun TimeGoDialog(
                 AnimatedVisibility(
                     visibleState = transitionState,
                     enter = scaleIn(
-                        animationSpec = tween(durationMillis = 280, easing = EaseInOut),
-                        initialScale = 0.90f,
-                    ) + fadeIn(
-                        animationSpec = tween(durationMillis = 240, easing = EaseInOut),
-                    ),
+                        animationSpec = TimeGoMotion.contentEnter,
+                        initialScale = 0.92f,
+                    ) + fadeIn(TimeGoMotion.fadeEnter),
                     exit = scaleOut(
-                        animationSpec = tween(durationMillis = 240, easing = EaseInOut),
-                        targetScale = 0.90f,
-                    ) + fadeOut(
-                        animationSpec = tween(durationMillis = 200, easing = EaseInOut),
-                    ),
+                        animationSpec = TimeGoMotion.contentExit,
+                        targetScale = 0.96f,
+                    ) + fadeOut(TimeGoMotion.fadeExit),
                 ) {
                     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
                     SurfaceCard(
-                        hero = true,
-                        riveted = true,
+                        containerColor = LocalTimeGoPalette.current.raised.copy(alpha = WindowSurfaceAlpha),
                         cornerRadius = cornerRadius,
                         modifier = modifier
                             .fillMaxWidth(0.92f)
@@ -173,8 +168,8 @@ fun TimeGoDialog(
                                     if (eyebrow != null) {
                                         Text(
                                             text = eyebrow.uppercase(),
-                                            style = NightEyebrow,
-                                            color = MaterialTheme.colorScheme.primary,
+                                            style = EyebrowStyle,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                     if (title != null) {

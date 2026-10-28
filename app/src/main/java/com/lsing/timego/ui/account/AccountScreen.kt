@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.account
 
+import com.lsing.timego.ui.theme.PlateGreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,7 +24,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -81,7 +81,7 @@ fun AccountScreen(viewModel: AccountViewModel, onOpenCloudBackup: () -> Unit, on
             }
             is AuthState.SignedIn -> {
                 Text(auth.email, style = MaterialTheme.typography.titleMedium)
-                Text(if (auth.verified) "Email verified" else "Email verification required", color = if (auth.verified) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                Text(if (auth.verified) "Email verified" else "Email verification required", color = if (auth.verified) PlateGreen else MaterialTheme.colorScheme.error)
                 if (!auth.verified) {
                     Button(onClick = { scope.launch { viewModel.sendVerification() } }) { Text("Send verification email") }
                     OutlinedButton(onClick = { scope.launch { viewModel.refreshVerification() } }, enabled = !state.busy) {
@@ -112,7 +112,7 @@ fun AccountScreen(viewModel: AccountViewModel, onOpenCloudBackup: () -> Unit, on
                 }
             }
         }
-        state.message?.let { Text(it, color = if (it.contains("requested") || it.contains("deleted")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error) }
+        state.message?.let { Text(it, color = if (it.contains("requested") || it.contains("deleted")) PlateGreen else MaterialTheme.colorScheme.error) }
         OutlinedButton(onClick = onOpenCloudBackup, modifier = Modifier.fillMaxWidth()) { Text("Cloud backup") }
         OutlinedButton(onClick = onOpenReports, modifier = Modifier.fillMaxWidth()) { Text("Weekly and monthly reports") }
     }

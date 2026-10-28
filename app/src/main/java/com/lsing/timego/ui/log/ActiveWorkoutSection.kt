@@ -3,11 +3,8 @@ package com.lsing.timego.ui.log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -30,7 +27,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -53,7 +49,7 @@ import com.lsing.timego.ui.common.categoryVisual
 import com.lsing.timego.ui.common.exerciseDisplayRegion
 import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.LedgerFigureValue
-import com.lsing.timego.ui.theme.NightMint
+import com.lsing.timego.ui.theme.PlateGreen
 import com.lsing.timego.ui.theme.Spacing
 import com.lsing.timego.ui.theme.TimeGoMotion
 
@@ -78,18 +74,17 @@ fun ActiveWorkoutSection(
 
         SurfaceCard(
             hero = true,
-            riveted = true,
             modifier = modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
         ) {
-            Column(modifier = Modifier.padding(Spacing.Medium)) {
+            Column(modifier = Modifier.padding(Spacing.Medium), verticalArrangement = Arrangement.spacedBy(Spacing.Small)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
                     text = "Current Session",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
                 AnimatedContent(
@@ -114,27 +109,17 @@ fun ActiveWorkoutSection(
                 val visual = categoryVisual(exercise.category)
                 val selected = exerciseId == selectedExerciseId
                 val rowColor by animateColorAsState(
-                    targetValue = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface,
-                    animationSpec = tween(durationMillis = 280, easing = EaseInOut),
+                    targetValue = if (selected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow,
+                    animationSpec = TimeGoMotion.colorFade,
                     label = "activeExerciseRowColor",
                 )
-                val rowScale by animateFloatAsState(
-                    targetValue = if (selected) 1.015f else 1f,
-                    animationSpec = tween(durationMillis = 280, easing = EaseInOut),
-                    label = "activeExerciseRowScale",
-                )
-
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .graphicsLayer {
-                            scaleX = rowScale
-                            scaleY = rowScale
-                        }
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(16.dp))
                         .background(rowColor)
                         .clickable { onSelectExercise(exerciseId) }
-                        .padding(horizontal = Spacing.Small, vertical = Spacing.Small),
+                        .padding(horizontal = Spacing.Medium, vertical = Spacing.Medium),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -155,7 +140,7 @@ fun ActiveWorkoutSection(
                             Text(
                                 text = exerciseDisplayRegion(exercise),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         AnimatedContent(
@@ -248,7 +233,7 @@ private fun CompletedSetBadge(
             modifier = Modifier
                 .size(16.dp)
                 .clip(CircleShape)
-                .background(if (set.isWarmup) MaterialTheme.colorScheme.outline else NightMint),
+                .background(if (set.isWarmup) MaterialTheme.colorScheme.outline else PlateGreen),
         ) {
             if (set.isWarmup) {
                 Text(

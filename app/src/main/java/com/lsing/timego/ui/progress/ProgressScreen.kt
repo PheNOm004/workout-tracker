@@ -1,5 +1,12 @@
 package com.lsing.timego.ui.progress
 
+import androidx.compose.animation.core.animateDpAsState
+import com.lsing.timego.ui.common.LocalRestClearance
+import com.lsing.timego.ui.common.PillSelector
+import com.lsing.timego.ui.common.ScreenOverlay
+import com.lsing.timego.ui.common.ChartSummary
+import com.lsing.timego.ui.common.frosted
+import com.lsing.timego.ui.common.LocalDockHeight
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -7,7 +14,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -33,7 +39,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,10 +54,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.ExerciseCategory
@@ -63,7 +65,6 @@ import com.lsing.timego.domain.PrType
 import com.lsing.timego.domain.BmiCategory
 import com.lsing.timego.domain.bmiCategory
 import com.lsing.timego.domain.formatCalisthenicsWeight
-import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.HeatmapGrid
 import com.lsing.timego.ui.common.HorizontalWheelPicker
 import com.lsing.timego.ui.common.MuscleBodyDiagram
@@ -80,16 +81,11 @@ import com.lsing.timego.ui.common.toPositiveFiniteDoubleOrNull
 import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.common.timeframeLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
-import com.lsing.timego.ui.theme.NightAmber
-import com.lsing.timego.ui.theme.NightCoral
-import com.lsing.timego.ui.theme.NightCoralShade
-import com.lsing.timego.ui.theme.NightMint
+import com.lsing.timego.ui.theme.PlateYellow
+import com.lsing.timego.ui.theme.PlateGreen
 import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.ui.theme.Spacing
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -105,6 +101,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val curveMode by viewModel.curveMode.collectAsStateWithLifecycle()
     val selectedMuscleGroup by viewModel.selectedMuscleGroup.collectAsStateWithLifecycle()
     val strengthCurve by viewModel.strengthCurve.collectAsStateWithLifecycle()
+    val strengthCurveUnit by viewModel.strengthCurveUnit.collectAsStateWithLifecycle()
     val bodyMetrics by viewModel.bodyMetrics.collectAsStateWithLifecycle()
     val weightCurve by viewModel.weightCurve.collectAsStateWithLifecycle()
     val currentBmi by viewModel.currentBmi.collectAsStateWithLifecycle()
@@ -149,7 +146,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     if (!isHydrated) {
         LazyColumn(
             modifier = Modifier.padding(horizontal = Spacing.Large),
-            contentPadding = PaddingValues(bottom = Spacing.Large),
+            contentPadding = PaddingValues(bottom = Spacing.Large + LocalDockHeight.current),
         ) {
             item {
                 Text(
@@ -207,7 +204,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             LazyColumn(
                 state = if (segment == ProgressSegment.TRAINING) trainingListState else bodyListState,
                 modifier = Modifier.padding(horizontal = Spacing.Large).imePadding(),
-                contentPadding = PaddingValues(bottom = Spacing.Large),
+                // Clears the dock and the segment selector floating above it.
+                contentPadding = PaddingValues(bottom = Spacing.Large + LocalDockHeight.current + LocalRestClearance.current + SegmentSelectorClearance),
             ) {
                 item {
                     Text(
@@ -228,8 +226,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 ) {
                     HeatmapGrid(
                         ratios = volumeRatios,
-                        lightColor = NightCoral,
-                        darkColor = NightCoralShade,
+                        lightColor = PlateGreen,
+                        darkColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                         onDateClick = { date -> viewModel.selectHistoryDate(date) },
                     )
                 }
@@ -307,6 +305,14 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                     when (mode) {
                         CurveMode.EXERCISE -> {
                             Column {
+                                if (exercises.isEmpty()) {
+                                    Text(
+                                        "Log a workout to see your exercise records and strength curve here.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(vertical = Spacing.Medium),
+                                    )
+                                }
                                 if (exercises.isNotEmpty()) {
                                     val selectedIndex = exercises.indexOfFirst { it.id == selectedExerciseId }.coerceAtLeast(0)
                                     HorizontalWheelPicker(
@@ -328,13 +334,12 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                         SurfaceCard(
                                             modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                                             hero = true,
-                                            riveted = true,
                                         ) {
                                             Column(modifier = Modifier.padding(Spacing.Medium)) {
                                                 Text(
                                                     "${selectedExercise.name} Records",
                                                     style = MaterialTheme.typography.labelMedium,
-                                                    color = MaterialTheme.colorScheme.primary,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                                 )
                                                 if (exerciseRecords.isEmpty()) {
@@ -391,15 +396,21 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                                 )
 
                                                 Text(
-                                                    "Strength Progression Curve",
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    color = MaterialTheme.colorScheme.primary,
+                                                    when (strengthCurveUnit) {
+                                                        "reps" -> "Best reps per session"
+                                                        "s" -> "Best hold per session"
+                                                        "kg added" -> "Estimated 1RM of added weight"
+                                                        else -> "Estimated 1RM per session"
+                                                    },
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                                 )
                                                 AnimatedStrengthCurve(
                                                     strengthCurve = strengthCurve,
                                                     emptyMessage = "No logged sets yet to draw progression curve.",
                                                     label = "exerciseStrengthCurveContent",
+                                                    unit = strengthCurveUnit,
                                                 )
                                             }
                                         }
@@ -408,13 +419,12 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                     SurfaceCard(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                                         hero = true,
-                                        riveted = true,
                                     ) {
                                         Column(modifier = Modifier.padding(Spacing.Medium)) {
                                             Text(
                                                 "Exercise Strength Progression",
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = MaterialTheme.colorScheme.primary,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                             )
                                             AnimatedStrengthCurve(
@@ -445,13 +455,12 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                     SurfaceCard(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                                         hero = true,
-                                        riveted = true,
                                     ) {
                                         Column(modifier = Modifier.padding(Spacing.Medium)) {
                                             Text(
                                                 "${muscleGroup?.let { formatEnumLabel(it) } ?: "Muscle Group"} Strength Progression",
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = MaterialTheme.colorScheme.primary,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                             )
                                             AnimatedStrengthCurve(
@@ -477,14 +486,13 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 SurfaceCard(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                     hero = true,
-                    riveted = true,
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Medium)) {
                         if (currentBmi != null) {
                             val category = bmiCategory(currentBmi!!)
                             val bmiColor = when (category) {
-                                BmiCategory.NORMAL -> NightMint
-                                BmiCategory.OVERWEIGHT -> NightAmber
+                                BmiCategory.NORMAL -> PlateGreen
+                                BmiCategory.OVERWEIGHT -> PlateYellow
                                 BmiCategory.UNDERWEIGHT, BmiCategory.OBESE -> MaterialTheme.colorScheme.error
                             }
                             Text(
@@ -522,9 +530,10 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                         modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                     ) {
                         Column(modifier = Modifier.padding(Spacing.Medium)) {
+                            ChartSummary(weightCurve, unit = "kg", higherIsBetter = null, modifier = Modifier.padding(bottom = Spacing.Small))
                             SparklineChart(
                                 weightCurve,
-                                modifier = Modifier.fillMaxWidth().height(140.dp).padding(vertical = 4.dp),
+                                modifier = Modifier.fillMaxWidth().height(170.dp),
                             )
                         }
                     }
@@ -670,42 +679,33 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     }
 
     // Floating thumb-friendly Segment Selector at bottom of Progress screen
-    Surface(
-            shape = RoundedCornerShape(32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
-            tonalElevation = 6.dp,
-            shadowElevation = 8.dp,
+    // Drawn by the app shell (as a sibling of the blur source) so its glass works; it sits above the floating
+    // dock, never behind it, and steps aside while the rest bar is expanded over this tab.
+    ScreenOverlay {
+        // Rides above the dock and, when the rest bar is up, above that too; the spring makes it glide as the
+        // bar expands or collapses.
+        val lift by animateDpAsState(LocalRestClearance.current, TimeGoMotion.liftSpec, label = "selectorLift")
+        PillSelector(
+            options = ProgressSegment.entries.map { it.label },
+            selectedIndex = selectedSegment.ordinal,
+            onSelect = { viewModel.selectSegment(ProgressSegment.entries[it]) },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 12.dp)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(32.dp),
-                ),
-        ) {
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
-            ) {
-                ProgressSegment.entries.forEachIndexed { index, segment ->
-                    SegmentedButton(
-                        selected = selectedSegment == segment,
-                        onClick = { viewModel.selectSegment(segment) },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = ProgressSegment.entries.size),
-                    ) {
-                        Text(segment.label)
-                    }
-                }
-            }
-        }
+                .padding(bottom = LocalDockHeight.current + lift + 8.dp)
+                .frosted(RoundedCornerShape(32.dp)),
+        )
     }
 }
+}
+
+private val SegmentSelectorClearance = 64.dp
 
 @Composable
 private fun AnimatedStrengthCurve(
     strengthCurve: List<Pair<LocalDate, Double>>,
     emptyMessage: String,
     label: String,
+    unit: String = "kg",
 ) {
     AnimatedContent(
         targetState = strengthCurve,
@@ -720,10 +720,14 @@ private fun AnimatedStrengthCurve(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            SparklineChart(
-                visibleCurve,
-                modifier = Modifier.fillMaxWidth().height(150.dp).padding(vertical = 4.dp),
-            )
+            Column {
+                ChartSummary(visibleCurve, unit = unit, integerValues = unit == "reps" || unit == "s", modifier = Modifier.padding(bottom = Spacing.Small))
+                SparklineChart(
+                    visibleCurve,
+                    modifier = Modifier.fillMaxWidth().height(180.dp),
+                    integerValues = unit == "reps" || unit == "s",
+                )
+            }
         }
     }
 }

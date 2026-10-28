@@ -1,5 +1,6 @@
 package com.lsing.timego.domain
 
+import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.SetLog
@@ -113,10 +114,53 @@ fun muscleGroupStrengthCurve(
         val exercise = exercisesById[log.exerciseId] ?: continue
         if (exercise.loggingType != LoggingType.WEIGHT_REPS.name) continue
         if (muscleGroup !in exercise.muscleGroups) continue
+        if (log.isWarmup) continue
         val date = sessionDateById[log.sessionId] ?: continue
         val oneRepMax = estimatedOneRepMax(log.weightKg, log.reps)
         val current = bestByDate[date]
         if (current == null || oneRepMax > current) bestByDate[date] = oneRepMax
     }
     return bestByDate.entries.sortedBy { it.key }.map { it.key to it.value }
+}
+
+/** One chart series: a point per training day, plus what the values mean. */
+data class ProgressCurve(val points: List<Pair<LocalDate, Double>>, val unit: String)
+
+/**
+ * The progress curve for one exercise: one point per day (that day's best working set; warm-ups excluded), in the
+ * metric that means something for the exercise type:
+ * - holds: longest hold, in seconds;
+ * - calisthenics: most reps in a set; but once the exercise has been done with added weight, the estimated 1RM of
+ *   the added load only ("kg added", 0 on a session without any). The stored weight is bodyweight plus the added
+ *   load, so an estimate from it would just echo bodyweight;
+ * - everything else: estimated one-rep max in kg.
+ */
+fun exerciseProgressCurve(
+    exercise: Exercise,
+    history: List<SetLog>,
+    sessionDateById: Map<Long, LocalDate>,
+): ProgressCurve {
+    val isHold = exercise.loggingType == LoggingType.HOLD.name
+    val isCalisthenics = exercise.category == ExerciseCategory.CALISTHENICS.name
+    val isWeighted = isCalisthenics && history.any { !it.isWarmup && (it.addedWeightKg ?: 0.0) > 0.0 }
+    val unit = when {
+        isHold -> "s"
+        isWeighted -> "kg added"
+        isCalisthenics -> "reps"
+        else -> "kg"
+    }
+    val bestByDate = mutableMapOf<LocalDate, Double>()
+    for (log in history) {
+        if (log.isWarmup) continue
+        val date = sessionDateById[log.sessionId] ?: continue
+        val value = when {
+            isHold -> log.holdSeconds?.toDouble()
+            isWeighted -> estimatedOneRepMax(log.addedWeightKg ?: 0.0, log.reps).takeIf { log.reps > 0 }
+            isCalisthenics -> log.reps.takeIf { it > 0 }?.toDouble()
+            else -> estimatedOneRepMax(log.weightKg, log.reps).takeIf { log.reps > 0 }
+        } ?: continue
+        val current = bestByDate[date]
+        if (current == null || value > current) bestByDate[date] = value
+    }
+    return ProgressCurve(bestByDate.entries.sortedBy { it.key }.map { it.key to it.value }, unit)
 }

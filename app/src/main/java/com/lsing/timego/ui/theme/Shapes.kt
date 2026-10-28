@@ -4,12 +4,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
-// Machined panel edges: tight radii read as cut/milled steel plate, not a soft rounded-rectangle
-// card. Kept just above sharp (never 0dp) so touch targets still feel intentional, not clipped.
+// Large, friendly radii: chips and fields are small, cards and sheets are large. Cards use the
+// extraLarge step (28 dp) so surfaces read as soft plates rather than machined panels.
 val TimeGoShapes = Shapes(
-    extraSmall = RoundedCornerShape(3.dp),
-    small = RoundedCornerShape(4.dp),
-    medium = RoundedCornerShape(6.dp),
-    large = RoundedCornerShape(8.dp),
-    extraLarge = RoundedCornerShape(12.dp),
+    extraSmall = RoundedCornerShape(12.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(28.dp),
 )
