@@ -107,7 +107,7 @@ class TimeGoPalette(
     val card: Color,
     val raised: Color,
     val hairline: Color,
-    /** The single translucent surface (44%) shared by every frosted element: dock, rest bar, selector, sheets, dialogs. */
+    /** The single translucent surface (34%) shared by every frosted element: dock, rest bar, selector, sheets, dialogs. */
     val glass: Color,
     val glassEdge: Color,
     val scrim: Color,
@@ -129,7 +129,7 @@ internal val DarkPalette = TimeGoPalette(
     card = DarkContainer,
     raised = DarkContainerHigh,
     hairline = Color(0x24F0F2F4),
-    glass = Color(0x701A1C1F),
+    glass = Color(0x571A1C1F),
     glassEdge = Color(0x24F0F2F4),
     scrim = Color(0x59000000),
 )
@@ -150,7 +150,7 @@ internal val LightPalette = TimeGoPalette(
     card = LightSurface,
     raised = LightContainerLow,
     hairline = Color(0x2614161A),
-    glass = Color(0x70F9FAFC),
+    glass = Color(0x57F9FAFC),
     glassEdge = Color(0x1F14161A),
     scrim = Color(0x2E14161A),
 )

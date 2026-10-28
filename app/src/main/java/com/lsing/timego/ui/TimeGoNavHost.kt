@@ -3,10 +3,8 @@ package com.lsing.timego.ui
 import com.lsing.timego.ui.common.ScreenOverlayHost
 import com.lsing.timego.ui.common.LocalScreenOverlayHost
 import com.lsing.timego.ui.common.LocalRestClearance
-import com.lsing.timego.ui.common.LocalRestBarCovering
 import com.lsing.timego.ui.log.RestTimerChip
 import com.lsing.timego.ui.log.RestTimerBar
-import com.lsing.timego.ui.log.RestBarClearance
 import com.lsing.timego.ui.log.LogViewModel
 import com.lsing.timego.domain.RestTimerState
 import androidx.compose.foundation.layout.Spacer
@@ -180,12 +178,13 @@ fun TimeGoNavHost() {
     LaunchedEffect(selectedRoute, restTimer == null) { restExpandedOffLog = false }
     val restBarShowing = restTimer != null && (selectedRoute == "log" || restExpandedOffLog)
     val overlayHost = remember { ScreenOverlayHost() }
+    var restBarHeightPx by remember { mutableIntStateOf(0) }
+    val restBarHeight = with(LocalDensity.current) { restBarHeightPx.toDp() }
     Scaffold(contentWindowInsets = WindowInsets.statusBars) { innerPadding ->
         CompositionLocalProvider(
             LocalHazeState provides hazeState,
             LocalDockHeight provides dockHeight,
-            LocalRestClearance provides if (restBarShowing) RestBarClearance else 0.dp,
-            LocalRestBarCovering provides (restBarShowing && selectedRoute != "log"),
+            LocalRestClearance provides if (restBarShowing) restBarHeight else 0.dp,
             LocalScreenOverlayHost provides overlayHost,
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -201,6 +200,7 @@ fun TimeGoNavHost() {
                     onExpandedOffLogChange = { restExpandedOffLog = it },
                     onAdjust = logViewModel::adjustRest,
                     onDismiss = logViewModel::dismissRest,
+                    onBarHeightChange = { restBarHeightPx = it },
                     modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = dockHeight),
                 )
                 TimeGoBottomDock(
@@ -227,6 +227,7 @@ private fun RestTimerOverlay(
     onExpandedOffLogChange: (Boolean) -> Unit,
     onAdjust: (Int) -> Unit,
     onDismiss: () -> Unit,
+    onBarHeightChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Keep the last timer so the exit animation still has something to draw after the state clears.
@@ -238,6 +239,7 @@ private fun RestTimerOverlay(
         else -> RestOverlayMode.Chip
     }
     val origin = TransformOrigin(0f, 1f)
+    LaunchedEffect(mode) { if (mode != RestOverlayMode.Bar) onBarHeightChange(0) }
     AnimatedContent(
         targetState = mode,
         modifier = modifier,
@@ -264,6 +266,7 @@ private fun RestTimerOverlay(
                 onAdjust = onAdjust,
                 onDismiss = onDismiss,
                 onMinimize = if (onLogTab) null else ({ onExpandedOffLogChange(false) }),
+                modifier = Modifier.onSizeChanged { onBarHeightChange(it.height) },
             )
         }
     }

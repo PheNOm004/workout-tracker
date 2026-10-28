@@ -52,6 +52,9 @@ object TimeGoMotion {
     /** Small state changes: chevron turns, row emphasis. Light bounce, quick. */
     val rotate: FiniteAnimationSpec<Float> = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium)
 
+    /** Floating controls gliding to a new resting height (e.g. above the rest bar). */
+    val liftSpec: FiniteAnimationSpec<Dp> = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)
+
     /** Colour cross-fades never spring (overshoot would flash the wrong colour). */
     val colorFade: FiniteAnimationSpec<androidx.compose.ui.graphics.Color> = tween(durationMillis = 200, easing = LinearOutSlowInEasing)
 

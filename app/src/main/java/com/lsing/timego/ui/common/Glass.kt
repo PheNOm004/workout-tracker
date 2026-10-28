@@ -21,7 +21,7 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 
 /** Blur radius shared by in-app frosted surfaces and the window blur behind sheets and dialogs. */
-val GlassBlurRadius = 16.dp
+val GlassBlurRadius = 12.dp
 
 /** The one [HazeState] for the app's content layer. Frosted surfaces blur whatever is marked as a source
  *  in this state; null (previews, tests) makes [frosted] fall back to a plain translucent fill. */
@@ -31,12 +31,9 @@ val LocalHazeState = compositionLocalOf<HazeState?> { null }
  *  can always scroll clear of the dock, while the rest of the list passes underneath it. */
 val LocalDockHeight = compositionLocalOf { 0.dp }
 
-/** Bottom space the full rest-timer bar currently occupies above the dock (zero when it is hidden or a chip). */
+/** Measured height of the full rest-timer bar above the dock (zero when it is hidden or only a chip). Scrolling
+ *  content and floating controls (Progress's selector) add it so they ride above the bar. */
 val LocalRestClearance = compositionLocalOf { 0.dp }
-
-/** True while the rest bar is expanded over a non-Log tab; floating controls (e.g. Progress's segment selector)
- *  hide while it covers their spot. */
-val LocalRestBarCovering = compositionLocalOf { false }
 
 /** Holds the one floating overlay a screen has asked the app shell to draw (see [ScreenOverlay]). */
 class ScreenOverlayHost {

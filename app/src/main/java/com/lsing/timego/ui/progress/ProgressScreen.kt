@@ -1,5 +1,7 @@
 package com.lsing.timego.ui.progress
 
+import androidx.compose.animation.core.animateDpAsState
+import com.lsing.timego.ui.common.LocalRestClearance
 import com.lsing.timego.ui.common.PillSelector
 import com.lsing.timego.ui.common.ScreenOverlay
 import com.lsing.timego.ui.common.ChartSummary
@@ -9,7 +11,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.runtime.CompositionLocalProvider
 import com.lsing.timego.ui.common.frosted
-import com.lsing.timego.ui.common.LocalRestBarCovering
 import com.lsing.timego.ui.common.LocalHazeState
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.hazeSource
@@ -223,7 +224,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 state = if (segment == ProgressSegment.TRAINING) trainingListState else bodyListState,
                 modifier = Modifier.padding(horizontal = Spacing.Large).imePadding(),
                 // Clears the dock and the segment selector floating above it.
-                contentPadding = PaddingValues(bottom = Spacing.Large + LocalDockHeight.current + SegmentSelectorClearance),
+                contentPadding = PaddingValues(bottom = Spacing.Large + LocalDockHeight.current + LocalRestClearance.current + SegmentSelectorClearance),
             ) {
                 item {
                     Text(
@@ -699,19 +700,18 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     // Drawn by the app shell (as a sibling of the blur source) so its glass works; it sits above the floating
     // dock, never behind it, and steps aside while the rest bar is expanded over this tab.
     ScreenOverlay {
-    AnimatedVisibility(
-        visible = !LocalRestBarCovering.current,
-        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = LocalDockHeight.current + 8.dp),
-        enter = fadeIn(TimeGoMotion.fadeEnter) + slideInVertically(TimeGoMotion.navigationInOffset) { it / 2 },
-        exit = fadeOut(TimeGoMotion.fadeExit) + slideOutVertically(TimeGoMotion.navigationOutOffset) { it / 2 },
-    ) {
+        // Rides above the dock and, when the rest bar is up, above that too; the spring makes it glide as the
+        // bar expands or collapses.
+        val lift by animateDpAsState(LocalRestClearance.current, TimeGoMotion.liftSpec, label = "selectorLift")
         PillSelector(
             options = ProgressSegment.entries.map { it.label },
             selectedIndex = selectedSegment.ordinal,
             onSelect = { viewModel.selectSegment(ProgressSegment.entries[it]) },
-            modifier = Modifier.frosted(RoundedCornerShape(32.dp)),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = LocalDockHeight.current + lift + 8.dp)
+                .frosted(RoundedCornerShape(32.dp)),
         )
-    }
     }
 }
 }

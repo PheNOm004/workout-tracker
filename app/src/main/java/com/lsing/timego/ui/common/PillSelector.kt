@@ -47,7 +47,7 @@ fun PillSelector(
 ) {
     val accent = MaterialTheme.colorScheme.primary
     val shape = RoundedCornerShape(26.dp)
-    val optionWidth = 112.dp
+    val optionWidth = 96.dp
     Box(modifier = modifier.padding(5.dp)) {
         val indicatorX by animateDpAsState(
             targetValue = optionWidth * selectedIndex,

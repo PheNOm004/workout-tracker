@@ -17,7 +17,7 @@ The visual world is the barbell plate: calibrated plate colours on warm rubber-b
 
 ## Glass (restricted)
 
-Frosted translucency is used in exactly these places, all with the same tint (`palette.glass`, 44%) and blur radius (`GlassBlurRadius`, 16 dp), so none looks heavier or lighter than another: the floating bottom dock, the rest-timer bar and chip, the Progress selector, and modal sheets/dialogs. Cards, set entry, charts and buttons stay solid so figures stay legible in a bright gym.
+Frosted translucency is used in exactly these places, all with the same tint (`palette.glass`, 34%) and blur radius (`GlassBlurRadius`, 12 dp), so none looks heavier or lighter than another: the floating bottom dock, the rest-timer bar and chip, the Progress selector, and modal sheets/dialogs. Cards, set entry, charts and buttons stay solid so figures stay legible in a bright gym.
 
 - Dock and rest bar: `Modifier.frosted(shape)` over a Haze source (`LocalHazeState`). The rest bar uses its own source (the session list) because Haze cannot blur a surface from a source that contains it.
 - Sheets and dialogs (`TimeGoBottomSheet`, `TimeGoDialog`): about 90% opaque raised surface over a window-level blur of the app (`BlurBehindWindow`, Android 12+). Below Android 12 only the tint and scrim show.

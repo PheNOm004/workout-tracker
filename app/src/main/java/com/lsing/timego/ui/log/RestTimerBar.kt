@@ -55,9 +55,6 @@ import com.lsing.timego.ui.theme.PlateYellow
 import com.lsing.timego.ui.theme.TimeGoMotion
 import kotlinx.coroutines.delay
 
-/** Space a screen reserves at its bottom while the full rest bar is showing above the dock. */
-val RestBarClearance = 104.dp
-
 /** Whole seconds left, negative once over. Emits only when the second changes, so readers recompose once per
  *  second rather than on every poll tick. */
 @Composable
@@ -71,7 +68,7 @@ private fun rememberRestRemaining(state: RestTimerState): State<Int> =
 
 /** The countdown ring with the clock inside: drains as rest elapses, fills amber once over. */
 @Composable
-private fun RestRing(remaining: Int, totalSeconds: Int, size: Dp, fontSize: Int, modifier: Modifier = Modifier) {
+private fun RestRing(remaining: Int, totalSeconds: Int, size: Dp, fontSize: Int, modifier: Modifier = Modifier, strokeWidth: Dp = size / 11.6f) {
     val over = remaining <= 0
     val remainingFraction by animateFloatAsState(
         targetValue = (remaining.toFloat() / totalSeconds).coerceIn(0f, 1f),
@@ -82,7 +79,7 @@ private fun RestRing(remaining: Int, totalSeconds: Int, size: Dp, fontSize: Int,
     val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
     Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.size(size)) {
-            val stroke = Stroke(width = (size.toPx() / 11.6f), cap = StrokeCap.Round)
+            val stroke = Stroke(width = strokeWidth.toPx(), cap = StrokeCap.Round)
             val inset = stroke.width / 2f
             val arcSize = Size(this.size.width - stroke.width, this.size.height - stroke.width)
             drawArc(trackColor, 0f, 360f, false, Offset(inset, inset), arcSize, style = stroke)
@@ -177,6 +174,6 @@ fun RestTimerChip(state: RestTimerState, onClick: () -> Unit, modifier: Modifier
             .semantics { contentDescription = if (remaining <= 0) "Rest over, $clock" else "Resting, $clock left" },
         contentAlignment = Alignment.Center,
     ) {
-        RestRing(remaining, state.totalSeconds, size = 52.dp, fontSize = 11)
+        RestRing(remaining, state.totalSeconds, size = 50.dp, fontSize = 11, strokeWidth = 3.dp)
     }
 }
