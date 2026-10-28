@@ -22,7 +22,7 @@ import com.lsing.timego.ui.theme.TimeGoTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.decorView.setBackgroundColor(android.graphics.Color.parseColor("#0D1113"))
+        window.decorView.setBackgroundColor(android.graphics.Color.parseColor("#0E0F12"))
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),

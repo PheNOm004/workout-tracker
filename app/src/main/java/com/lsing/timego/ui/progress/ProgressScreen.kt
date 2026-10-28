@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.progress
 
+import com.lsing.timego.ui.common.PillSelector
 import com.lsing.timego.ui.common.ScreenOverlay
 import com.lsing.timego.ui.common.ChartSummary
 import androidx.compose.ui.graphics.Color
@@ -698,30 +699,12 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         enter = fadeIn(TimeGoMotion.fadeEnter) + slideInVertically(TimeGoMotion.navigationInOffset) { it / 2 },
         exit = fadeOut(TimeGoMotion.fadeExit) + slideOutVertically(TimeGoMotion.navigationOutOffset) { it / 2 },
     ) {
-        run {
-            val accent = MaterialTheme.colorScheme.primary
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.frosted(RoundedCornerShape(32.dp)).padding(horizontal = 6.dp, vertical = 4.dp),
-            ) {
-                ProgressSegment.entries.forEachIndexed { index, segment ->
-                    SegmentedButton(
-                        selected = selectedSegment == segment,
-                        onClick = { viewModel.selectSegment(segment) },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = ProgressSegment.entries.size),
-                        colors = SegmentedButtonDefaults.colors(
-                            activeContainerColor = accent.copy(alpha = 0.2f),
-                            activeContentColor = accent,
-                            activeBorderColor = accent.copy(alpha = 0.4f),
-                            inactiveContainerColor = Color.Transparent,
-                            inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            inactiveBorderColor = Color.Transparent,
-                        ),
-                    ) {
-                        Text(segment.label)
-                    }
-                }
-            }
-        }
+        PillSelector(
+            options = ProgressSegment.entries.map { it.label },
+            selectedIndex = selectedSegment.ordinal,
+            onSelect = { viewModel.selectSegment(ProgressSegment.entries[it]) },
+            modifier = Modifier.frosted(RoundedCornerShape(32.dp)),
+        )
     }
     }
 }

@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.common
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableStateOf
@@ -69,10 +70,14 @@ fun ScreenOverlay(content: @Composable BoxScope.() -> Unit) {
 fun Modifier.frosted(shape: Shape, blurRadius: Dp = GlassBlurRadius, borderWidth: Dp = 1.dp): Modifier {
     val palette = LocalTimeGoPalette.current
     val haze = LocalHazeState.current
+    // The blur samples content with transparent gaps; an opaque base under it hides the crisp content beneath the
+    // glass, otherwise text shows through the frost sharp.
+    val baseColor = MaterialTheme.colorScheme.background
     val base = clip(shape)
     return (if (haze == null) base else base.hazeEffect(haze) {
         this.blurRadius = blurRadius
         tints = listOf(HazeTint(palette.glass))
         noiseFactor = 0f
+        backgroundColor = baseColor
     }).border(borderWidth, palette.glassEdge, shape)
 }
