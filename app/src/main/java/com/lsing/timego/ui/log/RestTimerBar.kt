@@ -123,7 +123,7 @@ fun RestTimerBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp)
-            .frosted(RoundedCornerShape(30.dp))
+            .frosted(RoundedCornerShape(30.dp), borderWidth = 0.5.dp)
             .animateContentSize(TimeGoMotion.expandEnter)
             .tactilePress(toggleSource, pressedScale = 0.985f)
             .clickable(
@@ -171,7 +171,7 @@ fun RestTimerChip(state: RestTimerState, onClick: () -> Unit, modifier: Modifier
         modifier = modifier
             .size(72.dp)
             .padding(8.dp)
-            .frosted(CircleShape)
+            .frosted(CircleShape, borderWidth = 0.5.dp)
             .tactilePress(source, pressedScale = 0.92f)
             .clickable(interactionSource = source, indication = null, onClickLabel = "Show rest timer", onClick = onClick)
             .semantics { contentDescription = if (remaining <= 0) "Rest over, $clock" else "Resting, $clock left" },

@@ -252,11 +252,13 @@ private fun RestTimerOverlay(
         val shown = lastTimer
         when {
             current == RestOverlayMode.Hidden || shown == null -> Spacer(Modifier.size(0.dp))
-            current == RestOverlayMode.Chip -> RestTimerChip(
-                state = shown,
-                onClick = { onExpandedOffLogChange(true) },
-                modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
-            )
+            current == RestOverlayMode.Chip -> Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomStart) {
+                RestTimerChip(
+                    state = shown,
+                    onClick = { onExpandedOffLogChange(true) },
+                    modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
+                )
+            }
             else -> RestTimerBar(
                 state = shown,
                 onAdjust = onAdjust,

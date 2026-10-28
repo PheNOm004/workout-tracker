@@ -63,7 +63,7 @@ fun ScreenOverlay(content: @Composable BoxScope.() -> Unit) {
  * effect blur, so Haze draws only the tint, which is still a translucent, legible surface.
  */
 @Composable
-fun Modifier.frosted(shape: Shape, blurRadius: Dp = 24.dp): Modifier {
+fun Modifier.frosted(shape: Shape, blurRadius: Dp = 24.dp, borderWidth: Dp = 1.dp): Modifier {
     val palette = LocalTimeGoPalette.current
     val haze = LocalHazeState.current
     val base = clip(shape)
@@ -71,5 +71,5 @@ fun Modifier.frosted(shape: Shape, blurRadius: Dp = 24.dp): Modifier {
         this.blurRadius = blurRadius
         tints = listOf(HazeTint(palette.glass))
         noiseFactor = 0f
-    }).border(1.dp, palette.glassEdge, shape)
+    }).border(borderWidth, palette.glassEdge, shape)
 }
