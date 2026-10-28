@@ -20,11 +20,18 @@ class TrackedExercisesTest {
     fun `only exercises with working sets appear, most recent first`() {
         val sessions = listOf(session(10, 1000), session(11, 2000))
         val sets = listOf(set(10, 1), set(11, 2), set(10, 3, warmup = true))
-        assertEquals(listOf("Row", "Bench"), trackedExercises(sets, sessions, exercises).map { it.name })
+        assertEquals(listOf("Row", "Bench"), trackedExercises(sets, sessions, exercises, setOf(1L, 2L, 3L)).map { it.name })
+    }
+
+    @Test
+    fun `exercises without a record are left out even if logged`() {
+        val sessions = listOf(session(10, 1000))
+        val sets = listOf(set(10, 1), set(10, 2))
+        assertEquals(listOf("Bench"), trackedExercises(sets, sessions, exercises, setOf(1L)).map { it.name })
     }
 
     @Test
     fun `no logged work gives an empty list`() {
-        assertEquals(emptyList<Exercise>(), trackedExercises(emptyList(), emptyList(), exercises))
+        assertEquals(emptyList<Exercise>(), trackedExercises(emptyList(), emptyList(), exercises, setOf(1L)))
     }
 }

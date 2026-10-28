@@ -1,5 +1,7 @@
 package com.lsing.timego.ui.log
 
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
 import com.lsing.timego.ui.common.rememberDismissKeyboard
 import com.lsing.timego.ui.common.rememberAdvanceKeyboardActions
 import androidx.compose.ui.text.input.ImeAction
@@ -1653,6 +1655,9 @@ private fun StrengthLogRow(
     }
     val canLog = reps != null && validRpe && if (isBodyweight) totalBodyweightLoad != null else enteredWeight != null
     val dismissKeyboard = rememberDismissKeyboard()
+    val weightFocus = remember { FocusRequester() }
+    val repsFocus = remember { FocusRequester() }
+    val rpeFocus = remember { FocusRequester() }
     val logSet: () -> Unit = {
         if (isBodyweight) {
             if (reps != null && enteredWeight != null && totalBodyweightLoad != null) {
@@ -1764,7 +1769,7 @@ private fun StrengthLogRow(
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                        keyboardActions = rememberAdvanceKeyboardActions(),
+                        keyboardActions = rememberAdvanceKeyboardActions(onNext = { repsFocus.requestFocus() }),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -1772,7 +1777,7 @@ private fun StrengthLogRow(
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
-                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                        modifier = Modifier.weight(1f).padding(end = Spacing.Small).focusRequester(weightFocus),
                     )
                     OutlinedTextField(
                         value = repsText,
@@ -1782,7 +1787,7 @@ private fun StrengthLogRow(
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                        keyboardActions = rememberAdvanceKeyboardActions(),
+                        keyboardActions = rememberAdvanceKeyboardActions(onNext = { rpeFocus.requestFocus() }),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -1790,7 +1795,7 @@ private fun StrengthLogRow(
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
-                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                        modifier = Modifier.weight(1f).padding(end = Spacing.Small).focusRequester(repsFocus),
                     )
                     OutlinedTextField(
                         value = rpeText,
@@ -1809,7 +1814,7 @@ private fun StrengthLogRow(
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).focusRequester(rpeFocus),
                     )
                 }
                 // Quick Stepper Chips for Fast In-Gym Adjustment
@@ -1907,6 +1912,7 @@ private fun CardioLogRow(
     val distance = distanceText.toPositiveFiniteDoubleOrNull()
     val validDistance = distanceText.isBlank() || distance != null
     val dismissKeyboardCardio = rememberDismissKeyboard()
+    val minutesFocus = remember { FocusRequester() }
     val logCardio: () -> Unit = {
         if (duration != null && validDistance) {
             onLog(duration, distance)
@@ -1951,7 +1957,7 @@ private fun CardioLogRow(
                 textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                 singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                        keyboardActions = rememberAdvanceKeyboardActions(),
+                        keyboardActions = rememberAdvanceKeyboardActions(onNext = { minutesFocus.requestFocus() }),
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -1982,7 +1988,7 @@ private fun CardioLogRow(
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
                         ),
-                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                        modifier = Modifier.weight(1f).padding(end = Spacing.Small).focusRequester(minutesFocus),
                     )
                     val cardioLogInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Button(

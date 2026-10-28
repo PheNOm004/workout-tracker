@@ -13,11 +13,20 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
  * otherwise the Enter key inserts a new line instead.
  */
 @Composable
-fun rememberAdvanceKeyboardActions(onDone: (() -> Unit)? = null): KeyboardActions {
+fun rememberAdvanceKeyboardActions(onNext: (() -> Unit)? = null, onDone: (() -> Unit)? = null): KeyboardActions {
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     return KeyboardActions(
-        onNext = { focus.moveFocus(FocusDirection.Next) },
+        onNext = {
+            if (onNext != null) {
+                // Explicit target: jumping straight to a named field avoids the focus traversal landing on a
+                // non-text control, and re-showing the keyboard covers keyboards that blink on focus changes.
+                onNext()
+                keyboard?.show()
+            } else {
+                focus.moveFocus(FocusDirection.Next)
+            }
+        },
         onDone = {
             onDone?.invoke()
             focus.clearFocus()

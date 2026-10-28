@@ -170,15 +170,17 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                                     val exercisesById = exerciseList.associateBy { it.id }
                                     val today = LocalDate.now()
 
-                                    // Only exercises with logged work are selectable; keep the selection valid.
-                                    val tracked = trackedExercises(allSets, sessions, exerciseList)
+                                    val records = personalRecords(allSets, sessionDateById, exercisesById)
+                                    _records.value = records
+
+                                    // Only exercises with a record are selectable; keep the selection valid.
+                                    val tracked = trackedExercises(allSets, sessions, exerciseList, records.mapTo(HashSet()) { it.exerciseId })
                                     _exercises.value = tracked
                                     if (tracked.none { it.id == _selectedExerciseId.value }) {
                                         _selectedExerciseId.value = tracked.firstOrNull()?.id
                                     }
 
                                     _volumeRatios.value = workoutVolumeRatios(sessions, allSets)
-                                    _records.value = personalRecords(allSets, sessionDateById, exercisesById)
                                     _trainingStats.value = trainingStats(
                                         sessions,
                                         allSets,
