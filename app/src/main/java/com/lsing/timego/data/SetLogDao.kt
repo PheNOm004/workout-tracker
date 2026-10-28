@@ -30,6 +30,9 @@ interface SetLogDao {
     @Query("SELECT id FROM set_logs WHERE sessionId = :sessionId")
     suspend fun idsForSession(sessionId: Long): List<Long>
 
+    @Query("UPDATE set_logs SET sessionId = :toSessionId WHERE sessionId = :fromSessionId")
+    suspend fun moveToSession(fromSessionId: Long, toSessionId: Long)
+
     @Query("DELETE FROM set_logs WHERE sessionId = :sessionId")
     suspend fun deleteForSession(sessionId: Long)
 }

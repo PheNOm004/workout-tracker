@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AssistChip
@@ -31,7 +32,7 @@ fun ExerciseDetailSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         LazyColumn(
-            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = Spacing.Large),
+            modifier = Modifier.fillMaxWidth().statusBarsPadding().navigationBarsPadding().padding(horizontal = Spacing.Large),
             verticalArrangement = Arrangement.spacedBy(Spacing.Small),
         ) {
             item {

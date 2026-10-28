@@ -1,6 +1,7 @@
 package com.lsing.timego.data
 
 import androidx.room.withTransaction
+import com.lsing.timego.domain.duplicateSessionGroups
 import com.lsing.timego.data.adaptive.ShadowAuditEntity
 import com.lsing.timego.data.adaptive.ShadowCacheKey
 import com.lsing.timego.data.adaptive.ShadowCacheCompatibility
@@ -101,6 +102,33 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         db.withTransaction {
             db.sessionDao().closeSession(sessionId, endEpochMillis)
             syncRepository.markPending("session", sessionId)
+        }
+    }
+
+    /** Reopens a finished session so a forgotten exercise can be logged into it. */
+    suspend fun reopenSession(sessionId: Long) {
+        db.withTransaction {
+            db.sessionDao().reopen(sessionId)
+            syncRepository.markPending("session", sessionId)
+        }
+    }
+
+    /** Folds each duplicate group (see [duplicateSessionGroups]) into its earliest session: sets move
+     *  over, the end time becomes the latest one, the extra rows are deleted. Idempotent. */
+    suspend fun mergeDuplicateSessions() {
+        val groups = duplicateSessionGroups(db.sessionDao().getAll())
+        for (group in groups) {
+            db.withTransaction {
+                val keep = group.first()
+                for (dup in group.drop(1)) {
+                    db.setLogDao().idsForSession(dup.id).forEach { syncRepository.markPending("set_log", it) }
+                    db.setLogDao().moveToSession(dup.id, keep.id)
+                    db.sessionDao().delete(dup.id)
+                    syncRepository.markDeleted("session", dup.id)
+                }
+                db.sessionDao().closeSession(keep.id, group.maxOf { it.endEpochMillis!! })
+                syncRepository.markPending("session", keep.id)
+            }
         }
     }
 

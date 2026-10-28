@@ -111,6 +111,8 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     var showReports by remember { mutableStateOf(false) }
     var showCloudBackup by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val trainingProfile by remember(context) { com.lsing.timego.profile.ProfileRepository(context.applicationContext).profile }
+        .collectAsStateWithLifecycle(initialValue = com.lsing.timego.profile.TrainingProfile())
     val accountRepository = remember(context) { FirebaseAuthRepository.createIfConfigured(context) }
     val accountViewModel: AccountViewModel = viewModel(key = "account", factory = AccountViewModel.factory(accountRepository))
     val cloudBackupViewModel: CloudBackupViewModel = viewModel(key = "cloud_backup")
@@ -237,6 +239,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             onRestoreBackup = {
                 restoreLauncher.launch(arrayOf("*/*"))
             },
+            trainingProfile = trainingProfile,
             onEditTrainingProfile = {
                 showTrainingProfile = true
             },

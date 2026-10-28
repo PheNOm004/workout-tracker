@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -19,7 +22,7 @@ import com.lsing.timego.ui.theme.Spacing
 @Composable
 fun ReportPreviewSheet(report: WorkoutReport, title: String, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(Spacing.Large), verticalArrangement = Arrangement.spacedBy(Spacing.Small)) {
+        Column(modifier = Modifier.fillMaxWidth().statusBarsPadding().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(Spacing.Large), verticalArrangement = Arrangement.spacedBy(Spacing.Small)) {
             Text(title, style = MaterialTheme.typography.headlineSmall)
             Text("${report.period.start} to ${report.period.endInclusive}", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Metric("Sessions", report.sessionCount.toString())

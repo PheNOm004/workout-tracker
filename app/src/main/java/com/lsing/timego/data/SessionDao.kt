@@ -23,6 +23,12 @@ interface SessionDao {
     @Query("UPDATE workout_sessions SET endEpochMillis = :endEpochMillis WHERE id = :sessionId")
     suspend fun closeSession(sessionId: Long, endEpochMillis: Long)
 
+    @Query("UPDATE workout_sessions SET endEpochMillis = NULL WHERE id = :sessionId")
+    suspend fun reopen(sessionId: Long)
+
+    @Query("SELECT * FROM workout_sessions")
+    suspend fun getAll(): List<WorkoutSession>
+
     @Query("DELETE FROM workout_sessions WHERE id = :sessionId")
     suspend fun delete(sessionId: Long)
 }

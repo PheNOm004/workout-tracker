@@ -220,6 +220,19 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
         }
     }
 
+    val continuePrompt by viewModel.continuePrompt.collectAsStateWithLifecycle()
+    if (continuePrompt != null) {
+        TimeGoDialog(
+            onDismissRequest = viewModel::dismissContinuePrompt,
+            eyebrow = "SESSION",
+            title = "Continue today's session?",
+            confirmButton = { TextButton(onClick = viewModel::continueFinishedSession) { Text("Continue it") } },
+            dismissButton = { TextButton(onClick = viewModel::startNewInstead) { Text("Start new") } },
+        ) {
+            Text("You finished this workout earlier today. Continue it to add a forgotten exercise, or start a separate session.", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+
     androidx.compose.runtime.CompositionLocalProvider(LocalSideModes provides sideModes) {
     AnimatedContent(
         targetState = sessionState,

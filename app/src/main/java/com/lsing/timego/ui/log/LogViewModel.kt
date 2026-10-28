@@ -10,6 +10,7 @@ import com.lsing.timego.data.ExerciseCategory
 import com.lsing.timego.data.LoggingType
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.Routine
+import com.lsing.timego.data.WorkoutSession
 import com.lsing.timego.data.SEED_EXERCISES
 import com.lsing.timego.data.SetLog
 import com.lsing.timego.data.SettingsRepository
@@ -58,6 +59,9 @@ import com.lsing.timego.domain.recommendSynergisticMuscleGroups
 import com.lsing.timego.domain.recommendationHighlightStrengths
 import com.lsing.timego.domain.repRangeAtWeight
 import com.lsing.timego.domain.adjusted
+import com.lsing.timego.domain.continuableSession
+import com.lsing.timego.domain.goalRepRange
+import com.lsing.timego.domain.inferredRoutineLastDone
 import com.lsing.timego.domain.routineLastCompletedDates
 import com.lsing.timego.domain.routinesForToday
 import com.lsing.timego.domain.sessionWorkingSetHistory
@@ -287,6 +291,7 @@ class LogViewModel(
             repository.seedMissingExercises(SEED_EXERCISES)
             catalogueRepository.ensureBundledImported()
             repository.seedMissingRoutines(SEED_ROUTINES)
+            repository.mergeDuplicateSessions()
             // This ViewModel is activity-scoped by the custom root-tab host. Its session state is
             // always collected while Log is STARTED, so subscriber presence is the lifecycle
             // signal that starts all Room/DataStore work and cancels it off-screen/backgrounded.
@@ -324,6 +329,7 @@ class LogViewModel(
                             profileRepository.profile.collect { profile ->
                                 currentTrainingProfile = profile
                                 refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
+                                refreshSuggestions(allExercises, latestSetLogs, latestSessions)
                             }
                         }
                         launch {
@@ -357,7 +363,7 @@ class LogViewModel(
                                 _exerciseLibrary.value = list
                                 latestSetLogs = setLogs
                                 latestSessions = sessions
-                                _routineLastCompleted.value = routineLastCompletedDates(sessions)
+                                refreshRoutineLastCompleted()
                                 val exercisesById = list.associateBy { it.id }
                                 // One full-history usage-frequency pass per emission, shared by
                                 // session state (landing summary) and the picker ranks below --
@@ -390,6 +396,7 @@ class LogViewModel(
                         launch {
                             repository.routines.collect { routineList ->
                                 _routines.value = routineList
+                                refreshRoutineLastCompleted()
                                 if (!hasAutoSelectedTodaysRoutine) {
                                     hasAutoSelectedTodaysRoutine = true
                                     routinesForToday(routineList, LocalDate.now().dayOfWeek).firstOrNull()?.let {
@@ -406,6 +413,7 @@ class LogViewModel(
                             }.collect { byRoutineId ->
                                 _routineExercisesById.value = byRoutineId
                                 routineMemberExerciseIds = byRoutineId.values.flatten().mapTo(mutableSetOf()) { it.id }
+                                refreshRoutineLastCompleted()
                                 refreshLandingSummary(allExercises, latestSetLogs, latestSessions)
                             }
                         }
@@ -500,6 +508,7 @@ class LogViewModel(
                     holdSuggester.suggestNext(historyPerf, currentPerf, exercise.name)?.let { holdMap[exercise.id] = it }
                 } else {
                     val repRange = repRangeFor(exerciseSets, sessionHistory)
+                        ?: goalRepRange(currentTrainingProfile.goal)?.takeIf { exercise.category != ExerciseCategory.CALISTHENICS.name }
                     val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
                     val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
                     val baseSuggestion = suggester.suggestNext(historyPerf, currentPerf, weightIncrementFor(exercise), repRange)
@@ -705,7 +714,18 @@ class LogViewModel(
         viewModelScope.launch { refreshLandingSummary(allExercises, latestSetLogs, latestSessions) }
     }
 
-    fun startSession(routineId: Long?) {
+    /** Set when starting a routine that already has a session finished moments ago today; the UI asks
+     *  whether to continue that session (forgotten exercise) or really start a new one. */
+    private val _continuePrompt = MutableStateFlow<Pair<WorkoutSession, Long?>?>(null)
+    val continuePrompt: StateFlow<Pair<WorkoutSession, Long?>?> = _continuePrompt.asStateFlow()
+
+    fun startSession(routineId: Long?, allowContinue: Boolean = true) {
+        if (allowContinue) {
+            continuableSession(latestSessions, routineId, LocalDate.now(), System.currentTimeMillis())?.let {
+                _continuePrompt.value = it to routineId
+                return
+            }
+        }
         // Coach Memory Phase 1: the pre-session "Choose another" rotation does not carry into a
         // workout; a fresh session starts with a clean recommendation.
         _suggestionExclusions.value = emptySet()
@@ -716,6 +736,39 @@ class LogViewModel(
             selectRoutine(routineId)
             _sessionState.value = SessionUiState.Active(session.id)
         }
+    }
+
+    fun continueFinishedSession() {
+        val (session, routineId) = _continuePrompt.value ?: return
+        _continuePrompt.value = null
+        clearActiveTimer()
+        viewModelScope.launch {
+            repository.reopenSession(session.id)
+            latestSessions = latestSessions.map { if (it.id == session.id) it.copy(endEpochMillis = null) else it }
+            selectRoutine(routineId)
+            _sessionState.value = SessionUiState.Active(session.id)
+        }
+    }
+
+    fun startNewInstead() {
+        val routineId = _continuePrompt.value?.second
+        _continuePrompt.value = null
+        startSession(routineId, allowContinue = false)
+    }
+
+    fun dismissContinuePrompt() { _continuePrompt.value = null }
+
+    private fun refreshRoutineLastCompleted() {
+        val exercisesById = allExercises.associateBy { it.id }
+        // Per program: a freeform session is compared only with routines it could have been recommended
+        // alongside, otherwise another program's near-identical routine would steal the credit.
+        val inferred = _routines.value.groupBy { it.programId to it.tier }.values.flatMap { group ->
+            val steps = _routineExercisesById.value.filterKeys { id -> group.any { it.id == id } }
+            inferredRoutineLastDone(latestSessions, latestSetLogs, steps, exercisesById).entries
+        }.associate { it.key to it.value }
+        _routineLastCompleted.value = (routineLastCompletedDates(latestSessions).entries + inferred.entries)
+            .groupBy({ it.key }, { it.value })
+            .mapValues { (_, dates) -> dates.max() }
     }
 
     fun endActiveSession() {
