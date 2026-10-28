@@ -172,15 +172,7 @@ fun WorkoutHistoryDialog(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = RaisedFill,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-        },
-    ) {
+    TimeGoBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -456,7 +448,7 @@ fun WorkoutHistoryDialog(
 fun StatTile(label: String, value: String, modifier: Modifier = Modifier, caption: String? = null) {
     SurfaceCard(
         modifier = modifier.padding(Spacing.ExtraSmall),
-        cornerRadius = 4.dp,
+        cornerRadius = 18.dp,
     ) {
         Column(modifier = Modifier.padding(Spacing.Medium)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

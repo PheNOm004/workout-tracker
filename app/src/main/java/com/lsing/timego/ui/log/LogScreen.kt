@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.log
 
+import com.lsing.timego.ui.common.LocalDockHeight
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -359,6 +360,9 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     }
 }
 
+/** Space the active-session list reserves while the floating rest bar is showing. */
+private val RestBarClearance = 104.dp
+
 @Composable
 private fun LogLoadingContent() {
     Column(
@@ -470,6 +474,7 @@ private fun LogLandingContent(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
+            .padding(bottom = LocalDockHeight.current)
             .padding(Spacing.Large),
     ) {
         if (isSessionActive) {
@@ -972,22 +977,13 @@ private fun LoggingContent(
     }
 
     androidx.compose.runtime.CompositionLocalProvider(LocalAutoScrollExpandedCard provides false) {
-    Column(modifier = Modifier.fillMaxSize().imePadding()) {
-    androidx.compose.animation.AnimatedVisibility(
-        visible = restTimer != null,
-        enter = androidx.compose.animation.expandVertically(TimeGoMotion.expandEnter) + androidx.compose.animation.fadeIn(TimeGoMotion.fadeEnter),
-        exit = androidx.compose.animation.shrinkVertically(TimeGoMotion.expandExit) + androidx.compose.animation.fadeOut(TimeGoMotion.fadeExit),
-    ) {
-        restTimer?.let { timer ->
-            RestTimerBar(state = timer, onAdjust = viewModel::adjustRest, onDismiss = viewModel::dismissRest)
-        }
-    }
+    Box(modifier = Modifier.fillMaxSize().imePadding()) {
     LazyColumn(
         state = activeListState,
         modifier = Modifier
-            .weight(1f)
+            .fillMaxSize()
             .padding(horizontal = Spacing.Large),
-        contentPadding = PaddingValues(bottom = Spacing.ExtraLarge),
+        contentPadding = PaddingValues(bottom = Spacing.ExtraLarge + LocalDockHeight.current + if (restTimer != null) RestBarClearance else 0.dp),
     ) {
             item(key = "activeHeader") {
                 Text(
@@ -1161,6 +1157,17 @@ private fun LoggingContent(
             item(key = "activeBottomSpacer") {
                 Spacer(modifier = Modifier.height(Spacing.ExtraLarge))
             }
+        }
+        // Keeps the last timer so the bar can finish its exit animation after the state clears.
+        var lastRestTimer by remember { mutableStateOf<com.lsing.timego.domain.RestTimerState?>(null) }
+        if (restTimer != null) lastRestTimer = restTimer
+        androidx.compose.animation.AnimatedVisibility(
+            visible = restTimer != null,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = LocalDockHeight.current),
+            enter = androidx.compose.animation.slideInVertically(TimeGoMotion.navigationInOffset) { it } + androidx.compose.animation.fadeIn(TimeGoMotion.fadeEnter),
+            exit = androidx.compose.animation.slideOutVertically(TimeGoMotion.navigationOutOffset) { it } + androidx.compose.animation.fadeOut(TimeGoMotion.fadeExit),
+        ) {
+            lastRestTimer?.let { RestTimerBar(state = it, onAdjust = viewModel::adjustRest, onDismiss = viewModel::dismissRest) }
         }
     }
     }
@@ -1540,7 +1547,6 @@ private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Compos
 
     SurfaceCard(
         hero = expanded,
-        cornerRadius = 10.dp,
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize(animationSpec = TimeGoMotion.expandEnter)

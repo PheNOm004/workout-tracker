@@ -35,7 +35,7 @@ import com.lsing.timego.ui.theme.TimeGoMotion
 fun ExpandChevron(expanded: Boolean, modifier: Modifier = Modifier) {
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
-        animationSpec = tween(280, easing = EaseInOut),
+        animationSpec = TimeGoMotion.rotate,
         label = "chevronRotation",
     )
     Icon(
@@ -56,7 +56,6 @@ fun ExpandableCard(
 ) {
     SurfaceCard(
         hero = expanded,
-        cornerRadius = 10.dp,
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize(animationSpec = TimeGoMotion.expandEnter)

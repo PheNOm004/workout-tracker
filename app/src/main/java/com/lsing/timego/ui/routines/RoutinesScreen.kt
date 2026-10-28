@@ -1,5 +1,7 @@
 package com.lsing.timego.ui.routines
 
+import androidx.compose.foundation.layout.PaddingValues
+import com.lsing.timego.ui.common.LocalDockHeight
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -302,7 +304,10 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
         },
         label = "programsPageTransition",
     ) { onPreinstalledPage ->
-        LazyColumn(modifier = Modifier.padding(Spacing.Large)) {
+        LazyColumn(
+            modifier = Modifier.padding(horizontal = Spacing.Large),
+            contentPadding = PaddingValues(top = Spacing.Large, bottom = Spacing.Large + LocalDockHeight.current),
+        ) {
             item {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -388,7 +393,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                     )
                 }
                 item(key = "preinstalledEntry") {
-                    SurfaceCard(modifier = Modifier.fillMaxWidth().padding(top = Spacing.Large, bottom = 4.dp), cornerRadius = 10.dp) {
+                    SurfaceCard(modifier = Modifier.fillMaxWidth().padding(top = Spacing.Large, bottom = 4.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier

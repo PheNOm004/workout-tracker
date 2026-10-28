@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.common
 
+import com.lsing.timego.ui.theme.TimeGoMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.tween
@@ -52,7 +53,7 @@ import java.util.Locale
  *  coupling, takes only a plain [ratios] map, so it serves TimeGo's consistency heatmap unchanged.
  *  Renders either "Last 18 weeks" (fills screen width, no scroll) or the full current calendar
  *  year (horizontally scrollable, auto-scrolled to today). Week columns are Monday-start.
- *  Transition glides smoothly both ways using EaseInOut curves matching the app's physical design language.
+ *  Transitions use the shared spring motion vocabulary.
  *  [lightColor]/[darkColor] color the completion lerp. A date absent from [ratios] (no session
  *  logged / before the app existed) renders the same neutral gray as a real 0% ratio.
  *  [onDateClick], when non-null, makes every past/today dot tappable (future dates never are,
@@ -75,8 +76,8 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
     val weeksInYear = ((LocalDate.of(today.year, 12, 31).toEpochDay() - yearStartMonday.toEpochDay()) / 7 + 1).toInt()
     val todayWeekIndex = ((currentWeekMonday.toEpochDay() - yearStartMonday.toEpochDay()) / 7).toInt()
     val scrollState = rememberScrollState()
-    val glide = tween<Float>(durationMillis = 480, easing = EaseInOut)
-    val sizeGlide = tween<IntSize>(durationMillis = 480, easing = EaseInOut)
+    val glide = TimeGoMotion.contentEnter
+    val sizeGlide = TimeGoMotion.expandEnter
     val spacing = 3.dp
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp)) {

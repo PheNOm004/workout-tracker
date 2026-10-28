@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.progress
 
+import com.lsing.timego.ui.common.LocalDockHeight
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -147,7 +148,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     if (!isHydrated) {
         LazyColumn(
             modifier = Modifier.padding(horizontal = Spacing.Large),
-            contentPadding = PaddingValues(bottom = Spacing.Large),
+            contentPadding = PaddingValues(bottom = Spacing.Large + LocalDockHeight.current),
         ) {
             item {
                 Text(
@@ -205,7 +206,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             LazyColumn(
                 state = if (segment == ProgressSegment.TRAINING) trainingListState else bodyListState,
                 modifier = Modifier.padding(horizontal = Spacing.Large).imePadding(),
-                contentPadding = PaddingValues(bottom = Spacing.Large),
+                contentPadding = PaddingValues(bottom = Spacing.Large + LocalDockHeight.current),
             ) {
                 item {
                     Text(

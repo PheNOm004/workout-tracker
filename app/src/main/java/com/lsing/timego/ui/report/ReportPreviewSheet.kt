@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.report
 
+import com.lsing.timego.ui.common.TimeGoBottomSheet
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,7 +22,7 @@ import com.lsing.timego.ui.theme.Spacing
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportPreviewSheet(report: WorkoutReport, title: String, onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    TimeGoBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().statusBarsPadding().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(Spacing.Large), verticalArrangement = Arrangement.spacedBy(Spacing.Small)) {
             Text(title, style = MaterialTheme.typography.headlineSmall)
             Text("${report.period.start} to ${report.period.endInclusive}", color = MaterialTheme.colorScheme.onSurfaceVariant)

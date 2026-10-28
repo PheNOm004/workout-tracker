@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.exercise
 
+import com.lsing.timego.ui.common.TimeGoBottomSheet
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,10 +28,7 @@ fun ExerciseDetailSheet(
     onShowEasier: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
+    TimeGoBottomSheet(onDismissRequest = onDismiss) {
         LazyColumn(
             modifier = Modifier.fillMaxWidth().statusBarsPadding().navigationBarsPadding().padding(horizontal = Spacing.Large),
             verticalArrangement = Arrangement.spacedBy(Spacing.Small),

@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.common
 
+import com.lsing.timego.ui.theme.TimeGoMotion
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -613,7 +614,7 @@ fun ExerciseSections(
                 }
                 val catChevronRotation by animateFloatAsState(
                     targetValue = if (expanded) 90f else 0f,
-                    animationSpec = androidx.compose.animation.core.tween(280, easing = androidx.compose.animation.core.EaseInOut),
+                    animationSpec = TimeGoMotion.rotate,
                     label = "catChevronRotation",
                 )
                 Column(

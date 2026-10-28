@@ -1,5 +1,6 @@
 ﻿package com.lsing.timego.ui.routines
 
+import com.lsing.timego.ui.common.TimeGoBottomSheet
 import androidx.compose.material3.BottomSheetDefaults
 import com.lsing.timego.ui.theme.RaisedFill
 import com.lsing.timego.ui.theme.EyebrowStyle
@@ -81,15 +82,7 @@ fun SettingsBottomSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = RaisedFill,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.outlineVariant)
-        },
-    ) {
+    TimeGoBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

@@ -11,6 +11,19 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import com.lsing.timego.ui.common.LocalDockHeight
+import com.lsing.timego.ui.common.LocalHazeState
+import com.lsing.timego.ui.common.frosted
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -141,18 +154,27 @@ fun TimeGoNavHost() {
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            TimeGoBottomDock(
-                selectedRoute = selectedRoute,
-                onSelectRoute = { selectedRoute = it },
-            )
-        },
-    ) { innerPadding ->
-        RetainedNavContent(
-            selectedRoute = selectedRoute,
-            modifier = Modifier.padding(innerPadding),
-        )
+    // Content runs under the floating dock so its glass has something to blur; the dock height is shared
+    // so each scrolling screen can pad its last item clear of it.
+    val hazeState = rememberHazeState()
+    var dockHeightPx by remember { mutableIntStateOf(0) }
+    val dockHeight = with(LocalDensity.current) { dockHeightPx.toDp() }
+    Scaffold(contentWindowInsets = WindowInsets.statusBars) { innerPadding ->
+        CompositionLocalProvider(LocalHazeState provides hazeState, LocalDockHeight provides dockHeight) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                RetainedNavContent(
+                    selectedRoute = selectedRoute,
+                    modifier = Modifier.padding(innerPadding).hazeSource(hazeState),
+                )
+                TimeGoBottomDock(
+                    selectedRoute = selectedRoute,
+                    onSelectRoute = { selectedRoute = it },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .onSizeChanged { dockHeightPx = it.height },
+                )
+            }
+        }
     }
 }
 
@@ -192,129 +214,85 @@ private fun RetainedNavContent(
 private fun TimeGoBottomDock(
     selectedRoute: String,
     onSelectRoute: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val selectedIndex = destinations.indexOfRoute(selectedRoute).coerceAtLeast(0)
+    val shape = RoundedCornerShape(32.dp)
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 6.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Surface(
-            shape = RoundedCornerShape(22.dp),
-            color = RaisedFill,
-            tonalElevation = 6.dp,
-            shadowElevation = 8.dp,
+        BoxWithConstraints(
             modifier = Modifier
-                .border(
-                    width = 1.dp,
-                    color = Hairline,
-                    shape = RoundedCornerShape(22.dp),
-                ),
+                .fillMaxWidth()
+                .frosted(shape)
+                .padding(6.dp),
         ) {
-            Box {
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 6.dp, vertical = 6.dp),
-                ) {
-                    val tabWidth = maxWidth / destinations.size
-                    val indicatorOffset by animateDpAsState(
-                        targetValue = tabWidth * selectedIndex,
-                        animationSpec = tween(durationMillis = 260, easing = EaseInOut),
-                        label = "navIndicatorOffset",
-                    )
+            val tabWidth = maxWidth / destinations.size
+            val indicatorX by animateDpAsState(
+                targetValue = tabWidth * selectedIndex,
+                animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
+                label = "navIndicatorOffset",
+            )
 
-                    // Sliding active highlight capsule behind selected tab
-                    Box(
-                        modifier = Modifier
-                            .offset(x = indicatorOffset)
-                            .width(tabWidth)
-                            .height(52.dp)
-                            .padding(horizontal = 4.dp, vertical = 2.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
-                    )
+            // The active pill slides between tabs; its offset is read in the layout phase, so the spring
+            // never recomposes the dock.
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(indicatorX.roundToPx(), 0) }
+                    .width(tabWidth)
+                    .height(56.dp)
+                    .padding(horizontal = 4.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+            )
 
-                    // Sliding top precision notch on active tab
-                    Box(
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                destinations.forEach { destination ->
+                    val isSelected = selectedRoute == destination.route
+                    val contentColor by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        label = "navColor",
+                    )
+                    val interactionSource = remember { MutableInteractionSource() }
+                    Column(
                         modifier = Modifier
-                            .offset(x = indicatorOffset)
-                            .width(tabWidth)
-                            .padding(top = 1.dp),
-                        contentAlignment = Alignment.TopCenter,
+                            .weight(1f)
+                            .height(56.dp)
+                            .clip(RoundedCornerShape(26.dp))
+                            .tactilePress(interactionSource, pressedScale = 0.94f)
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onClick = { onSelectRoute(destination.route) },
+                            )
+                            .semantics(mergeDescendants = true) {
+                                role = Role.Tab
+                                selected = isSelected
+                                contentDescription = destination.label
+                            },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .width(26.dp)
-                                .height(2.5.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(MaterialTheme.colorScheme.primary),
+                        Icon(
+                            imageVector = destination.icon,
+                            contentDescription = null,
+                            tint = contentColor,
+                            modifier = Modifier.size(22.dp),
                         )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        destinations.forEach { destination ->
-                            val isSelected = selectedRoute == destination.route
-                            val contentColor by animateColorAsState(
-                                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                label = "navColor",
-                            )
-                            val iconScale by animateFloatAsState(
-                                targetValue = if (isSelected) 1.08f else 1.0f,
-                                animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
-                                label = "navIconScale",
-                            )
-
-                            val interactionSource = remember { MutableInteractionSource() }
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(52.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .tactilePress(interactionSource, pressedScale = 0.92f)
-                                    .clickable(
-                                        interactionSource = interactionSource,
-                                        indication = null,
-                                        onClick = { onSelectRoute(destination.route) },
-                                    )
-                                    .semantics(mergeDescendants = true) {
-                                        role = Role.Tab
-                                        selected = isSelected
-                                        contentDescription = destination.label
-                                    },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center,
-                                ) {
-                                    Icon(
-                                        imageVector = destination.icon,
-                                        contentDescription = null,
-                                        tint = contentColor,
-                                        modifier = Modifier
-                                            .size(22.dp)
-                                            .scale(iconScale),
-                                    )
-                                    Text(
-                                        text = destination.label,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 11.sp,
-                                            fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Medium,
-                                        ),
-                                        color = contentColor,
-                                        modifier = Modifier.padding(top = 2.dp),
-                                    )
-                                }
-                            }
-                        }
+                        Text(
+                            text = destination.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = contentColor,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
                     }
                 }
             }

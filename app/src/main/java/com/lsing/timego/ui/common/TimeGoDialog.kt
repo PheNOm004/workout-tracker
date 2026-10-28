@@ -1,5 +1,7 @@
 package com.lsing.timego.ui.common
 
+import com.lsing.timego.ui.theme.TimeGoMotion
+import com.lsing.timego.ui.theme.LocalTimeGoPalette
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.MutableTransitionState
@@ -72,7 +74,7 @@ fun TimeGoDialog(
     headerContent: (@Composable () -> Unit)? = null,
     confirmButton: (@Composable () -> Unit)? = null,
     dismissButton: (@Composable () -> Unit)? = null,
-    cornerRadius: Dp = 16.dp,
+    cornerRadius: Dp = 28.dp,
     properties: DialogProperties = DialogProperties(
         usePlatformDefaultWidth = false,
         decorFitsSystemWindows = false,
@@ -102,8 +104,8 @@ fun TimeGoDialog(
     }
 
     val scrimAlpha by animateFloatAsState(
-        targetValue = if (transitionState.targetState) 0.65f else 0f,
-        animationSpec = tween(durationMillis = 260, easing = EaseInOut),
+        targetValue = if (transitionState.targetState) 1f else 0f,
+        animationSpec = tween(durationMillis = 200),
         label = "dialogScrimAlpha",
     )
 
@@ -115,11 +117,12 @@ fun TimeGoDialog(
         },
         properties = properties,
     ) {
+        BlurBehindWindow()
         CompositionLocalProvider(LocalTimeGoDialogDismiss provides animateAndDismiss) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = scrimAlpha))
+                    .background(LocalTimeGoPalette.current.scrim.copy(alpha = LocalTimeGoPalette.current.scrim.alpha * scrimAlpha))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -131,17 +134,13 @@ fun TimeGoDialog(
                 AnimatedVisibility(
                     visibleState = transitionState,
                     enter = scaleIn(
-                        animationSpec = tween(durationMillis = 280, easing = EaseInOut),
-                        initialScale = 0.90f,
-                    ) + fadeIn(
-                        animationSpec = tween(durationMillis = 240, easing = EaseInOut),
-                    ),
+                        animationSpec = TimeGoMotion.contentEnter,
+                        initialScale = 0.92f,
+                    ) + fadeIn(TimeGoMotion.fadeEnter),
                     exit = scaleOut(
-                        animationSpec = tween(durationMillis = 240, easing = EaseInOut),
-                        targetScale = 0.90f,
-                    ) + fadeOut(
-                        animationSpec = tween(durationMillis = 200, easing = EaseInOut),
-                    ),
+                        animationSpec = TimeGoMotion.contentExit,
+                        targetScale = 0.96f,
+                    ) + fadeOut(TimeGoMotion.fadeExit),
                 ) {
                     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
                     SurfaceCard(

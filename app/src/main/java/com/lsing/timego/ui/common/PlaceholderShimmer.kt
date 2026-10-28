@@ -140,7 +140,6 @@ fun ConsistencyHeatmapSkeleton(modifier: Modifier = Modifier) {
         SectionHeader("Consistency", topPadding = Spacing.ExtraSmall)
         SurfaceCard(
             modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
-            cornerRadius = 8.dp,
         ) {
             Column(modifier = Modifier.padding(Spacing.Medium)) {
                 // Header month labels
@@ -257,7 +256,6 @@ fun MuscleDistributionSkeleton(modifier: Modifier = Modifier) {
         SurfaceCard(
             modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
             hero = true,
-            cornerRadius = 8.dp,
         ) {
             Column(
                 modifier = Modifier
@@ -381,7 +379,7 @@ private fun StatTileSkeleton(
 ) {
     SurfaceCard(
         modifier = modifier,
-        cornerRadius = 4.dp,
+        cornerRadius = 18.dp,
     ) {
         Column(modifier = Modifier.padding(Spacing.Medium)) {
             Text(
@@ -436,7 +434,6 @@ fun ExercisePerformanceSkeleton(modifier: Modifier = Modifier) {
         SurfaceCard(
             modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
             hero = true,
-            cornerRadius = 8.dp,
         ) {
             Column(modifier = Modifier.padding(Spacing.Medium)) {
                 ShimmerLine(width = 130.dp, height = 12.dp)
@@ -521,7 +518,6 @@ fun RoutineCardSkeleton(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = Spacing.Small),
-        cornerRadius = 10.dp,
     ) {
         Row(
             modifier = Modifier

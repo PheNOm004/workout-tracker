@@ -114,12 +114,12 @@ fun ActiveWorkoutSection(
                 val selected = exerciseId == selectedExerciseId
                 val rowColor by animateColorAsState(
                     targetValue = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface,
-                    animationSpec = tween(durationMillis = 280, easing = EaseInOut),
+                    animationSpec = TimeGoMotion.colorFade,
                     label = "activeExerciseRowColor",
                 )
                 val rowScale by animateFloatAsState(
                     targetValue = if (selected) 1.015f else 1f,
-                    animationSpec = tween(durationMillis = 280, easing = EaseInOut),
+                    animationSpec = TimeGoMotion.rotate,
                     label = "activeExerciseRowScale",
                 )
 

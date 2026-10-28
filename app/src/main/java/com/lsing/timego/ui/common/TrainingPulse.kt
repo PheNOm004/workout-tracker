@@ -46,7 +46,7 @@ fun TrainingPulse(
     )
     val glowAlpha by animateFloatAsState(
         targetValue = if (isBursting) 0.14f else 0f,
-        animationSpec = tween(durationMillis = 240, easing = EaseInOut),
+        animationSpec = TimeGoMotion.fadeEnter,
         label = "training pulse glow",
     )
 
