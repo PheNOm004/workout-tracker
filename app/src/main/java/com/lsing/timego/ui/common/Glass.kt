@@ -21,6 +21,13 @@ val LocalHazeState = compositionLocalOf<HazeState?> { null }
  *  can always scroll clear of the dock, while the rest of the list passes underneath it. */
 val LocalDockHeight = compositionLocalOf { 0.dp }
 
+/** Bottom space the full rest-timer bar currently occupies above the dock (zero when it is hidden or a chip). */
+val LocalRestClearance = compositionLocalOf { 0.dp }
+
+/** True while the rest bar is expanded over a non-Log tab; floating controls (e.g. Progress's segment selector)
+ *  hide while it covers their spot. */
+val LocalRestBarCovering = compositionLocalOf { false }
+
 /**
  * Frosted glass: blurs the content behind it and tints it with the palette's glass colour. Reserved for
  * the few transient, floating surfaces (bottom dock, rest timer). Below Android 12 there is no render-

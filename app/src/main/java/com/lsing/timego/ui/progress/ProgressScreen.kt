@@ -1,5 +1,16 @@
 package com.lsing.timego.ui.progress
 
+import com.lsing.timego.ui.common.ChartSummary
+import androidx.compose.ui.graphics.Color
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.runtime.CompositionLocalProvider
+import com.lsing.timego.ui.common.frosted
+import com.lsing.timego.ui.common.LocalRestBarCovering
+import com.lsing.timego.ui.common.LocalHazeState
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import com.lsing.timego.ui.theme.Hairline
 import com.lsing.timego.ui.theme.RaisedFill
 import com.lsing.timego.ui.common.LocalDockHeight
@@ -190,8 +201,11 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
         )
     }
 
+    // The selector floats inside the app-wide blur source, so it blurs the list through its own state.
+    val selectorHaze = rememberHazeState()
     Box(modifier = Modifier.fillMaxSize()) {
         AnimatedContent(
+            modifier = Modifier.hazeSource(selectorHaze),
             targetState = selectedSegment,
             transitionSpec = {
                 val movingForward = targetState.ordinal > initialState.ordinal
@@ -401,7 +415,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
 
                                                 Text(
                                                     "Strength Progression Curve",
-                                                    style = MaterialTheme.typography.labelMedium,
+                                                    style = MaterialTheme.typography.titleSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                                 )
@@ -421,7 +435,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                         Column(modifier = Modifier.padding(Spacing.Medium)) {
                                             Text(
                                                 "Exercise Strength Progression",
-                                                style = MaterialTheme.typography.labelMedium,
+                                                style = MaterialTheme.typography.titleSmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                             )
@@ -457,7 +471,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                         Column(modifier = Modifier.padding(Spacing.Medium)) {
                                             Text(
                                                 "${muscleGroup?.let { formatEnumLabel(it) } ?: "Muscle Group"} Strength Progression",
-                                                style = MaterialTheme.typography.labelMedium,
+                                                style = MaterialTheme.typography.titleSmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                             )
@@ -528,9 +542,10 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                         modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                     ) {
                         Column(modifier = Modifier.padding(Spacing.Medium)) {
+                            ChartSummary(weightCurve, unit = "kg", higherIsBetter = null, modifier = Modifier.padding(bottom = Spacing.Small))
                             SparklineChart(
                                 weightCurve,
-                                modifier = Modifier.fillMaxWidth().height(140.dp).padding(vertical = 4.dp),
+                                modifier = Modifier.fillMaxWidth().height(170.dp),
                             )
                         }
                     }
@@ -676,23 +691,32 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     }
 
     // Floating thumb-friendly Segment Selector at bottom of Progress screen
-    // Sits above the floating dock (LocalDockHeight), never behind it.
-    Surface(
-            shape = RoundedCornerShape(32.dp),
-            color = RaisedFill,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = LocalDockHeight.current + 8.dp)
-                .border(width = 1.dp, color = Hairline, shape = RoundedCornerShape(32.dp)),
-        ) {
+    // Sits above the floating dock (LocalDockHeight), never behind it, and steps aside while the rest bar is
+    // expanded over this tab.
+    AnimatedVisibility(
+        visible = !LocalRestBarCovering.current,
+        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = LocalDockHeight.current + 8.dp),
+        enter = fadeIn(TimeGoMotion.fadeEnter) + slideInVertically(TimeGoMotion.navigationInOffset) { it / 2 },
+        exit = fadeOut(TimeGoMotion.fadeExit) + slideOutVertically(TimeGoMotion.navigationOutOffset) { it / 2 },
+    ) {
+        CompositionLocalProvider(LocalHazeState provides selectorHaze) {
+            val accent = MaterialTheme.colorScheme.primary
             SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                modifier = Modifier.frosted(RoundedCornerShape(32.dp)).padding(horizontal = 6.dp, vertical = 4.dp),
             ) {
                 ProgressSegment.entries.forEachIndexed { index, segment ->
                     SegmentedButton(
                         selected = selectedSegment == segment,
                         onClick = { viewModel.selectSegment(segment) },
                         shape = SegmentedButtonDefaults.itemShape(index = index, count = ProgressSegment.entries.size),
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = accent.copy(alpha = 0.2f),
+                            activeContentColor = accent,
+                            activeBorderColor = accent.copy(alpha = 0.4f),
+                            inactiveContainerColor = Color.Transparent,
+                            inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            inactiveBorderColor = Color.Transparent,
+                        ),
                     ) {
                         Text(segment.label)
                     }
@@ -700,6 +724,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             }
         }
     }
+}
 }
 
 private val SegmentSelectorClearance = 64.dp
@@ -723,10 +748,13 @@ private fun AnimatedStrengthCurve(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            SparklineChart(
-                visibleCurve,
-                modifier = Modifier.fillMaxWidth().height(150.dp).padding(vertical = 4.dp),
-            )
+            Column {
+                ChartSummary(visibleCurve, unit = "kg", modifier = Modifier.padding(bottom = Spacing.Small))
+                SparklineChart(
+                    visibleCurve,
+                    modifier = Modifier.fillMaxWidth().height(180.dp),
+                )
+            }
         }
     }
 }

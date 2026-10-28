@@ -14,12 +14,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -35,6 +41,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lsing.timego.domain.RestTimerState
@@ -48,11 +55,55 @@ import com.lsing.timego.ui.theme.PlateYellow
 import com.lsing.timego.ui.theme.TimeGoMotion
 import kotlinx.coroutines.delay
 
+/** Space a screen reserves at its bottom while the full rest bar is showing above the dock. */
+val RestBarClearance = 104.dp
+
+/** Whole seconds left, negative once over. Emits only when the second changes, so readers recompose once per
+ *  second rather than on every poll tick. */
+@Composable
+private fun rememberRestRemaining(state: RestTimerState): State<Int> =
+    produceState(state.remainingSeconds(System.currentTimeMillis()), state) {
+        while (true) {
+            value = state.remainingSeconds(System.currentTimeMillis())
+            delay(250)
+        }
+    }
+
+/** The countdown ring with the clock inside: drains as rest elapses, fills amber once over. */
+@Composable
+private fun RestRing(remaining: Int, totalSeconds: Int, size: Dp, fontSize: Int, modifier: Modifier = Modifier) {
+    val over = remaining <= 0
+    val remainingFraction by animateFloatAsState(
+        targetValue = (remaining.toFloat() / totalSeconds).coerceIn(0f, 1f),
+        animationSpec = TimeGoMotion.settle,
+        label = "restRemaining",
+    )
+    val ringColor = if (over) PlateYellow else PlateBlue
+    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
+    Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.size(size)) {
+            val stroke = Stroke(width = (size.toPx() / 11.6f), cap = StrokeCap.Round)
+            val inset = stroke.width / 2f
+            val arcSize = Size(this.size.width - stroke.width, this.size.height - stroke.width)
+            drawArc(trackColor, 0f, 360f, false, Offset(inset, inset), arcSize, style = stroke)
+            drawArc(ringColor, -90f, if (over) 360f else 360f * remainingFraction, false, Offset(inset, inset), arcSize, style = stroke)
+        }
+        Text(
+            formatRestClock(remaining),
+            style = LedgerFigureEmphasis.copy(fontSize = fontSize.sp),
+            color = if (over) PlateYellow else MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
 /**
  * Floating rest timer, docked above the bottom bar so it sits under the thumb and overlays the list
  * instead of pushing it. Collapsed it is a ring with the countdown, a label and Skip; tapping the bar
  * expands a second row with large -15s / +15s buttons. Past zero the ring fills amber and it reads
  * "Rest over", counting the overrun, which doubles as time-since-last-set.
+ *
+ * [onMinimize], when set, adds a button that shrinks the bar back to the [RestTimerChip].
  */
 @Composable
 fun RestTimerBar(
@@ -60,24 +111,12 @@ fun RestTimerBar(
     onAdjust: (deltaSeconds: Int) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    onMinimize: (() -> Unit)? = null,
 ) {
-    // Emits whole seconds only, so the bar recomposes once per second rather than on every poll tick.
-    val remaining by produceState(state.remainingSeconds(System.currentTimeMillis()), state) {
-        while (true) {
-            value = state.remainingSeconds(System.currentTimeMillis())
-            delay(250)
-        }
-    }
+    val remaining by rememberRestRemaining(state)
     val over = remaining <= 0
     var expanded by rememberSaveable { mutableStateOf(false) }
-    val remainingFraction by animateFloatAsState(
-        targetValue = (remaining.toFloat() / state.totalSeconds).coerceIn(0f, 1f),
-        animationSpec = TimeGoMotion.settle,
-        label = "restRemaining",
-    )
     val toggleSource = remember { MutableInteractionSource() }
-    val ringColor = if (over) PlateYellow else PlateBlue
-    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
     val clock = formatRestClock(remaining)
 
     Column(
@@ -97,21 +136,7 @@ fun RestTimerBar(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(modifier = Modifier.size(58.dp), contentAlignment = Alignment.Center) {
-                Canvas(modifier = Modifier.size(58.dp)) {
-                    val stroke = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
-                    val inset = stroke.width / 2f
-                    val arcSize = Size(size.width - stroke.width, size.height - stroke.width)
-                    drawArc(trackColor, 0f, 360f, false, Offset(inset, inset), arcSize, style = stroke)
-                    drawArc(ringColor, -90f, if (over) 360f else 360f * remainingFraction, false, Offset(inset, inset), arcSize, style = stroke)
-                }
-                Text(
-                    clock,
-                    style = LedgerFigureEmphasis.copy(fontSize = 14.sp),
-                    color = if (over) PlateYellow else MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                )
-            }
+            RestRing(remaining, state.totalSeconds, size = 58.dp, fontSize = 14)
             Column(modifier = Modifier.weight(1f)) {
                 Text(if (over) "Rest over" else "Rest", style = MaterialTheme.typography.titleMedium)
                 Text(
@@ -119,6 +144,11 @@ fun RestTimerBar(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            if (onMinimize != null) {
+                IconButton(onClick = onMinimize) {
+                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Minimise rest timer")
+                }
             }
             Button(onClick = onDismiss, modifier = Modifier.height(44.dp)) { Text(if (over) "Done" else "Skip") }
         }
@@ -128,5 +158,25 @@ fun RestTimerBar(
                 FilledTonalButton(onClick = { onAdjust(15) }, modifier = Modifier.weight(1f).height(44.dp)) { Text("+15s") }
             }
         }
+    }
+}
+
+/** The rest timer shrunk to a frosted circle (ring + clock) for when you are away from the Log tab. Tap to expand. */
+@Composable
+fun RestTimerChip(state: RestTimerState, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val remaining by rememberRestRemaining(state)
+    val source = remember { MutableInteractionSource() }
+    val clock = formatRestClock(remaining)
+    Box(
+        modifier = modifier
+            .size(72.dp)
+            .padding(8.dp)
+            .frosted(CircleShape)
+            .tactilePress(source, pressedScale = 0.92f)
+            .clickable(interactionSource = source, indication = null, onClickLabel = "Show rest timer", onClick = onClick)
+            .semantics { contentDescription = if (remaining <= 0) "Rest over, $clock" else "Resting, $clock left" },
+        contentAlignment = Alignment.Center,
+    ) {
+        RestRing(remaining, state.totalSeconds, size = 52.dp, fontSize = 11)
     }
 }

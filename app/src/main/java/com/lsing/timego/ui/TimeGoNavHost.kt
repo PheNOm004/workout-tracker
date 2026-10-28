@@ -1,5 +1,17 @@
 package com.lsing.timego.ui
 
+import com.lsing.timego.ui.common.LocalRestClearance
+import com.lsing.timego.ui.common.LocalRestBarCovering
+import com.lsing.timego.ui.log.RestTimerChip
+import com.lsing.timego.ui.log.RestTimerBar
+import com.lsing.timego.ui.log.RestBarClearance
+import com.lsing.timego.ui.log.LogViewModel
+import com.lsing.timego.domain.RestTimerState
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.SizeTransform
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedContent
@@ -159,12 +171,32 @@ fun TimeGoNavHost() {
     val hazeState = rememberHazeState()
     var dockHeightPx by remember { mutableIntStateOf(0) }
     val dockHeight = with(LocalDensity.current) { dockHeightPx.toDp() }
+    // The rest timer belongs to the whole app, not the Log tab: full bar on Log, a corner circle elsewhere.
+    val logViewModel: LogViewModel = viewModel()
+    val restTimer by logViewModel.restTimer.collectAsStateWithLifecycle()
+    var restExpandedOffLog by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(selectedRoute, restTimer == null) { restExpandedOffLog = false }
+    val restBarShowing = restTimer != null && (selectedRoute == "log" || restExpandedOffLog)
     Scaffold(contentWindowInsets = WindowInsets.statusBars) { innerPadding ->
-        CompositionLocalProvider(LocalHazeState provides hazeState, LocalDockHeight provides dockHeight) {
+        CompositionLocalProvider(
+            LocalHazeState provides hazeState,
+            LocalDockHeight provides dockHeight,
+            LocalRestClearance provides if (restBarShowing) RestBarClearance else 0.dp,
+            LocalRestBarCovering provides (restBarShowing && selectedRoute != "log"),
+        ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 RetainedNavContent(
                     selectedRoute = selectedRoute,
                     modifier = Modifier.padding(innerPadding).hazeSource(hazeState),
+                )
+                RestTimerOverlay(
+                    timer = restTimer,
+                    onLogTab = selectedRoute == "log",
+                    expandedOffLog = restExpandedOffLog,
+                    onExpandedOffLogChange = { restExpandedOffLog = it },
+                    onAdjust = logViewModel::adjustRest,
+                    onDismiss = logViewModel::dismissRest,
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = dockHeight),
                 )
                 TimeGoBottomDock(
                     selectedRoute = selectedRoute,
@@ -174,6 +206,58 @@ fun TimeGoNavHost() {
                         .onSizeChanged { dockHeightPx = it.height },
                 )
             }
+        }
+    }
+}
+
+private enum class RestOverlayMode { Hidden, Chip, Bar }
+
+/** Hosts the rest timer above the dock: the full bar on the Log tab (or when expanded), a circle at the lower
+ *  left elsewhere. Morphs between the two with a spring scale from the bottom-left corner. */
+@Composable
+private fun RestTimerOverlay(
+    timer: RestTimerState?,
+    onLogTab: Boolean,
+    expandedOffLog: Boolean,
+    onExpandedOffLogChange: (Boolean) -> Unit,
+    onAdjust: (Int) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Keep the last timer so the exit animation still has something to draw after the state clears.
+    var lastTimer by remember { mutableStateOf<RestTimerState?>(null) }
+    if (timer != null) lastTimer = timer
+    val mode = when {
+        timer == null -> RestOverlayMode.Hidden
+        onLogTab || expandedOffLog -> RestOverlayMode.Bar
+        else -> RestOverlayMode.Chip
+    }
+    val origin = TransformOrigin(0f, 1f)
+    AnimatedContent(
+        targetState = mode,
+        modifier = modifier,
+        contentAlignment = Alignment.BottomStart,
+        transitionSpec = {
+            (fadeIn(TimeGoMotion.fadeEnter) + scaleIn(TimeGoMotion.contentEnter, initialScale = 0.7f, transformOrigin = origin)) togetherWith
+                (fadeOut(TimeGoMotion.fadeExit) + scaleOut(TimeGoMotion.contentExit, targetScale = 0.7f, transformOrigin = origin)) using
+                SizeTransform(clip = false)
+        },
+        label = "restOverlay",
+    ) { current ->
+        val shown = lastTimer
+        when {
+            current == RestOverlayMode.Hidden || shown == null -> Spacer(Modifier.size(0.dp))
+            current == RestOverlayMode.Chip -> RestTimerChip(
+                state = shown,
+                onClick = { onExpandedOffLogChange(true) },
+                modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
+            )
+            else -> RestTimerBar(
+                state = shown,
+                onAdjust = onAdjust,
+                onDismiss = onDismiss,
+                onMinimize = if (onLogTab) null else ({ onExpandedOffLogChange(false) }),
+            )
         }
     }
 }

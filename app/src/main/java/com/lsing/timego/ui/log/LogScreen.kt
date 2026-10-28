@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.log
 
+import com.lsing.timego.ui.common.LocalRestClearance
 import com.lsing.timego.ui.common.regionLabelsFor
 import androidx.compose.runtime.CompositionLocalProvider
 import com.lsing.timego.ui.common.LocalHazeState
@@ -369,9 +370,6 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     }
 }
 
-/** Space the active-session list reserves while the floating rest bar is showing. */
-private val RestBarClearance = 104.dp
-
 @Composable
 private fun LogLoadingContent() {
     Column(
@@ -483,7 +481,7 @@ private fun LogLandingContent(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(bottom = LocalDockHeight.current)
+            .padding(bottom = LocalDockHeight.current + LocalRestClearance.current)
             .padding(Spacing.Large),
     ) {
         if (isSessionActive) {
@@ -1003,17 +1001,13 @@ private fun LoggingContent(
     }
 
     androidx.compose.runtime.CompositionLocalProvider(LocalAutoScrollExpandedCard provides false) {
-    // The rest bar blurs the session list directly. It lives inside the app-wide blur source the dock uses,
-    // and Haze cannot blur a surface from a source that contains it, so it gets its own source/state.
-    val restHaze = rememberHazeState()
     Box(modifier = Modifier.fillMaxSize().imePadding()) {
     LazyColumn(
         state = activeListState,
         modifier = Modifier
             .fillMaxSize()
-            .hazeSource(restHaze)
             .padding(horizontal = Spacing.Large),
-        contentPadding = PaddingValues(bottom = Spacing.ExtraLarge + LocalDockHeight.current + if (restTimer != null) RestBarClearance else 0.dp),
+        contentPadding = PaddingValues(bottom = Spacing.ExtraLarge + LocalDockHeight.current + LocalRestClearance.current),
     ) {
             item(key = "activeHeader") {
                 Text(
@@ -1186,19 +1180,6 @@ private fun LoggingContent(
             }
             item(key = "activeBottomSpacer") {
                 Spacer(modifier = Modifier.height(Spacing.ExtraLarge))
-            }
-        }
-        // Keeps the last timer so the bar can finish its exit animation after the state clears.
-        var lastRestTimer by remember { mutableStateOf<com.lsing.timego.domain.RestTimerState?>(null) }
-        if (restTimer != null) lastRestTimer = restTimer
-        androidx.compose.animation.AnimatedVisibility(
-            visible = restTimer != null,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = LocalDockHeight.current),
-            enter = androidx.compose.animation.slideInVertically(TimeGoMotion.navigationInOffset) { it } + androidx.compose.animation.fadeIn(TimeGoMotion.fadeEnter),
-            exit = androidx.compose.animation.slideOutVertically(TimeGoMotion.navigationOutOffset) { it } + androidx.compose.animation.fadeOut(TimeGoMotion.fadeExit),
-        ) {
-            CompositionLocalProvider(LocalHazeState provides restHaze) {
-                lastRestTimer?.let { RestTimerBar(state = it, onAdjust = viewModel::adjustRest, onDismiss = viewModel::dismissRest) }
             }
         }
     }
