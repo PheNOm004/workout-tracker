@@ -471,6 +471,8 @@ private fun CroppedMuscleHalf(
                 val color = when {
                     !isHighlighted && showNeutralContext -> neutralColor
                     !isHighlighted -> return@forEach
+                    intensity != null && intensity > 0f && shape.muscleGroup?.name in groupColors ->
+                        groupColors.getValue(shape.muscleGroup!!.name).copy(alpha = (0.4f + 0.6f * intensity).coerceIn(0.4f, 1f))
                     intensity != null && intensity > 0f ->
                         hexToColor(recolorByLightness(heatColor(intensity), shape.lightness))
                     else -> (shape.muscleGroup?.name?.let(groupColors::get) ?: accentColor).copy(

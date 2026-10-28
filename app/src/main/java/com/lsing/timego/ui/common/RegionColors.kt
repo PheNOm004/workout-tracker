@@ -66,6 +66,14 @@ fun muscleGroupColor(group: String, hasBackMuscles: Boolean = false): Color {
     }
 }
 
+/** The distinct body regions a set of muscle groups touches, in the usual chest-to-core order. */
+fun regionLabelsFor(groups: Collection<String>): List<String> {
+    val hasBack = groups.any {
+        it == MuscleGroup.LATS.name || it == MuscleGroup.UPPER_BACK.name || it == MuscleGroup.LOWER_BACK.name || it == MuscleGroup.TRAPS.name
+    }
+    return groups.mapNotNull { sessionDisplayRegion(it, hasBack) }.distinct().sortedBy { it.ordinal }.map { it.label }
+}
+
 /** A region name with its plate-colour dot. */
 @Composable
 fun RegionChip(label: String, modifier: Modifier = Modifier) {

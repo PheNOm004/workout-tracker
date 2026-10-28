@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.log
 
+import com.lsing.timego.ui.common.regionLabelsFor
 import androidx.compose.runtime.CompositionLocalProvider
 import com.lsing.timego.ui.common.LocalHazeState
 import dev.chrisbanes.haze.rememberHazeState
@@ -830,13 +831,19 @@ private fun LogLandingContent(
                         accentColor = MaterialTheme.colorScheme.tertiary,
                         highlightGroups = summary.lastSession.muscleGroups,
                         showNeutralContext = true,
+                        colorByRegion = true,
                         modifier = Modifier.fillMaxWidth().heightIn(max = 130.dp).padding(top = Spacing.Small),
                     )
                     if (summary.lastSession.muscleGroups.isNotEmpty()) {
-                        MuscleHeatLegend(
-                            detailColor = MaterialTheme.colorScheme.surfaceVariant,
-                            periodLabel = "this session",
-                            modifier = Modifier.padding(top = Spacing.ExtraSmall),
+                        RegionChipRow(
+                            regionLabelsFor(summary.lastSession.muscleGroups),
+                            modifier = Modifier.padding(top = Spacing.Small),
+                        )
+                        Text(
+                            "Brighter means more work this session.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = Spacing.Small),
                         )
                     }
                 }
