@@ -293,7 +293,7 @@ private fun ReviewRow(label: String, value: Any?, onChange: () -> Unit) {
 /** Single-choice question as full-width rows with a one-line explanation, easier to read and tap than chips. */
 @Composable
 private fun <T : Any> OptionList(options: List<T>, selected: T?, onSelect: (T) -> Unit) {
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(16.dp)
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.Small)) {
         options.forEach { option ->
             val isSelected = option == selected

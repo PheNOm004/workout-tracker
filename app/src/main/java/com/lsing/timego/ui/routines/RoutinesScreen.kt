@@ -1,5 +1,13 @@
 package com.lsing.timego.ui.routines
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.sp
+import com.lsing.timego.ui.theme.LedgerFigureValue
+import com.lsing.timego.ui.common.exerciseDisplayRegion
+import com.lsing.timego.ui.common.regionColor
+import com.lsing.timego.ui.common.RegionChipRow
+import com.lsing.timego.ui.common.InfoChip
 import androidx.compose.foundation.layout.PaddingValues
 import com.lsing.timego.ui.common.LocalDockHeight
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -478,20 +486,21 @@ private fun RoutineSteps(exercises: List<Exercise>, onOpenDetails: (Exercise) ->
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(28.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 ) {
                     Text(
                         text = (index + 1).toString(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        style = LedgerFigureValue.copy(fontSize = 12.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Text(
                     exercise.name,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(start = Spacing.Small),
+                    modifier = Modifier.weight(1f).padding(start = Spacing.Medium),
                 )
+                Box(Modifier.size(9.dp).clip(CircleShape).background(regionColor(exerciseDisplayRegion(exercise))))
             }
         }
     }
@@ -620,7 +629,7 @@ private fun RoutineBody(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(
                 routine.name,
-                style = LedgerFigureEmphasis,
+                style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f).padding(Spacing.Medium, Spacing.Medium, Spacing.Medium, Spacing.ExtraSmall),
             )
             IconButton(onClick = onEdit) {
@@ -637,39 +646,20 @@ private fun RoutineBody(
                 }
             }
         }
-        FlowRow(modifier = Modifier.padding(Spacing.Small, 0.dp, Spacing.Small, Spacing.Small)) {
+        FlowRow(
+            modifier = Modifier.padding(Spacing.Medium, 0.dp, Spacing.Medium, Spacing.Small),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Small),
+        ) {
             when {
-                routine.daysOfWeek.isEmpty() -> AssistChip(
-                    onClick = {},
-                    leadingIcon = {
-                        Icon(
-                            Icons.Filled.AllInclusive,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    },
-                    label = { Text("Flexible · Any day") },
-                    colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.primary),
-                    border = AssistChipDefaults.assistChipBorder(
-                        enabled = true,
-                        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                    ),
-                    modifier = Modifier.padding(Spacing.ExtraSmall),
-                )
-                routine.daysOfWeek.size >= 7 -> AssistChip(
-                    onClick = {},
-                    label = { Text("Every day (Mon–Sun)") },
-                    modifier = Modifier.padding(Spacing.ExtraSmall),
-                )
-                else -> routine.daysOfWeek.forEach { day ->
-                    AssistChip(
-                        onClick = {},
-                        label = { Text(day.take(3).lowercase().replaceFirstChar(Char::uppercase)) },
-                        modifier = Modifier.padding(Spacing.ExtraSmall),
-                    )
-                }
+                routine.daysOfWeek.isEmpty() -> InfoChip("Flexible · Any day", icon = Icons.Filled.AllInclusive)
+                routine.daysOfWeek.size >= 7 -> InfoChip("Every day (Mon–Sun)")
+                else -> routine.daysOfWeek.forEach { day -> InfoChip(day.take(3).lowercase().replaceFirstChar(Char::uppercase)) }
             }
+        }
+        val regionLabels = remember(steps) { steps.map { exerciseDisplayRegion(it) }.distinct() }
+        if (regionLabels.isNotEmpty()) {
+            RegionChipRow(regionLabels, modifier = Modifier.padding(Spacing.Medium, 0.dp, Spacing.Medium, Spacing.Small))
         }
         if (steps.isNotEmpty()) RoutineSteps(steps, onOpenDetails = onOpenDetails)
     }
