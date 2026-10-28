@@ -9,22 +9,21 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
 /**
  * Keyboard actions for a row of single-line inputs: the Next key moves to the following field, the Done key
- * puts the keyboard away. Pair with `imeAction = ImeAction.Next` (or `Done` on the last field) and `singleLine`,
+ * runs [onDone] (e.g. logs the set) and puts the keyboard away. Pair with `imeAction = ImeAction.Next` (or `Done` on the last field) and `singleLine`,
  * otherwise the Enter key inserts a new line instead.
  */
 @Composable
-fun rememberAdvanceKeyboardActions(): KeyboardActions {
+fun rememberAdvanceKeyboardActions(onDone: (() -> Unit)? = null): KeyboardActions {
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
-    return remember(focus, keyboard) {
-        KeyboardActions(
-            onNext = { focus.moveFocus(FocusDirection.Next) },
-            onDone = {
-                focus.clearFocus()
-                keyboard?.hide()
-            },
-        )
-    }
+    return KeyboardActions(
+        onNext = { focus.moveFocus(FocusDirection.Next) },
+        onDone = {
+            onDone?.invoke()
+            focus.clearFocus()
+            keyboard?.hide()
+        },
+    )
 }
 
 /** Returns an action that drops focus and hides the keyboard (call it after logging a set). */

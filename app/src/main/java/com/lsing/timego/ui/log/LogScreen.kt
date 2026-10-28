@@ -1652,6 +1652,26 @@ private fun StrengthLogRow(
         null
     }
     val canLog = reps != null && validRpe && if (isBodyweight) totalBodyweightLoad != null else enteredWeight != null
+    val dismissKeyboard = rememberDismissKeyboard()
+    val logSet: () -> Unit = {
+        if (isBodyweight) {
+            if (reps != null && enteredWeight != null && totalBodyweightLoad != null) {
+                onLog(totalBodyweightLoad, reps, suggestion?.reps ?: reps, isWarmup, enteredWeight, rpe, targetProvenanceFor(suggestion != null))
+                weightText = ""
+                repsText = ""
+                rpeText = ""
+                isWarmup = false
+                dismissKeyboard()
+            }
+        } else if (enteredWeight != null && reps != null) {
+            onLog(com.lsing.timego.domain.combinedEntryToStored(enteredWeight, combined), reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
+            weightText = ""
+            repsText = ""
+            rpeText = ""
+            isWarmup = false
+            dismissKeyboard()
+        }
+    }
     val visual = categoryVisual(category)
     val suggestionHint = suggestion?.let {
         if (isBodyweight) {
@@ -1761,7 +1781,7 @@ private fun StrengthLogRow(
                         isError = repsText.isNotBlank() && reps == null,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                         keyboardActions = rememberAdvanceKeyboardActions(),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -1780,8 +1800,8 @@ private fun StrengthLogRow(
                         isError = !validRpe,
                         singleLine = true,
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                        keyboardActions = rememberAdvanceKeyboardActions(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                        keyboardActions = rememberAdvanceKeyboardActions(onDone = { if (canLog) logSet() }),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -1839,7 +1859,6 @@ private fun StrengthLogRow(
                     )
                 }
                 val logInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                val dismissKeyboard = rememberDismissKeyboard()
                 val workingSetNumber = currentSessionSets.count { !it.isWarmup } + 1
                 Button(
                     enabled = canLog,
@@ -1850,25 +1869,7 @@ private fun StrengthLogRow(
                         .heightIn(min = 52.dp)
                         .padding(top = Spacing.Small)
                         .tactilePress(logInteractionSource, pressedScale = 0.97f),
-                    onClick = {
-                        if (isBodyweight) {
-                            if (reps != null && enteredWeight != null && totalBodyweightLoad != null) {
-                                onLog(totalBodyweightLoad, reps, suggestion?.reps ?: reps, isWarmup, enteredWeight, rpe, targetProvenanceFor(suggestion != null))
-                                weightText = ""
-                                repsText = ""
-                                rpeText = ""
-                                isWarmup = false
-                                dismissKeyboard()
-                            }
-                        } else if (enteredWeight != null && reps != null) {
-                            onLog(com.lsing.timego.domain.combinedEntryToStored(enteredWeight, combined), reps, suggestion?.reps ?: reps, isWarmup, null, rpe, targetProvenanceFor(suggestion != null))
-                            weightText = ""
-                            repsText = ""
-                            rpeText = ""
-                            isWarmup = false
-                            dismissKeyboard()
-                        }
-                    }
+                    onClick = logSet,
                 ) {
                     Text(
                         if (isWarmup) "Log warmup set" else "Log set $workingSetNumber",
@@ -1905,6 +1906,15 @@ private fun CardioLogRow(
     val duration = durationText.toPositiveFiniteDoubleOrNull()
     val distance = distanceText.toPositiveFiniteDoubleOrNull()
     val validDistance = distanceText.isBlank() || distance != null
+    val dismissKeyboardCardio = rememberDismissKeyboard()
+    val logCardio: () -> Unit = {
+        if (duration != null && validDistance) {
+            onLog(duration, distance)
+            durationText = ""
+            distanceText = ""
+            dismissKeyboardCardio()
+        }
+    }
     val visual = categoryVisual(category)
     val timerOwnsExercise = activeTimer?.exerciseId == exerciseId
     val timerVisible = useTimer || timerOwnsExercise
@@ -1964,7 +1974,7 @@ private fun CardioLogRow(
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                        keyboardActions = rememberAdvanceKeyboardActions(),
+                        keyboardActions = rememberAdvanceKeyboardActions(onDone = logCardio),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -1974,21 +1984,13 @@ private fun CardioLogRow(
                         ),
                         modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                     )
-                    val dismissKeyboardCardio = rememberDismissKeyboard()
                     val cardioLogInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Button(
                         enabled = duration != null && validDistance,
                         shape = RoundedCornerShape(8.dp),
                         interactionSource = cardioLogInteractionSource,
                         modifier = Modifier.tactilePress(cardioLogInteractionSource, pressedScale = 0.94f),
-                        onClick = {
-                            if (duration != null && validDistance) {
-                                onLog(duration, distance)
-                                durationText = ""
-                                distanceText = ""
-                                dismissKeyboardCardio()
-                            }
-                        }
+                        onClick = logCardio,
                     ) {
                         Text("Log", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                     }
@@ -2110,6 +2112,15 @@ private fun HoldLogRow(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     val manualDuration = manualDurationText.toPositiveIntOrNull()
+                    val dismissKeyboardHold = rememberDismissKeyboard()
+                    val logHold: () -> Unit = {
+                        if (manualDuration != null) {
+                            onLog(manualDuration, suggestion?.targetDurationSeconds ?: manualDuration, isWarmup, targetProvenanceFor(suggestion != null))
+                            manualDurationText = ""
+                            isWarmup = false
+                            dismissKeyboardHold()
+                        }
+                    }
                     OutlinedTextField(
                         value = manualDurationText,
                         onValueChange = { manualDurationText = it },
@@ -2118,7 +2129,7 @@ private fun HoldLogRow(
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                        keyboardActions = rememberAdvanceKeyboardActions(),
+                        keyboardActions = rememberAdvanceKeyboardActions(onDone = logHold),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -2128,21 +2139,13 @@ private fun HoldLogRow(
                         ),
                         modifier = Modifier.weight(1f).padding(end = Spacing.Small),
                     )
-                    val dismissKeyboardHold = rememberDismissKeyboard()
                     val holdLogInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Button(
                         enabled = manualDuration != null,
                         shape = RoundedCornerShape(8.dp),
                         interactionSource = holdLogInteractionSource,
                         modifier = Modifier.tactilePress(holdLogInteractionSource, pressedScale = 0.94f),
-                        onClick = {
-                            if (manualDuration != null) {
-                                onLog(manualDuration, suggestion?.targetDurationSeconds ?: manualDuration, isWarmup, targetProvenanceFor(suggestion != null))
-                                manualDurationText = ""
-                                isWarmup = false
-                                dismissKeyboardHold()
-                            }
-                        }
+                        onClick = logHold,
                     ) { Text("Log set", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) }
                 }
                 TextButton(

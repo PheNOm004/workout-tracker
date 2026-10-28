@@ -80,10 +80,10 @@ fun ActiveWorkoutSection(
             hero = true,
             modifier = modifier.fillMaxWidth().padding(bottom = Spacing.Medium),
         ) {
-            Column(modifier = Modifier.padding(Spacing.Medium)) {
+            Column(modifier = Modifier.padding(Spacing.Medium), verticalArrangement = Arrangement.spacedBy(Spacing.Small)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
                     text = "Current Session",
@@ -113,27 +113,17 @@ fun ActiveWorkoutSection(
                 val visual = categoryVisual(exercise.category)
                 val selected = exerciseId == selectedExerciseId
                 val rowColor by animateColorAsState(
-                    targetValue = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface,
+                    targetValue = if (selected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow,
                     animationSpec = TimeGoMotion.colorFade,
                     label = "activeExerciseRowColor",
                 )
-                val rowScale by animateFloatAsState(
-                    targetValue = if (selected) 1.015f else 1f,
-                    animationSpec = TimeGoMotion.rotate,
-                    label = "activeExerciseRowScale",
-                )
-
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .graphicsLayer {
-                            scaleX = rowScale
-                            scaleY = rowScale
-                        }
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(16.dp))
                         .background(rowColor)
                         .clickable { onSelectExercise(exerciseId) }
-                        .padding(horizontal = Spacing.Small, vertical = Spacing.Small),
+                        .padding(horizontal = Spacing.Medium, vertical = Spacing.Medium),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
