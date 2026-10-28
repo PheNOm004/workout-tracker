@@ -39,7 +39,7 @@ fun BlurBehindWindow(radius: Dp = GlassBlurRadius) {
 }
 
 /**
- * The app's modal bottom sheet: the shared glass surface over a blurred, dimmed app, with a rounded top and the standard drag handle. Always opens fully expanded.
+ * The app's modal bottom sheet: a near-opaque raised surface over a dimmed (and, where supported, blurred) app, with a rounded top and the standard drag handle. Always opens fully expanded.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,7 +51,7 @@ fun TimeGoBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
-        containerColor = LocalTimeGoPalette.current.glass,
+        containerColor = LocalTimeGoPalette.current.raised.copy(alpha = WindowSurfaceAlpha),
         contentColor = MaterialTheme.colorScheme.onSurface,
         scrimColor = LocalTimeGoPalette.current.scrim,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
