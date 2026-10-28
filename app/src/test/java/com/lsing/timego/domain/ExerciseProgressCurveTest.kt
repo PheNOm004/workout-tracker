@@ -38,6 +38,17 @@ class ExerciseProgressCurveTest {
     }
 
     @Test
+    fun `weighted calisthenics chart the 1RM of the added load`() {
+        fun weighted(session: Long, added: Double?, reps: Int) =
+            set(session, 59.8 + (added ?: 0.0), reps).copy(addedWeightKg = added)
+        val history = listOf(weighted(1, null, 8), weighted(2, 5.0, 8), weighted(3, 10.0, 6))
+        val curve = exerciseProgressCurve(ex(ExerciseCategory.CALISTHENICS), history, dates)
+        assertEquals("kg added", curve.unit)
+        assertEquals(estimatedOneRepMax(5.0, 8), curve.points[0].second, 1e-9)
+        assertEquals(estimatedOneRepMax(10.0, 6), curve.points[1].second, 1e-9)
+    }
+
+    @Test
     fun `holds chart the longest hold in seconds`() {
         val history = listOf(set(1, 0.0, 0, hold = 40), set(2, 0.0, 0, hold = 55), set(3, 0.0, 0, hold = 50))
         val curve = exerciseProgressCurve(ex(ExerciseCategory.CALISTHENICS, LoggingType.HOLD), history, dates)

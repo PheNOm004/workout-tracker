@@ -19,9 +19,6 @@ import com.lsing.timego.ui.theme.TimeGoMotion
 import kotlinx.coroutines.delay
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.EaseInOut
-import androidx.compose.foundation.layout.fillMaxSize
 
 /** A quiet coral edge that marks the active exercise and briefly expands with a soft celebratory glow when a set is saved. */
 @Composable

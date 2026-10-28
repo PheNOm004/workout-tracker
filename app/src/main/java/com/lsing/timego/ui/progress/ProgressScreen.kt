@@ -5,17 +5,7 @@ import com.lsing.timego.ui.common.LocalRestClearance
 import com.lsing.timego.ui.common.PillSelector
 import com.lsing.timego.ui.common.ScreenOverlay
 import com.lsing.timego.ui.common.ChartSummary
-import androidx.compose.ui.graphics.Color
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.runtime.CompositionLocalProvider
 import com.lsing.timego.ui.common.frosted
-import com.lsing.timego.ui.common.LocalHazeState
-import dev.chrisbanes.haze.rememberHazeState
-import dev.chrisbanes.haze.hazeSource
-import com.lsing.timego.ui.theme.Hairline
-import com.lsing.timego.ui.theme.RaisedFill
 import com.lsing.timego.ui.common.LocalDockHeight
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -24,7 +14,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -50,7 +39,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -66,10 +54,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lsing.timego.data.ExerciseCategory
@@ -80,7 +65,6 @@ import com.lsing.timego.domain.PrType
 import com.lsing.timego.domain.BmiCategory
 import com.lsing.timego.domain.bmiCategory
 import com.lsing.timego.domain.formatCalisthenicsWeight
-import com.lsing.timego.ui.common.DayHistoryEntry
 import com.lsing.timego.ui.common.HeatmapGrid
 import com.lsing.timego.ui.common.HorizontalWheelPicker
 import com.lsing.timego.ui.common.MuscleBodyDiagram
@@ -102,9 +86,6 @@ import com.lsing.timego.ui.theme.PlateGreen
 import com.lsing.timego.ui.theme.TimeGoMotion
 import com.lsing.timego.ui.theme.Spacing
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -418,6 +399,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                                     when (strengthCurveUnit) {
                                                         "reps" -> "Best reps per session"
                                                         "s" -> "Best hold per session"
+                                                        "kg added" -> "Estimated 1RM of added weight"
                                                         else -> "Estimated 1RM per session"
                                                     },
                                                     style = MaterialTheme.typography.titleSmall,
@@ -739,11 +721,11 @@ private fun AnimatedStrengthCurve(
             )
         } else {
             Column {
-                ChartSummary(visibleCurve, unit = unit, integerValues = unit != "kg", modifier = Modifier.padding(bottom = Spacing.Small))
+                ChartSummary(visibleCurve, unit = unit, integerValues = unit == "reps" || unit == "s", modifier = Modifier.padding(bottom = Spacing.Small))
                 SparklineChart(
                     visibleCurve,
                     modifier = Modifier.fillMaxWidth().height(180.dp),
-                    integerValues = unit != "kg",
+                    integerValues = unit == "reps" || unit == "s",
                 )
             }
         }

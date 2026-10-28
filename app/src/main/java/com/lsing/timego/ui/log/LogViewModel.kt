@@ -31,7 +31,6 @@ import com.lsing.timego.domain.HoldSuggestion
 import com.lsing.timego.domain.OverloadSuggestion
 import com.lsing.timego.domain.RepRange
 import com.lsing.timego.domain.RuleBasedHoldSuggester
-import com.lsing.timego.domain.RuleBasedOverloadSuggester
 import com.lsing.timego.domain.ai.AdaptiveOverloadSuggester
 import com.lsing.timego.domain.ai.CategoryPreferenceLearner
 import com.lsing.timego.domain.ai.ProgressionRecommender
@@ -43,7 +42,6 @@ import com.lsing.timego.domain.expandMuscleGroupRegions
 import com.lsing.timego.domain.exerciseUsageFrequency
 import com.lsing.timego.domain.exercisesRankedByFrequency
 import com.lsing.timego.domain.quickAddExercises
-import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.lastTrainedDatesByMuscleGroup
 import com.lsing.timego.domain.lastWorkedDatesByMuscleGroup
 import com.lsing.timego.domain.lastWorkingSetByExercise
@@ -54,7 +52,6 @@ import com.lsing.timego.domain.muscleGroupsAffectedInSession
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.muscleGroupIntensityForSession
 import com.lsing.timego.domain.ProgressTimeframe
-import com.lsing.timego.domain.rankUntrainedMuscleGroups
 import com.lsing.timego.domain.recommendSynergisticMuscleGroups
 import com.lsing.timego.domain.recommendationHighlightStrengths
 import com.lsing.timego.domain.repRangeAtWeight

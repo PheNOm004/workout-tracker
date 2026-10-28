@@ -12,14 +12,12 @@ import com.lsing.timego.domain.DayTrainingStats
 import com.lsing.timego.domain.PersonalRecord
 import com.lsing.timego.domain.TrainingStats
 import com.lsing.timego.domain.bodyMassIndex
-import com.lsing.timego.domain.isCardioOnlySession
 import com.lsing.timego.domain.latestHeightCm
 import com.lsing.timego.domain.latestWeightKg
 import com.lsing.timego.domain.muscleGroupStrengthCurve
 import com.lsing.timego.domain.MuscleSetSummary
 import com.lsing.timego.domain.muscleDistributionForTimeframe
 import com.lsing.timego.domain.muscleGroupSetSummaryForTimeframe
-import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.personalRecords
 import com.lsing.timego.domain.exerciseProgressCurve
 import com.lsing.timego.domain.trainingStats

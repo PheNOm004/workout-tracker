@@ -8,9 +8,6 @@ import androidx.compose.ui.text.input.ImeAction
 import com.lsing.timego.ui.common.LocalRestClearance
 import com.lsing.timego.ui.common.regionLabelsFor
 import androidx.compose.runtime.CompositionLocalProvider
-import com.lsing.timego.ui.common.LocalHazeState
-import dev.chrisbanes.haze.rememberHazeState
-import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.shape.CircleShape
 import com.lsing.timego.ui.common.RegionChipRow
@@ -29,7 +26,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.ui.graphics.graphicsLayer
 import com.lsing.timego.ui.theme.TimeGoMotion
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +41,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -57,7 +52,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.ChevronRight
@@ -138,7 +132,6 @@ import com.lsing.timego.ui.common.AnimatedExpand
 import com.lsing.timego.ui.common.CroppedMuscleDiagram
 import com.lsing.timego.ui.common.ExerciseSections
 import com.lsing.timego.ui.common.ExerciseListOrder
-import com.lsing.timego.ui.common.MuscleHeatLegend
 import com.lsing.timego.ui.common.RadarChart
 import com.lsing.timego.ui.common.SectionHeader
 import com.lsing.timego.ui.common.SurfaceCard
