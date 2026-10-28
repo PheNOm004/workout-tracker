@@ -227,8 +227,8 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                 ) {
                     HeatmapGrid(
                         ratios = volumeRatios,
-                        lightColor = MaterialTheme.colorScheme.primary,
-                        darkColor = MaterialTheme.colorScheme.primaryContainer,
+                        lightColor = PlateGreen,
+                        darkColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                         onDateClick = { date -> viewModel.selectHistoryDate(date) },
                     )
                 }
@@ -332,7 +332,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                                 Text(
                                                     "${selectedExercise.name} Records",
                                                     style = MaterialTheme.typography.labelMedium,
-                                                    color = MaterialTheme.colorScheme.primary,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                                 )
                                                 if (exerciseRecords.isEmpty()) {
@@ -391,7 +391,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                                 Text(
                                                     "Strength Progression Curve",
                                                     style = MaterialTheme.typography.labelMedium,
-                                                    color = MaterialTheme.colorScheme.primary,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                                 )
                                                 AnimatedStrengthCurve(
@@ -411,7 +411,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                             Text(
                                                 "Exercise Strength Progression",
                                                 style = MaterialTheme.typography.labelMedium,
-                                                color = MaterialTheme.colorScheme.primary,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                             )
                                             AnimatedStrengthCurve(
@@ -447,7 +447,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                             Text(
                                                 "${muscleGroup?.let { formatEnumLabel(it) } ?: "Muscle Group"} Strength Progression",
                                                 style = MaterialTheme.typography.labelMedium,
-                                                color = MaterialTheme.colorScheme.primary,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
                                             )
                                             AnimatedStrengthCurve(

@@ -381,7 +381,7 @@ private fun AlphabeticalExerciseList(
                     Text(
                         letter,
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = Spacing.Small, bottom = Spacing.ExtraSmall)
@@ -582,7 +582,7 @@ fun ExerciseSections(
                             Text(
                                 formatEnumLabel(subGroup),
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = Spacing.Medium, bottom = Spacing.ExtraSmall),
                             )
                         }

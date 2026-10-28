@@ -170,7 +170,7 @@ fun TimeGoDialog(
                                         Text(
                                             text = eyebrow.uppercase(),
                                             style = EyebrowStyle,
-                                            color = MaterialTheme.colorScheme.primary,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                     if (title != null) {

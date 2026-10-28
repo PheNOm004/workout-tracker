@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.common
 
+import com.lsing.timego.ui.theme.PlateBlue
 import androidx.compose.foundation.Canvas
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -26,7 +27,7 @@ import java.time.LocalDate
  *  Shared by the Progress screen's strength curve and body-metric (weight) curve. */
 @Composable
 fun SparklineChart(points: List<Pair<LocalDate, Double>>, modifier: Modifier = Modifier) {
-    val lineColor = MaterialTheme.colorScheme.primary
+    val lineColor = PlateBlue
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val density = LocalDensity.current
     val labelTextSizePx = with(density) { 12.sp.toPx() }

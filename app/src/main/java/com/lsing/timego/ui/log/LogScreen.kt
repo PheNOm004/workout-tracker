@@ -1,5 +1,9 @@
 package com.lsing.timego.ui.log
 
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.CircleShape
+import com.lsing.timego.ui.common.RegionChipRow
+import com.lsing.timego.ui.common.exerciseDisplayRegion
 import com.lsing.timego.ui.common.LocalDockHeight
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
@@ -486,7 +490,7 @@ private fun LogLandingContent(
                     Text(
                         "Session In Progress",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         "You have an active workout open.",
@@ -521,30 +525,33 @@ private fun LogLandingContent(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(
-                                when {
-                                    isScheduledToday -> "Scheduled for Today"
-                                    !isFlexible -> "Scheduled · " + activeRoutine.daysOfWeek.joinToString(", ") { it.take(3).lowercase().replaceFirstChar(Char::uppercase) }
-                                    activeRoutine.id == defaultSuggestedRoutine?.id && flexibleRoutinesList.size > 1 -> "Flexible · Next in Rotation"
-                                    else -> "Flexible Routine"
-                                },
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
+                            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.tertiaryContainer) {
+                                Text(
+                                    when {
+                                        isScheduledToday -> "Scheduled for today"
+                                        !isFlexible -> "Scheduled · " + activeRoutine.daysOfWeek.joinToString(", ") { it.take(3).lowercase().replaceFirstChar(Char::uppercase) }
+                                        activeRoutine.id == defaultSuggestedRoutine?.id && flexibleRoutinesList.size > 1 -> "Next in rotation"
+                                        else -> "Flexible routine"
+                                    },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                                )
+                            }
                             if (isFlexible) {
                                 Icon(
                                     Icons.Filled.AllInclusive,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    contentDescription = "Flexible routine",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(18.dp),
                                 )
                             }
                         }
                         Text(
                             activeRoutine.name,
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(top = 2.dp, bottom = Spacing.ExtraSmall),
+                            modifier = Modifier.padding(top = Spacing.Small, bottom = Spacing.ExtraSmall),
                         )
                         val lastTrainedStr = formatDaysSince(routineLastCompleted[activeRoutine.id], LocalDate.now())
                         Text(
@@ -554,6 +561,12 @@ private fun LogLandingContent(
                             modifier = Modifier.padding(bottom = Spacing.Small),
                         )
                         val routineRegions = regionsForRoutine(activeRoutine.id)
+                        val regionLabels = remember(activeRoutine.id, routineExercisesById) {
+                            routineExercisesById[activeRoutine.id].orEmpty().map { exerciseDisplayRegion(it) }.distinct()
+                        }
+                        if (regionLabels.isNotEmpty()) {
+                            RegionChipRow(regionLabels, modifier = Modifier.padding(bottom = Spacing.Medium))
+                        }
                         if (routineRegions.isNotEmpty()) {
                             CroppedMuscleDiagram(
                                 muscleGroups = diagramGroupsForBodyRegionCrop(routineRegions),
@@ -582,9 +595,9 @@ private fun LogLandingContent(
                         }
                         Button(
                             onClick = { onStartOrContinue(activeRoutine.id) },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
                         ) {
-                            Text("Start ${activeRoutine.name}")
+                            Text("Start ${activeRoutine.name}", style = MaterialTheme.typography.titleMedium)
                         }
                         TextButton(
                             onClick = { onStartOrContinue(null) },
@@ -1281,7 +1294,7 @@ private fun ExercisePickerContent(
                         Text(
                             muscleContext,
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                         )
                     }
@@ -1494,7 +1507,7 @@ private fun ExerciseRowHeader(
             Text(
                 suggestionSummary,
                 style = LedgerFigureValue.copy(fontSize = 14.sp),
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.padding(end = Spacing.Small),
             )
         }
@@ -1674,7 +1687,7 @@ private fun StrengthLogRow(
                 Text(
                     suggestion.note,
                     style = LedgerFigureValue.copy(fontSize = 13.sp),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
                 )
             }
@@ -1694,7 +1707,7 @@ private fun StrengthLogRow(
                 Text(
                     "Today: $setsSummary",
                     style = LedgerFigureValue.copy(fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
                 )
             }
@@ -1904,7 +1917,7 @@ private fun CardioLogRow(
                     Text(
                         details,
                         style = LedgerFigureValue.copy(fontSize = 13.sp),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.padding(horizontal = Spacing.Medium),
                     )
                 }
@@ -2051,7 +2064,7 @@ private fun HoldLogRow(
                 Text(
                     suggestion.note,
                     style = LedgerFigureValue.copy(fontSize = 13.sp),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
                 )
             }
@@ -2070,7 +2083,7 @@ private fun HoldLogRow(
                 Text(
                     if (sideIndex == 0) "Side 1 of 2: timer covers one side" else "Side 2 of 2: switch sides now",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
                 )
             }

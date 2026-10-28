@@ -185,7 +185,7 @@ fun WorkoutHistoryDialog(
             Text(
                 text = "WORKOUT SUMMARY",
                 style = EyebrowStyle,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 2.dp),
             )
 
@@ -217,7 +217,7 @@ fun WorkoutHistoryDialog(
                     Text(
                         text = label,
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f, fill = false),
                     )
                 }
@@ -310,14 +310,14 @@ fun WorkoutHistoryDialog(
                         Icon(
                             Icons.Filled.FitnessCenter,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = regionColor(group.regionLabel),
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = group.regionLabel.uppercase(),
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.weight(1f),
                         )
                         Surface(

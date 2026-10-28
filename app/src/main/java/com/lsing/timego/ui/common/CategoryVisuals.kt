@@ -1,5 +1,6 @@
 package com.lsing.timego.ui.common
 
+import com.lsing.timego.ui.theme.PlateSteel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -35,9 +36,9 @@ fun categoryVisual(category: ExerciseCategory): CategoryVisual {
         ExerciseCategory.WARMUP -> Icons.Filled.Whatshot
     }
     val accent = when (category) {
-        ExerciseCategory.STRENGTH -> MaterialTheme.colorScheme.primary
+        ExerciseCategory.STRENGTH -> PlateBlue
         ExerciseCategory.CALISTHENICS -> PlateGreen
-        ExerciseCategory.CARDIO -> PlateBlue
+        ExerciseCategory.CARDIO -> PlateSteel
         ExerciseCategory.WARMUP -> PlateYellow
     }
     return CategoryVisual(icon, accent)

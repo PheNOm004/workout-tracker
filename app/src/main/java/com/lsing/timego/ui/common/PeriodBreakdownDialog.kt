@@ -54,7 +54,7 @@ fun PeriodBreakdownDialog(periodLabel: String, days: List<DayTrainingStats>, onD
             Text(
                 text = "BREAKDOWN",
                 style = EyebrowStyle,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 2.dp),
             )
             Text(

@@ -94,7 +94,7 @@ fun SettingsBottomSheet(
             Text(
                 "SETTINGS",
                 style = EyebrowStyle,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 2.dp),
             )
             Text(

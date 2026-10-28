@@ -88,7 +88,7 @@ fun ActiveWorkoutSection(
                 Text(
                     text = "Current Session",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
                 AnimatedContent(
@@ -154,7 +154,7 @@ fun ActiveWorkoutSection(
                             Text(
                                 text = exerciseDisplayRegion(exercise),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         AnimatedContent(

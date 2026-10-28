@@ -75,7 +75,7 @@ fun OnboardingScreen(
             Text(
                 "TIMEGO PROFILE  ·  STEP ${state.step.ordinal + 1} OF ${OnboardingStep.entries.size}",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             val animatedProgress by androidx.compose.animation.core.animateFloatAsState(
                 targetValue = (state.step.ordinal + 1f) / OnboardingStep.entries.size,
