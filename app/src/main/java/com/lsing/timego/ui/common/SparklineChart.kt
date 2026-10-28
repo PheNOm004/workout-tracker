@@ -50,7 +50,7 @@ private val AxisDate = DateTimeFormatter.ofPattern("d MMM")
  * Shared by the Progress screen's strength curves and the body-weight curve.
  */
 @Composable
-fun SparklineChart(points: List<Pair<LocalDate, Double>>, modifier: Modifier = Modifier) {
+fun SparklineChart(points: List<Pair<LocalDate, Double>>, modifier: Modifier = Modifier, integerValues: Boolean = false) {
     val lineColor = PlateBlue
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
@@ -98,7 +98,7 @@ fun SparklineChart(points: List<Pair<LocalDate, Double>>, modifier: Modifier = M
         val stepX = plotWidth / (points.size - 1)
         fun xFor(index: Int) = leftPx + stepX * index
         fun yFor(value: Double) = topPx + plotHeight - ((value - minValue) / range * plotHeight).toFloat()
-        val fmt = if (range >= 10.0) "%.0f" else "%.1f"
+        val fmt = if (integerValues || range >= 10.0) "%.0f" else "%.1f"
 
         // Gridlines and axis labels at min, mid and max.
         paint.textAlign = android.graphics.Paint.Align.RIGHT
@@ -205,8 +205,10 @@ fun ChartSummary(
     unit: String,
     modifier: Modifier = Modifier,
     higherIsBetter: Boolean? = true,
+    integerValues: Boolean = false,
 ) {
     if (points.isEmpty()) return
+    val fmt = if (integerValues) "%.0f" else "%.1f"
     val latest = points.last().second
     val delta = latest - points.first().second
     val flat = kotlin.math.abs(delta) < 0.05
@@ -217,14 +219,14 @@ fun ChartSummary(
     }
     Row(modifier = modifier, verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            "%.1f".format(latest) + " $unit",
+            fmt.format(latest) + " $unit",
             style = LedgerFigureHero.copy(fontSize = 26.sp, lineHeight = 30.sp),
             color = MaterialTheme.colorScheme.onSurface,
         )
         if (points.size > 1) {
             Surface(shape = CircleShape, color = chipColor.copy(alpha = 0.16f), modifier = Modifier.padding(bottom = 3.dp)) {
                 Text(
-                    (if (flat) "no change" else (if (delta > 0) "+" else "-") + "%.1f".format(kotlin.math.abs(delta))) +
+                    (if (flat) "no change" else (if (delta > 0) "+" else "-") + fmt.format(kotlin.math.abs(delta))) +
                         " since " + points.first().first.format(AxisDate),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface,

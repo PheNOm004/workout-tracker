@@ -21,7 +21,7 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 
 /** Blur radius shared by in-app frosted surfaces and the window blur behind sheets and dialogs. */
-val GlassBlurRadius = 24.dp
+val GlassBlurRadius = 16.dp
 
 /** The one [HazeState] for the app's content layer. Frosted surfaces blur whatever is marked as a source
  *  in this state; null (previews, tests) makes [frosted] fall back to a plain translucent fill. */

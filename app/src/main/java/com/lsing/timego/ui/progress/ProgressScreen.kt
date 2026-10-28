@@ -119,6 +119,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val curveMode by viewModel.curveMode.collectAsStateWithLifecycle()
     val selectedMuscleGroup by viewModel.selectedMuscleGroup.collectAsStateWithLifecycle()
     val strengthCurve by viewModel.strengthCurve.collectAsStateWithLifecycle()
+    val strengthCurveUnit by viewModel.strengthCurveUnit.collectAsStateWithLifecycle()
     val bodyMetrics by viewModel.bodyMetrics.collectAsStateWithLifecycle()
     val weightCurve by viewModel.weightCurve.collectAsStateWithLifecycle()
     val currentBmi by viewModel.currentBmi.collectAsStateWithLifecycle()
@@ -413,7 +414,11 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                                 )
 
                                                 Text(
-                                                    "Strength Progression Curve",
+                                                    when (strengthCurveUnit) {
+                                                        "reps" -> "Best reps per session"
+                                                        "s" -> "Best hold per session"
+                                                        else -> "Estimated 1RM per session"
+                                                    },
                                                     style = MaterialTheme.typography.titleSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
@@ -422,6 +427,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                                     strengthCurve = strengthCurve,
                                                     emptyMessage = "No logged sets yet to draw progression curve.",
                                                     label = "exerciseStrengthCurveContent",
+                                                    unit = strengthCurveUnit,
                                                 )
                                             }
                                         }
@@ -717,6 +723,7 @@ private fun AnimatedStrengthCurve(
     strengthCurve: List<Pair<LocalDate, Double>>,
     emptyMessage: String,
     label: String,
+    unit: String = "kg",
 ) {
     AnimatedContent(
         targetState = strengthCurve,
@@ -732,10 +739,11 @@ private fun AnimatedStrengthCurve(
             )
         } else {
             Column {
-                ChartSummary(visibleCurve, unit = "kg", modifier = Modifier.padding(bottom = Spacing.Small))
+                ChartSummary(visibleCurve, unit = unit, integerValues = unit != "kg", modifier = Modifier.padding(bottom = Spacing.Small))
                 SparklineChart(
                     visibleCurve,
                     modifier = Modifier.fillMaxWidth().height(180.dp),
+                    integerValues = unit != "kg",
                 )
             }
         }

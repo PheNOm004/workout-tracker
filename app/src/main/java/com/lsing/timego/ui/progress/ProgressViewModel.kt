@@ -21,7 +21,7 @@ import com.lsing.timego.domain.muscleDistributionForTimeframe
 import com.lsing.timego.domain.muscleGroupSetSummaryForTimeframe
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.personalRecords
-import com.lsing.timego.domain.strengthCurve
+import com.lsing.timego.domain.exerciseProgressCurve
 import com.lsing.timego.domain.trainingStats
 import com.lsing.timego.domain.trainingStatsByDay
 import com.lsing.timego.domain.workoutVolumeRatios
@@ -89,6 +89,10 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
 
     private val _strengthCurve = MutableStateFlow<List<Pair<LocalDate, Double>>>(emptyList())
     val strengthCurve: StateFlow<List<Pair<LocalDate, Double>>> = _strengthCurve.asStateFlow()
+
+    /** What [strengthCurve] values mean: "kg" (estimated 1RM), "reps", or "s" (hold seconds). */
+    private val _strengthCurveUnit = MutableStateFlow("kg")
+    val strengthCurveUnit: StateFlow<String> = _strengthCurveUnit.asStateFlow()
 
     private val _selectedHistoryDate = MutableStateFlow<LocalDate?>(null)
     val selectedHistoryDate: StateFlow<LocalDate?> = _selectedHistoryDate.asStateFlow()
@@ -273,10 +277,14 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
         _strengthCurve.value = when (_curveMode.value) {
             CurveMode.EXERCISE -> {
                 val exerciseId = _selectedExerciseId.value ?: return
-                strengthCurve(latestSetLogs.filter { it.exerciseId == exerciseId }, sessionDateById)
+                val exercise = latestExercises.firstOrNull { it.id == exerciseId } ?: return
+                val curve = exerciseProgressCurve(exercise, latestSetLogs.filter { it.exerciseId == exerciseId }, sessionDateById)
+                _strengthCurveUnit.value = curve.unit
+                curve.points
             }
             CurveMode.MUSCLE_GROUP -> {
                 val group = _selectedMuscleGroup.value ?: return
+                _strengthCurveUnit.value = "kg"
                 muscleGroupStrengthCurve(
                     latestSetLogs,
                     latestExercises.associateBy { it.id },
