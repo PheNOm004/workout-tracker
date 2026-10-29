@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
@@ -44,7 +44,7 @@ android {
         applicationId = "com.lsing.timego"
         minSdk = 26
         targetSdk = 37
-        versionCode = 7
+        versionCode = 8
         versionName = "1.4"
         // targetSdk tracks compileSdk 37; keep them moving together (HeatP is also on 37).
 
