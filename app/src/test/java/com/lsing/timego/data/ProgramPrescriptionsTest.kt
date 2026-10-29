@@ -5,7 +5,7 @@ import org.junit.Test
 
 class ProgramPrescriptionsTest {
     @Test
-    fun `the personal rir program is never seeded for other users`() {
+    fun `the public seed never contains the personal rir program`() {
         assertEquals(emptyList<String>(), SEED_ROUTINES.filter { it.programId == RIR_PROGRAM_ID }.map { it.name })
     }
 

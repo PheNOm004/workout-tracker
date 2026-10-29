@@ -68,9 +68,9 @@ val SEED_ROUTINES: List<SeedRoutine> = listOf(
     SeedRoutine("westside_conjugate", "Dynamic Effort Lower", exerciseNames = listOf("Box Squat", "Banded Box Squat", "Reverse Hyperextension")),
     SeedRoutine("westside_conjugate", "Dynamic Effort Upper", exerciseNames = listOf("Close-Grip Bench Press", "Skull Crusher", "Seated Cable Row")),
 
-    // The owner's personal Upper/Lower AB (RIR) program is deliberately NOT seeded: it must never appear for other
-    // users. Its rows exist only on the owner's installs (already created; seeding never deletes); prescriptions for
-    // them live in RIR_PROGRAM_PRESCRIPTIONS and apply by exercise name when a routine has RIR_PROGRAM_ID.
+    // The owner's personal Upper/Lower AB (RIR) program is not here: it must never ship in the public build. It is
+    // PERSONAL_SEED_ROUTINES in the debug source set (empty in release); prescriptions for it live in
+    // RIR_PROGRAM_PRESCRIPTIONS and apply by exercise name when a routine has RIR_PROGRAM_ID.
 
     // Calisthenics Progression -- tiered
     SeedRoutine("calisthenics_progression", "Beginner Full Body", tier = "BEGINNER", exerciseNames = listOf("Push-Up", "Australian Pull-Up", "Bodyweight Squat", "Step-Up", "Plank")),
@@ -96,3 +96,6 @@ val PROGRAM_DISPLAY_NAMES: Map<String, String> = mapOf(
     "calisthenics_progression" to "Calisthenics Progression",
     RIR_PROGRAM_ID to "Upper/Lower AB (RIR)",
 )
+
+/** Everything to seed in this build: the public programs plus, on debug builds only, the owner's personal one. */
+val ALL_SEED_ROUTINES: List<SeedRoutine> get() = SEED_ROUTINES + PERSONAL_SEED_ROUTINES
