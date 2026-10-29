@@ -749,7 +749,9 @@ private fun LogLandingContent(
                                     } else null,
                                 )
                             }
-                            programItem(com.lsing.timego.data.RIR_PROGRAM_ID, "Upper/Lower AB (RIR) - my program")
+                            if (routines.any { it.programId == com.lsing.timego.data.RIR_PROGRAM_ID }) {
+                                programItem(com.lsing.timego.data.RIR_PROGRAM_ID, "Upper/Lower AB (RIR) - my program")
+                            }
                             programItem(null, "Custom routines")
                             HorizontalDivider()
                             com.lsing.timego.data.PROGRAM_DISPLAY_NAMES

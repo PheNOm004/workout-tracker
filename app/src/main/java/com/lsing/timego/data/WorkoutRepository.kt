@@ -395,8 +395,8 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
 
         val exerciseIdsByName = db.exerciseDao().allForShadowSnapshot().associate { it.name to it.id }
 
-        // The personal program is user-owned: seed it only while none of it exists, never re-add deleted
-        // routines or overwrite the user's edits.
+        // The personal program is user-owned: seed it only while none of it exists, never re-add deleted routines
+        // or overwrite the user's edits.
         val personalProgramExists = existingRoutines.any { it.programId == RIR_PROGRAM_ID }
         val seed = seed.filterNot { it.programId == RIR_PROGRAM_ID && personalProgramExists }
         val missing = seed.filter { (it.programId to it.name) !in existingByKey }
@@ -456,7 +456,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
             db.routineDao().updateRoutine(existing.copy(daysOfWeek = emptyList()))
             db.routineDao().deleteRoutineExercises(routineId)
         }
-        seedMissingRoutines(SEED_ROUTINES)
+        seedMissingRoutines(ALL_SEED_ROUTINES)
         syncRepository.markPending("routine", routineId)
     }
 

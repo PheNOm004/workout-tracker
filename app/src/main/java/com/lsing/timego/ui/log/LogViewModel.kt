@@ -20,7 +20,7 @@ import com.lsing.timego.profile.Equipment
 import com.lsing.timego.domain.filterCandidates
 import com.lsing.timego.data.TimeGoDatabase
 import com.lsing.timego.data.CalisthenicsTier
-import com.lsing.timego.data.SEED_ROUTINES
+import com.lsing.timego.data.ALL_SEED_ROUTINES
 import com.lsing.timego.data.TrainingLean
 import com.lsing.timego.data.WorkoutRepository
 import com.lsing.timego.data.guidance.CatalogueRepository
@@ -287,7 +287,7 @@ class LogViewModel(
         viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
             catalogueRepository.ensureBundledImported()
-            repository.seedMissingRoutines(SEED_ROUTINES)
+            repository.seedMissingRoutines(ALL_SEED_ROUTINES)
             repository.mergeDuplicateSessions()
             // This ViewModel is activity-scoped by the custom root-tab host. Its session state is
             // always collected while Log is STARTED, so subscriber presence is the lifecycle

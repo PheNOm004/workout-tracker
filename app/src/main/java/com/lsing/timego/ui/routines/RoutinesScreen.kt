@@ -367,7 +367,8 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
                     }
                 }
             } else {
-                item(key = "program-${com.lsing.timego.data.RIR_PROGRAM_ID}") {
+                // The owner's personal program only exists on the owner's installs; nobody else sees an empty card.
+                if (routines.any { it.programId == com.lsing.timego.data.RIR_PROGRAM_ID }) item(key = "program-${com.lsing.timego.data.RIR_PROGRAM_ID}") {
                     ProgramCard(
                         title = "Upper/Lower AB (RIR)",
                         programRoutines = routines.filter { it.programId == com.lsing.timego.data.RIR_PROGRAM_ID },

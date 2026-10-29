@@ -68,11 +68,9 @@ val SEED_ROUTINES: List<SeedRoutine> = listOf(
     SeedRoutine("westside_conjugate", "Dynamic Effort Lower", exerciseNames = listOf("Box Squat", "Banded Box Squat", "Reverse Hyperextension")),
     SeedRoutine("westside_conjugate", "Dynamic Effort Upper", exerciseNames = listOf("Close-Grip Bench Press", "Skull Crusher", "Seated Cable Row")),
 
-    // Personal Upper/Lower AB split (RIR-based); prescriptions live in RIR_PROGRAM_PRESCRIPTIONS
-    SeedRoutine(RIR_PROGRAM_ID, "Upper A", exerciseNames = listOf("Pull-Up", "Dip", "Chest-Supported Row", "Neutral-Grip Shoulder Press", "Preacher Curl", "Lateral Raise")),
-    SeedRoutine(RIR_PROGRAM_ID, "Lower A", exerciseNames = listOf("Hack Squat", "Nordic Hamstring Curl", "Leg Extension", "Hyperextension", "Captain's Chair Knee Tuck", "Ab Wheel Rollout")),
-    SeedRoutine(RIR_PROGRAM_ID, "Upper B", exerciseNames = listOf("Incline Dumbbell Press", "T-Bar Row", "Pec Deck Machine", "Rear Delt Fly", "Hammer Curl", "Tricep Pushdown")),
-    SeedRoutine(RIR_PROGRAM_ID, "Lower B", exerciseNames = listOf("Pistol Squat", "Romanian Deadlift", "Leg Press", "Standing Calf Raise", "Weighted Crunch", "Roman Chair Side Crunch")),
+    // The owner's personal Upper/Lower AB (RIR) program is not here: it must never ship in the public build. It is
+    // PERSONAL_SEED_ROUTINES in the debug source set (empty in release); prescriptions for it live in
+    // RIR_PROGRAM_PRESCRIPTIONS and apply by exercise name when a routine has RIR_PROGRAM_ID.
 
     // Calisthenics Progression -- tiered
     SeedRoutine("calisthenics_progression", "Beginner Full Body", tier = "BEGINNER", exerciseNames = listOf("Push-Up", "Australian Pull-Up", "Bodyweight Squat", "Step-Up", "Plank")),
@@ -98,3 +96,6 @@ val PROGRAM_DISPLAY_NAMES: Map<String, String> = mapOf(
     "calisthenics_progression" to "Calisthenics Progression",
     RIR_PROGRAM_ID to "Upper/Lower AB (RIR)",
 )
+
+/** Everything to seed in this build: the public programs plus, on debug builds only, the owner's personal one. */
+val ALL_SEED_ROUTINES: List<SeedRoutine> get() = SEED_ROUTINES + PERSONAL_SEED_ROUTINES
