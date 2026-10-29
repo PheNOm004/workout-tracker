@@ -83,7 +83,6 @@ fun SettingsBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
                 .padding(horizontal = Spacing.Large)
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = Spacing.ExtraLarge + 24.dp),

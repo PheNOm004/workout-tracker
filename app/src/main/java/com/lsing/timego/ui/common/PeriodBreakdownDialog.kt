@@ -43,7 +43,6 @@ fun PeriodBreakdownDialog(periodLabel: String, days: List<DayTrainingStats>, onD
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 32.dp),

@@ -20,11 +20,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 
-/** Opacity of sheets and dialogs. They are separate windows, so the in-app backdrop blur cannot reach them and a
- *  window-level blur is not reliable; at low opacity the screen behind shows through sharp and fights the text.
- *  So they are near-opaque, with just enough transparency to feel layered. */
-const val WindowSurfaceAlpha = 0.94f
-
 /** Blur radius shared by in-app frosted surfaces and the window blur behind sheets and dialogs. */
 val GlassBlurRadius = 11.dp
 
