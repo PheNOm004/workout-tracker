@@ -27,7 +27,7 @@ fun ExerciseDetailSheet(
 ) {
     TimeGoBottomSheet(onDismissRequest = onDismiss) {
         LazyColumn(
-            modifier = Modifier.fillMaxWidth().statusBarsPadding().navigationBarsPadding().padding(horizontal = Spacing.Large),
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = Spacing.Large),
             verticalArrangement = Arrangement.spacedBy(Spacing.Small),
         ) {
             item {

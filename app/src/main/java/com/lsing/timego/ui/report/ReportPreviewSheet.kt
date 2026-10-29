@@ -21,7 +21,7 @@ import com.lsing.timego.ui.theme.Spacing
 @Composable
 fun ReportPreviewSheet(report: WorkoutReport, title: String, onDismiss: () -> Unit) {
     TimeGoBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().statusBarsPadding().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(Spacing.Large), verticalArrangement = Arrangement.spacedBy(Spacing.Small)) {
+        Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(Spacing.Large), verticalArrangement = Arrangement.spacedBy(Spacing.Small)) {
             Text(title, style = MaterialTheme.typography.headlineSmall)
             Text("${report.period.start} to ${report.period.endInclusive}", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Metric("Sessions", report.sessionCount.toString())

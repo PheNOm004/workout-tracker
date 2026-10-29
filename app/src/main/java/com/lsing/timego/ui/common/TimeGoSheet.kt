@@ -1,5 +1,7 @@
 package com.lsing.timego.ui.common
 
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.statusBarsPadding
 import android.os.Build
 import android.view.WindowManager
 import androidx.compose.foundation.layout.ColumnScope
@@ -39,7 +41,8 @@ fun BlurBehindWindow(radius: Dp = GlassBlurRadius) {
 }
 
 /**
- * The app's modal bottom sheet: a near-opaque raised surface over a dimmed (and, where supported, blurred) app, with a rounded top and the standard drag handle. Always opens fully expanded.
+ * The app's modal bottom sheet: an opaque raised surface over a dimmed (and, where supported, blurred) app, offset
+ * below the status bar so the content scrolls and clips at the sheet's own edge, with a rounded top and the standard drag handle. Always opens fully expanded.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,7 +54,8 @@ fun TimeGoBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
-        containerColor = LocalTimeGoPalette.current.raised.copy(alpha = WindowSurfaceAlpha),
+        modifier = Modifier.statusBarsPadding(),
+        containerColor = LocalTimeGoPalette.current.raised,
         contentColor = MaterialTheme.colorScheme.onSurface,
         scrimColor = LocalTimeGoPalette.current.scrim,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),

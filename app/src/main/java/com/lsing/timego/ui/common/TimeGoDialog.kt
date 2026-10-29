@@ -143,7 +143,7 @@ fun TimeGoDialog(
                 ) {
                     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
                     SurfaceCard(
-                        containerColor = LocalTimeGoPalette.current.raised.copy(alpha = WindowSurfaceAlpha),
+                        containerColor = LocalTimeGoPalette.current.raised,
                         cornerRadius = cornerRadius,
                         modifier = modifier
                             .fillMaxWidth(0.92f)
