@@ -69,7 +69,7 @@ function validate({ allowIncomplete }) {
   const errors = [];
   if (document.schemaVersion !== 1) errors.push("schemaVersion must be 1");
   if (!Number.isInteger(document.catalogueVersion) || document.catalogueVersion < 1) errors.push("catalogueVersion must be a positive integer");
-  if (!Array.isArray(document.exercises) || document.exercises.length !== 824) errors.push(`expected 824 exercises, found ${document.exercises?.length ?? 0}`);
+  if (!Array.isArray(document.exercises) || document.exercises.length !== 848) errors.push(`expected 848 exercises, found ${document.exercises?.length ?? 0}`);
   const keys = new Set();
   for (const [index, entry] of (document.exercises ?? []).entries()) {
     const at = `exercises[${index}]`;
