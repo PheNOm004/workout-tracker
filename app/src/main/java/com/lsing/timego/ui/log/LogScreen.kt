@@ -41,6 +41,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -61,6 +63,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -148,6 +151,8 @@ import com.lsing.timego.ui.common.formatEnumLabel
 import com.lsing.timego.ui.common.formatMuscleGroupList
 import com.lsing.timego.ui.common.timeframeLabel
 import com.lsing.timego.ui.theme.LedgerFigureValue
+import com.lsing.timego.ui.theme.PlateBlue
+import com.lsing.timego.ui.theme.PlateGreen
 import com.lsing.timego.ui.theme.Spacing
 import com.lsing.timego.ui.exercise.ExerciseDetailSheet
 import com.lsing.timego.ui.exercise.buildExerciseDetail
@@ -168,6 +173,10 @@ private val LocalSideModes = androidx.compose.runtime.compositionLocalOf {
     SideModes(emptySet(), emptySet(), {}, {})
 }
 
+/** Opens the exercise detail sheet by exercise name; provided once at the top of LogScreen so every row header
+ *  (session list and picker) gets the info button without threading a callback through each row. */
+private val LocalShowExerciseDetails = androidx.compose.runtime.compositionLocalOf<(String) -> Unit> { {} }
+
 /** Items LoggingContent's list renders before the first exercise card: activeHeader, activeSummary,
  *  favorites, quickAdd, logExerciseAction, exercisesHeader. Keep in sync when adding items above. */
 private const val FIRST_EXERCISE_ITEM_INDEX = 6
@@ -176,6 +185,7 @@ private const val FIRST_EXERCISE_ITEM_INDEX = 6
  *  each card itself (see LoggingContent), so it turns this off. */
 private val LocalAutoScrollExpandedCard = androidx.compose.runtime.compositionLocalOf { true }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
@@ -229,6 +239,17 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
         }
     }
 
+    val imeVisible by androidx.compose.runtime.rememberUpdatedState(WindowInsets.isImeVisible)
+    LaunchedEffect(Unit) {
+        viewModel.advanceToExercise.collect { request ->
+            // Rest ran out on its own while the keyboard is open: the user is typing, so leave the screen alone.
+            if (!request.userInitiated && imeVisible) return@collect
+            val exerciseId = request.exerciseId
+            if (exerciseId !in selectedExerciseIds) selectedExerciseIds = selectedExerciseIds + exerciseId
+            expandedExerciseIds = listOf(exerciseId)
+        }
+    }
+
     val continuePrompt by viewModel.continuePrompt.collectAsStateWithLifecycle()
     if (continuePrompt != null) {
         TimeGoDialog(
@@ -242,7 +263,10 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
         }
     }
 
-    androidx.compose.runtime.CompositionLocalProvider(LocalSideModes provides sideModes) {
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalSideModes provides sideModes,
+        LocalShowExerciseDetails provides { name -> detailExercise = exerciseLibrary.firstOrNull { it.name == name } },
+    ) {
     AnimatedContent(
         targetState = sessionState,
         transitionSpec = {
@@ -1203,8 +1227,6 @@ private fun ExercisePickerContent(
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var expandedExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var detailExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
-    val guidanceByKey by viewModel.guidanceByKey.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val holdSuggestions by viewModel.holdSuggestions.collectAsStateWithLifecycle()
     val lastWorkingSets by viewModel.lastWorkingSets.collectAsStateWithLifecycle()
@@ -1224,24 +1246,6 @@ private fun ExercisePickerContent(
             },
         )
     }
-    detailExerciseId?.let { id ->
-        val exercise = exercises.firstOrNull { it.id == id }
-        val guidance = exercise?.catalogueKey?.let(guidanceByKey::get)
-        if (exercise != null) {
-            val model = buildExerciseDetail(exercise, guidance)
-            val easier = model.easierVariationKey?.let(guidanceByKey::get)
-            ExerciseDetailSheet(
-                model = model,
-                easierName = easier?.name,
-                onShowEasier = {
-                    val easierExercise = easier?.catalogueKey?.let { key -> exercises.firstOrNull { it.catalogueKey == key } }
-                    detailExerciseId = easierExercise?.id
-                },
-                onDismiss = { detailExerciseId = null },
-            )
-        }
-    }
-
     var showOrderMenu by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxSize().imePadding()) {
         Column(
@@ -1330,7 +1334,6 @@ private fun ExercisePickerContent(
                         onToggle = {
                             expandedExerciseId = if (expandedExerciseId == exercise.id) null else exercise.id
                         },
-                        onShowDetails = { detailExerciseId = exercise.id },
                         onLogStrength = { weight, reps, target, isWarmup, addedWeightKg, rpe, provenance ->
                             viewModel.logSet(exercise.id, weight, reps, target, isWarmup, addedWeightKg, rpe, provenance)
                             onSetLogged(exercise.id)
@@ -1348,14 +1351,15 @@ private fun ExercisePickerContent(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(Spacing.ExtraLarge + 72.dp + LocalDockHeight.current))
+            Spacer(modifier = Modifier.height(Spacing.ExtraLarge + 72.dp + LocalDockHeight.current + LocalRestClearance.current))
         }
         SurfaceCard(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                // LocalDockHeight already includes the system navigation-bar inset.
-                .padding(bottom = LocalDockHeight.current)
+                // LocalDockHeight already includes the system navigation-bar inset; the rest bar docks
+                // at the same spot, so lift the search field above it while a rest is showing.
+                .padding(bottom = LocalDockHeight.current + LocalRestClearance.current)
                 .padding(horizontal = Spacing.Large, vertical = Spacing.Small),
             hero = true,
         ) {
@@ -1368,7 +1372,7 @@ private fun ExercisePickerContent(
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.ExtraSmall, vertical = Spacing.ExtraSmall),
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.small,
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { onSearchQueryChange("") }) {
@@ -1382,7 +1386,7 @@ private fun ExercisePickerContent(
             onClick = { showAddDialog = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = Spacing.Large, bottom = LocalDockHeight.current + 88.dp),
+                .padding(end = Spacing.Large, bottom = LocalDockHeight.current + LocalRestClearance.current + 88.dp),
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Add custom exercise")
         }
@@ -1404,7 +1408,6 @@ private fun ExercisePickerRow(
     pulseId: Long,
     onToggleFavorite: () -> Unit,
     onToggle: () -> Unit,
-    onShowDetails: () -> Unit,
     onLogStrength: (Double, Int, Int, Boolean, Double?, Int?, TargetProvenance) -> Unit,
     onLogCardio: (Double, Double?) -> Unit,
     onLogHold: (Int, Int, Boolean, TargetProvenance) -> Unit,
@@ -1463,9 +1466,6 @@ private fun ExercisePickerRow(
             onLog = onLogStrength,
         )
     }
-    if (expanded) {
-        TextButton(onClick = onShowDetails, modifier = Modifier.align(Alignment.End)) { Text("Exercise details") }
-    }
     }
 }
 
@@ -1487,6 +1487,8 @@ private fun ExerciseRowHeader(
     isFavorite: Boolean,
     onToggleFavorite: () -> Unit,
     onToggle: () -> Unit,
+    todaySummary: String? = null,
+    todaySetCount: Int = 0,
 ) {
     val starScale by animateFloatAsState(
         targetValue = if (isFavorite) 1.2f else 1f,
@@ -1503,15 +1505,29 @@ private fun ExerciseRowHeader(
     ) {
         Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.padding(end = Spacing.Small))
         Text(exerciseName, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-        if (suggestionSummary != null) {
-            Text(
-                suggestionSummary,
-                style = LedgerFigureValue.copy(fontSize = 14.sp),
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.padding(end = Spacing.Small),
+        // Two states, told apart by label and colour: green TODAY once a set is logged, blue TARGET
+        // (derived from last session) before that.
+        val (badgeLabel, badgeValue, badgeColor) = when {
+            todaySummary != null -> Triple("TODAY · $todaySetCount ${if (todaySetCount == 1) "SET" else "SETS"}", todaySummary, PlateGreen)
+            suggestionSummary != null -> Triple("TARGET", suggestionSummary, PlateBlue)
+            else -> Triple(null, null, Color.Unspecified)
+        }
+        if (badgeValue != null) {
+            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = Spacing.Small)) {
+                Text(badgeLabel!!, style = MaterialTheme.typography.labelSmall, color = badgeColor.copy(alpha = 0.75f))
+                Text(badgeValue, style = LedgerFigureValue.copy(fontSize = 14.sp), color = badgeColor)
+            }
+        }
+        val showDetails = LocalShowExerciseDetails.current
+        IconButton(onClick = { showDetails(exerciseName) }, modifier = Modifier.size(40.dp)) {
+            Icon(
+                Icons.Outlined.Info,
+                contentDescription = "Exercise details",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
             )
         }
-        IconButton(onClick = onToggleFavorite) {
+        IconButton(onClick = onToggleFavorite, modifier = Modifier.size(40.dp)) {
             Icon(
                 if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                 contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
@@ -1690,6 +1706,10 @@ private fun StrengthLogRow(
         "Last time: $weight x ${set.reps}"
     }
 
+    val workingToday = currentSessionSets.filter { !it.isWarmup }
+    val todayHint = workingToday.lastOrNull()?.let { set ->
+        if (isBodyweight && set.addedWeightKg != null) "${formatCalisthenicsWeight(set.addedWeightKg)} x ${set.reps}" else "${displayKg(set.weightKg)}kg x ${set.reps}"
+    }
     ExerciseCard(expanded, pulseId) {
         ExerciseRowHeader(
             exerciseName,
@@ -1699,7 +1719,10 @@ private fun StrengthLogRow(
             expanded,
             isFavorite,
             onToggleFavorite,
-        ) { onToggle() }
+            onToggle = onToggle,
+            todaySummary = todayHint,
+            todaySetCount = workingToday.size,
+        )
         AnimatedExpand(expanded) {
             HorizontalDivider(
                 color = Hairline.copy(alpha = 0.5f),
@@ -1730,7 +1753,7 @@ private fun StrengthLogRow(
                 Text(
                     "Today: $setsSummary",
                     style = LedgerFigureValue.copy(fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = PlateGreen,
                     modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
                 )
             }
@@ -1765,7 +1788,7 @@ private fun StrengthLogRow(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                         keyboardActions = rememberAdvanceKeyboardActions(onNext = { repsFocus.requestFocus() }),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = Hairline,
@@ -1783,7 +1806,7 @@ private fun StrengthLogRow(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                         keyboardActions = rememberAdvanceKeyboardActions(onNext = { rpeFocus.requestFocus() }),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = Hairline,
@@ -1802,7 +1825,7 @@ private fun StrengthLogRow(
                         textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         keyboardActions = rememberAdvanceKeyboardActions(onDone = { if (canLog) logSet() }),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = Hairline,
@@ -1862,7 +1885,7 @@ private fun StrengthLogRow(
                 val workingSetNumber = currentSessionSets.count { !it.isWarmup } + 1
                 Button(
                     enabled = canLog,
-                    shape = RoundedCornerShape(10.dp),
+                    shape = MaterialTheme.shapes.small,
                     interactionSource = logInteractionSource,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1953,7 +1976,7 @@ private fun CardioLogRow(
                 singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                         keyboardActions = rememberAdvanceKeyboardActions(onNext = { minutesFocus.requestFocus() }),
-                shape = RoundedCornerShape(8.dp),
+                shape = MaterialTheme.shapes.small,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = Hairline,
@@ -1976,7 +1999,7 @@ private fun CardioLogRow(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         keyboardActions = rememberAdvanceKeyboardActions(onDone = logCardio),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = Hairline,
@@ -1988,7 +2011,7 @@ private fun CardioLogRow(
                     val cardioLogInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Button(
                         enabled = duration != null && validDistance,
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         interactionSource = cardioLogInteractionSource,
                         modifier = Modifier.tactilePress(cardioLogInteractionSource, pressedScale = 0.94f),
                         onClick = logCardio,
@@ -1998,7 +2021,7 @@ private fun CardioLogRow(
                 }
                 OutlinedButton(
                     onClick = { useTimer = true },
-                    shape = RoundedCornerShape(8.dp),
+                    shape = MaterialTheme.shapes.small,
                     modifier = Modifier.padding(horizontal = Spacing.Medium).padding(bottom = Spacing.Small),
                 ) { Text("Use timer") }
             } else {
@@ -2073,7 +2096,8 @@ private fun HoldLogRow(
             expanded,
             isFavorite,
             onToggleFavorite,
-        ) { onToggle() }
+            onToggle = onToggle,
+        )
         AnimatedExpand(expanded) {
             HorizontalDivider(
                 color = Hairline.copy(alpha = 0.5f),
@@ -2131,7 +2155,7 @@ private fun HoldLogRow(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                         keyboardActions = rememberAdvanceKeyboardActions(onDone = logHold),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = Hairline,
@@ -2143,7 +2167,7 @@ private fun HoldLogRow(
                     val holdLogInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Button(
                         enabled = manualDuration != null,
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         interactionSource = holdLogInteractionSource,
                         modifier = Modifier.tactilePress(holdLogInteractionSource, pressedScale = 0.94f),
                         onClick = logHold,

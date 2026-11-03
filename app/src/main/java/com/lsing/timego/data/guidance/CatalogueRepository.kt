@@ -16,8 +16,8 @@ class CatalogueRepository(private val database: TimeGoDatabase) {
     suspend fun ensureBundledImported() {
         database.withTransaction {
             if ((dao.newestVersion() ?: 0) < BUNDLED_CATALOGUE_VERSION) {
-                require(BUNDLED_EXERCISE_GUIDANCE.size == 824) { "Bundled catalogue must contain 824 entries" }
-                require(BUNDLED_EXERCISE_GUIDANCE.map(ExerciseGuidance::catalogueKey).toSet().size == 824) { "Bundled catalogue keys must be unique" }
+                require(BUNDLED_EXERCISE_GUIDANCE.isNotEmpty()) { "Bundled catalogue must not be empty" }
+                require(BUNDLED_EXERCISE_GUIDANCE.map(ExerciseGuidance::catalogueKey).toSet().size == BUNDLED_EXERCISE_GUIDANCE.size) { "Bundled catalogue keys must be unique" }
                 dao.upsertAll(BUNDLED_EXERCISE_GUIDANCE)
             }
         }

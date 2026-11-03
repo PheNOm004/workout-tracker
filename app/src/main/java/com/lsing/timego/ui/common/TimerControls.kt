@@ -130,7 +130,7 @@ fun TimerControls(
     )
 
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.small,
         color = RaisedFill,
         modifier = modifier
             .fillMaxWidth()
@@ -138,7 +138,7 @@ fun TimerControls(
             .border(
                 width = 1.dp,
                 color = if (isActive) PlateGreen.copy(alpha = 0.5f) else Hairline,
-                shape = RoundedCornerShape(14.dp),
+                shape = MaterialTheme.shapes.small,
             ),
     ) {
         AnimatedContent(

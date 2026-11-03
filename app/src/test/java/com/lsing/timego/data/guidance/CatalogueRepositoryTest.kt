@@ -9,8 +9,8 @@ import org.junit.Test
 class CatalogueRepositoryTest {
     @Test
     fun bundledSnapshotIsCompleteAndVersioned() {
-        assertEquals(824, BUNDLED_EXERCISE_GUIDANCE.size)
-        assertEquals(824, BUNDLED_EXERCISE_GUIDANCE.map(ExerciseGuidance::catalogueKey).toSet().size)
+        assertEquals(848, BUNDLED_EXERCISE_GUIDANCE.size)
+        assertEquals(848, BUNDLED_EXERCISE_GUIDANCE.map(ExerciseGuidance::catalogueKey).toSet().size)
         assertTrue(BUNDLED_EXERCISE_GUIDANCE.all { it.catalogueVersion == BUNDLED_CATALOGUE_VERSION })
         assertEquals(204, BUNDLED_EXERCISE_GUIDANCE.count(ExerciseGuidance::isReviewedComplete))
     }

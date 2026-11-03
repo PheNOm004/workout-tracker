@@ -132,6 +132,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val selectedHistoryDate by viewModel.selectedHistoryDate.collectAsStateWithLifecycle()
     val historyForSelectedDate by viewModel.historyForSelectedDate.collectAsStateWithLifecycle()
     val historyGroupedForSelectedDate by viewModel.historyGroupedForSelectedDate.collectAsStateWithLifecycle()
+    val historyIntensities by viewModel.historyIntensities.collectAsStateWithLifecycle()
     val historyLabel by viewModel.historyLabel.collectAsStateWithLifecycle()
     val historyDurationMinutes by viewModel.historyDurationMinutes.collectAsStateWithLifecycle()
     val periodBreakdown by viewModel.periodBreakdown.collectAsStateWithLifecycle()
@@ -172,6 +173,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             title = "Workout on ${selectedHistoryDate!!}",
             entries = historyForSelectedDate,
             groupedEntries = historyGroupedForSelectedDate,
+            muscleIntensities = if (SHOW_DAY_BODYMAP) historyIntensities else emptyMap(),
             onDismiss = { viewModel.selectHistoryDate(null) },
             label = historyLabel,
             durationMinutes = historyDurationMinutes,
@@ -264,16 +266,21 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                         )
                     }
                 }
-                FlowRow(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     val tapToBreakdown = Modifier.clickable { showPeriodBreakdown = true }
                     val workoutsVal = if (!isHydrated && trainingStats.workouts == 0) "--" else trainingStats.workouts.toString()
                     val durationVal = if (!isHydrated && trainingStats.totalDurationMinutes == 0.0) "--" else "${trainingStats.totalDurationMinutes.toInt()} min"
                     val volumeVal = if (!isHydrated && trainingStats.totalVolumeKg == 0.0) "--" else "${trainingStats.totalVolumeKg.toInt()} kg"
                     val setsVal = if (!isHydrated && trainingStats.totalSets == 0) "--" else trainingStats.totalSets.toString()
-                    StatTile("Workouts", workoutsVal, modifier = tapToBreakdown)
-                    StatTile("Duration", durationVal, modifier = tapToBreakdown)
-                    StatTile("Volume", volumeVal, modifier = tapToBreakdown)
-                    StatTile("Sets", setsVal, modifier = tapToBreakdown)
+                    // Even 2x2 grid (same as the loading skeleton) so tiles never wrap raggedly or jump on load.
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        StatTile("Workouts", workoutsVal, modifier = tapToBreakdown.weight(1f), inline = true)
+                        StatTile("Duration", durationVal, modifier = tapToBreakdown.weight(1f), inline = true)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        StatTile("Volume", volumeVal, modifier = tapToBreakdown.weight(1f), inline = true)
+                        StatTile("Sets", setsVal, modifier = tapToBreakdown.weight(1f), inline = true)
+                    }
                 }
             }
 
@@ -699,6 +706,10 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
 }
 
 private val SegmentSelectorClearance = 64.dp
+
+/** Shelve switch for the bodymap in the attendance chart's day sheet (idea logged 2026-11-03). false hides it
+ *  everywhere; the intensity is still computed, which is one pass over that day's sets. */
+private const val SHOW_DAY_BODYMAP = true
 
 @Composable
 private fun AnimatedStrengthCurve(

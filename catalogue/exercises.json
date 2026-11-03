@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogueVersion": 2,
+  "catalogueVersion": 4,
   "exercises": [
     {
       "key": "timego.seed.v1.barbell-bench-press",
@@ -10,10 +10,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 65
+        "TRICEPS": 65,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "barbell",
@@ -51,10 +53,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "TRICEPS"
       ],
       "muscleWeights": {
-        "FRONT_DELTS": 55
+        "FRONT_DELTS": 55,
+        "TRICEPS": 50
       },
       "equipment": [
         "barbell",
@@ -133,10 +137,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "dumbbells",
@@ -174,10 +180,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "TRICEPS"
       ],
       "muscleWeights": {
-        "FRONT_DELTS": 55
+        "FRONT_DELTS": 55,
+        "TRICEPS": 50
       },
       "equipment": [
         "dumbbells"
@@ -213,9 +221,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "dumbbells"
       ],
@@ -250,9 +261,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "cable machine"
       ],
@@ -288,10 +302,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "machine"
@@ -327,9 +343,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "machine"
       ],
@@ -365,10 +384,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "barbell",
@@ -406,10 +427,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "machine",
@@ -447,10 +470,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "dumbbells",
@@ -514,9 +539,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "cable machine"
       ],
@@ -551,9 +579,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "cable machine"
       ],
@@ -588,9 +619,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "cable machine"
       ],
@@ -625,9 +659,14 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -650,10 +689,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 70
+        "TRICEPS": 70,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -690,10 +731,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -716,9 +759,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "cable machine"
       ],
@@ -741,10 +787,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "TRICEPS"
       ],
       "muscleWeights": {
-        "FRONT_DELTS": 50
+        "FRONT_DELTS": 50,
+        "TRICEPS": 45
       },
       "equipment": [
         "appropriate resistance"
@@ -768,10 +816,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 50
+        "TRICEPS": 50,
+        "FRONT_DELTS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -795,10 +845,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "TRICEPS"
       ],
       "muscleWeights": {
-        "FRONT_DELTS": 55
+        "FRONT_DELTS": 55,
+        "TRICEPS": 50
       },
       "equipment": [
         "machine"
@@ -834,9 +886,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "cable machine"
       ],
@@ -871,9 +926,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "cable machine"
       ],
@@ -909,10 +967,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "dumbbells"
@@ -949,10 +1009,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 65
+        "TRICEPS": 65,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bench"
@@ -976,10 +1038,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -1003,10 +1067,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -1030,10 +1096,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "TRICEPS"
       ],
       "muscleWeights": {
-        "FRONT_DELTS": 55
+        "FRONT_DELTS": 55,
+        "TRICEPS": 50
       },
       "equipment": [
         "dumbbells"
@@ -1128,10 +1196,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -1195,10 +1265,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 70
+        "TRICEPS": 70,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -1222,10 +1294,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 65
+        "TRICEPS": 65,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bench"
@@ -1249,10 +1323,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 65
+        "TRICEPS": 65,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "resistance band",
@@ -1277,10 +1353,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "machine"
@@ -1316,9 +1394,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "cable machine"
       ],
@@ -1354,10 +1435,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 50
+        "TRICEPS": 50,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "barbell"
@@ -1381,10 +1464,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bench"
@@ -1408,10 +1493,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 65
+        "TRICEPS": 65,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "dumbbells"
@@ -1448,10 +1535,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "TRICEPS"
       ],
       "muscleWeights": {
-        "FRONT_DELTS": 50
+        "FRONT_DELTS": 50,
+        "TRICEPS": 50
       },
       "equipment": [
         "machine"
@@ -1528,10 +1617,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "cable machine"
@@ -1568,10 +1659,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "machine"
@@ -1595,10 +1688,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "cable machine",
@@ -1635,9 +1730,14 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -1662,13 +1762,17 @@
         "GLUTES",
         "HAMSTRINGS",
         "LOWER_BACK",
-        "TRAPS"
+        "TRAPS",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 70,
         "GLUTES": 75,
         "LOWER_BACK": 45,
-        "TRAPS": 25
+        "TRAPS": 25,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -1708,14 +1812,20 @@
         "GLUTES",
         "HAMSTRINGS",
         "LOWER_BACK",
-        "TRAPS"
+        "TRAPS",
+        "ADDUCTORS",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "QUADS": 70,
         "HAMSTRINGS": 50,
         "GLUTES": 70,
         "LOWER_BACK": 40,
-        "TRAPS": 25
+        "TRAPS": 25,
+        "ADDUCTORS": 35,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -1754,12 +1864,16 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "LOWER_BACK",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 70,
         "TRAPS": 30,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "LOWER_BACK": 40,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "barbell"
@@ -1798,12 +1912,16 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "LOWER_BACK",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 70,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "LOWER_BACK": 40,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -1829,12 +1947,16 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "LOWER_BACK",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "LOWER_BACK": 35,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -1873,12 +1995,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "cable machine"
@@ -1915,10 +2039,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 35
+        "BICEPS": 35,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "cable machine"
@@ -1957,12 +2083,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 60,
         "TRAPS": 30,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "dumbbells"
@@ -2001,12 +2129,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "machine"
@@ -2045,12 +2175,16 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "LOWER_BACK",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "LOWER_BACK": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -2076,12 +2210,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -2120,12 +2256,16 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "LOWER_BACK",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 60,
         "TRAPS": 25,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "LOWER_BACK": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -2148,9 +2288,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "LATS"
+        "LATS",
+        "TRICEPS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "TRICEPS": 20
+      },
       "equipment": [
         "cable machine"
       ],
@@ -2186,10 +2329,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 30
+        "BICEPS": 30,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "cable machine"
@@ -2213,10 +2358,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 40
+        "BICEPS": 40,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "cable machine"
@@ -2240,10 +2387,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 45
+        "BICEPS": 45,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "cable machine"
@@ -2269,13 +2418,15 @@
         "UPPER_BACK",
         "TRAPS",
         "LOWER_BACK",
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "FOREARMS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 70,
         "TRAPS": 60,
         "LOWER_BACK": 55,
-        "HAMSTRINGS": 45
+        "HAMSTRINGS": 45,
+        "FOREARMS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -2314,13 +2465,17 @@
         "QUADS",
         "GLUTES",
         "LOWER_BACK",
-        "TRAPS"
+        "TRAPS",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "QUADS": 60,
         "GLUTES": 65,
         "LOWER_BACK": 45,
-        "TRAPS": 25
+        "TRAPS": 25,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -2359,13 +2514,17 @@
         "HAMSTRINGS",
         "GLUTES",
         "LOWER_BACK",
-        "TRAPS"
+        "TRAPS",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 70,
         "GLUTES": 65,
         "LOWER_BACK": 45,
-        "TRAPS": 25
+        "TRAPS": 25,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -2391,13 +2550,17 @@
         "HAMSTRINGS",
         "UPPER_BACK",
         "TRAPS",
-        "LOWER_BACK"
+        "LOWER_BACK",
+        "FOREARMS",
+        "GLUTES"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 65,
         "UPPER_BACK": 50,
         "TRAPS": 45,
-        "LOWER_BACK": 45
+        "LOWER_BACK": 45,
+        "FOREARMS": 30,
+        "GLUTES": 55
       },
       "equipment": [
         "appropriate resistance"
@@ -2423,12 +2586,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -2454,12 +2619,16 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "ABS"
+        "ABS",
+        "REAR_DELTS",
+        "BICEPS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 55,
         "TRAPS": 25,
-        "ABS": 35
+        "ABS": 35,
+        "REAR_DELTS": 30,
+        "BICEPS": 25
       },
       "equipment": [
         "dumbbells"
@@ -2483,10 +2652,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "CHEST"
+        "CHEST",
+        "TRICEPS"
       ],
       "muscleWeights": {
-        "CHEST": 40
+        "CHEST": 40,
+        "TRICEPS": 25
       },
       "equipment": [
         "dumbbells"
@@ -2525,12 +2696,14 @@
         "UPPER_BACK",
         "LATS",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "LATS": 55,
         "TRAPS": 35,
-        "BICEPS": 25
+        "BICEPS": 25,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "cable machine"
@@ -2569,12 +2742,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "barbell"
@@ -2611,10 +2786,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "HAMSTRINGS",
-        "LOWER_BACK"
+        "LOWER_BACK",
+        "GLUTES"
       ],
       "muscleWeights": {
-        "LOWER_BACK": 60
+        "LOWER_BACK": 60,
+        "GLUTES": 45
       },
       "equipment": [
         "appropriate resistance"
@@ -2724,12 +2901,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -2755,12 +2934,16 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "LOWER_BACK",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "LOWER_BACK": 40,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -2786,12 +2969,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -2817,12 +3002,16 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "LOWER_BACK",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 50,
         "TRAPS": 25,
-        "BICEPS": 45
+        "BICEPS": 45,
+        "LOWER_BACK": 40,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "barbell"
@@ -2859,10 +3048,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 30
+        "BICEPS": 30,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "cable machine"
@@ -2886,10 +3077,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 30
+        "BICEPS": 30,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "cable machine"
@@ -2912,9 +3105,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "LATS"
+        "LATS",
+        "TRICEPS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "TRICEPS": 20
+      },
       "equipment": [
         "cable machine"
       ],
@@ -2937,10 +3133,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 35
+        "BICEPS": 35,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "cable machine"
@@ -2966,12 +3164,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 60,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "machine"
@@ -3010,12 +3210,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 55,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "barbell"
@@ -3041,12 +3243,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 60,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "cable machine"
@@ -3085,12 +3289,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 60,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "dumbbells",
@@ -3114,9 +3320,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "LATS"
+        "LATS",
+        "TRICEPS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "TRICEPS": 25
+      },
       "equipment": [
         "machine"
       ],
@@ -3139,10 +3348,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "CHEST"
+        "CHEST",
+        "TRICEPS"
       ],
       "muscleWeights": {
-        "CHEST": 35
+        "CHEST": 35,
+        "TRICEPS": 25
       },
       "equipment": [
         "cable machine"
@@ -3169,14 +3380,20 @@
         "GLUTES",
         "HAMSTRINGS",
         "LOWER_BACK",
-        "TRAPS"
+        "TRAPS",
+        "ADDUCTORS",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "QUADS": 65,
         "HAMSTRINGS": 55,
         "GLUTES": 70,
         "LOWER_BACK": 40,
-        "TRAPS": 25
+        "TRAPS": 25,
+        "ADDUCTORS": 35,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -3202,13 +3419,15 @@
         "UPPER_BACK",
         "TRAPS",
         "LOWER_BACK",
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "FOREARMS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 55,
         "LOWER_BACK": 55,
-        "HAMSTRINGS": 45
+        "HAMSTRINGS": 45,
+        "FOREARMS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -3233,12 +3452,16 @@
       "muscleGroups": [
         "LOWER_BACK",
         "HAMSTRINGS",
-        "TRAPS"
+        "TRAPS",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "LOWER_BACK": 55,
         "HAMSTRINGS": 50,
-        "TRAPS": 25
+        "TRAPS": 25,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -3264,13 +3487,17 @@
         "GLUTES",
         "QUADS",
         "LOWER_BACK",
-        "TRAPS"
+        "TRAPS",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "QUADS": 50,
         "GLUTES": 55,
         "LOWER_BACK": 45,
-        "TRAPS": 20
+        "TRAPS": 20,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -3296,13 +3523,17 @@
         "GLUTES",
         "HAMSTRINGS",
         "LOWER_BACK",
-        "TRAPS"
+        "TRAPS",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 65,
         "GLUTES": 60,
         "LOWER_BACK": 45,
-        "TRAPS": 20
+        "TRAPS": 20,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "resistance band"
@@ -3328,13 +3559,17 @@
         "GLUTES",
         "HAMSTRINGS",
         "LOWER_BACK",
-        "TRAPS"
+        "TRAPS",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 65,
         "GLUTES": 60,
         "LOWER_BACK": 45,
-        "TRAPS": 25
+        "TRAPS": 25,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -3362,14 +3597,16 @@
         "LOWER_BACK",
         "OBLIQUES",
         "FOREARMS",
-        "TRAPS"
+        "TRAPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "QUADS": 60,
         "LOWER_BACK": 45,
         "OBLIQUES": 45,
         "FOREARMS": 40,
-        "TRAPS": 20
+        "TRAPS": 20,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -3395,12 +3632,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 60,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "cable machine"
@@ -3426,12 +3665,14 @@
         "UPPER_BACK",
         "LATS",
         "TRAPS",
-        "REAR_DELTS"
+        "REAR_DELTS",
+        "BICEPS"
       ],
       "muscleWeights": {
         "LATS": 55,
         "TRAPS": 45,
-        "REAR_DELTS": 40
+        "REAR_DELTS": 40,
+        "BICEPS": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -3470,12 +3711,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 55,
         "TRAPS": 30,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -3499,10 +3742,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 30
+        "BICEPS": 30,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "cable machine",
@@ -3527,10 +3772,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 30
+        "BICEPS": 30,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "cable machine"
@@ -3556,12 +3803,16 @@
         "LOWER_BACK",
         "UPPER_BACK",
         "TRAPS",
-        "LATS"
+        "LATS",
+        "REAR_DELTS",
+        "BICEPS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 55,
         "TRAPS": 30,
-        "LATS": 45
+        "LATS": 45,
+        "REAR_DELTS": 40,
+        "BICEPS": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -3667,10 +3918,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRAPS",
-        "UPPER_BACK"
+        "UPPER_BACK",
+        "FOREARMS"
       ],
       "muscleWeights": {
-        "UPPER_BACK": 45
+        "UPPER_BACK": 45,
+        "FOREARMS": 30
       },
       "equipment": [
         "barbell"
@@ -3694,10 +3947,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRAPS",
-        "UPPER_BACK"
+        "UPPER_BACK",
+        "FOREARMS"
       ],
       "muscleWeights": {
-        "UPPER_BACK": 45
+        "UPPER_BACK": 45,
+        "FOREARMS": 30
       },
       "equipment": [
         "dumbbells"
@@ -3902,9 +4157,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "CHEST"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "CHEST": 20
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -3939,9 +4197,14 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "REAR_DELTS"
+        "REAR_DELTS",
+        "UPPER_BACK",
+        "TRAPS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "UPPER_BACK": 40,
+        "TRAPS": 20
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -4201,9 +4464,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "CHEST"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "CHEST": 20
+      },
       "equipment": [
         "cable machine"
       ],
@@ -4225,9 +4491,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "CHEST"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "CHEST": 20
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -4249,9 +4518,14 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "REAR_DELTS"
+        "REAR_DELTS",
+        "UPPER_BACK",
+        "TRAPS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "UPPER_BACK": 40,
+        "TRAPS": 20
+      },
       "equipment": [
         "dumbbells"
       ],
@@ -4273,9 +4547,14 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "REAR_DELTS"
+        "REAR_DELTS",
+        "UPPER_BACK",
+        "TRAPS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "UPPER_BACK": 40,
+        "TRAPS": 20
+      },
       "equipment": [
         "cable machine"
       ],
@@ -4297,9 +4576,14 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "REAR_DELTS"
+        "REAR_DELTS",
+        "UPPER_BACK",
+        "TRAPS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "UPPER_BACK": 40,
+        "TRAPS": 20
+      },
       "equipment": [
         "machine"
       ],
@@ -4697,9 +4981,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "CHEST"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "CHEST": 20
+      },
       "equipment": [
         "cable machine"
       ],
@@ -5258,9 +5545,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "dumbbells"
       ],
@@ -5295,9 +5585,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "barbell"
       ],
@@ -5332,9 +5625,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -5369,9 +5665,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -5406,9 +5705,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -5443,9 +5745,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "cable machine"
       ],
@@ -5592,10 +5897,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "CHEST": 50
+        "CHEST": 50,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bench"
@@ -5668,9 +5975,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -5705,9 +6015,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -5729,9 +6042,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -5753,9 +6069,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "dumbbells"
       ],
@@ -5777,9 +6096,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -5801,9 +6123,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -5901,10 +6226,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "CHEST": 40
+        "CHEST": 40,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "machine"
@@ -5952,10 +6279,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "CHEST": 50
+        "CHEST": 50,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bench"
@@ -6016,10 +6345,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "CHEST": 35
+        "CHEST": 35,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bench"
@@ -6106,9 +6437,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "cable machine"
       ],
@@ -6130,9 +6464,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -6208,9 +6545,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "machine"
       ],
@@ -6232,9 +6572,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "cable machine"
       ],
@@ -6256,9 +6599,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "cable machine"
       ],
@@ -6280,9 +6626,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "dumbbells"
       ],
@@ -6304,9 +6653,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "cable machine"
       ],
@@ -6574,9 +6926,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "cable machine"
       ],
@@ -6598,9 +6953,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -6649,9 +7007,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -6673,9 +7034,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 25
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -6698,10 +7062,18 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "LOWER_BACK",
+        "ADDUCTORS",
+        "HAMSTRINGS",
+        "ABS"
       ],
       "muscleWeights": {
-        "GLUTES": 60
+        "GLUTES": 60,
+        "LOWER_BACK": 30,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25,
+        "ABS": 25
       },
       "equipment": [
         "barbell"
@@ -6738,10 +7110,18 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "LOWER_BACK",
+        "ADDUCTORS",
+        "HAMSTRINGS",
+        "ABS"
       ],
       "muscleWeights": {
-        "GLUTES": 50
+        "GLUTES": 50,
+        "LOWER_BACK": 25,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25,
+        "ABS": 25
       },
       "equipment": [
         "barbell"
@@ -6778,10 +7158,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "machine"
@@ -6819,11 +7201,13 @@
       "muscleGroups": [
         "HAMSTRINGS",
         "GLUTES",
-        "TRAPS"
+        "TRAPS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "GLUTES": 65,
-        "TRAPS": 20
+        "TRAPS": 20,
+        "LOWER_BACK": 45
       },
       "equipment": [
         "appropriate resistance"
@@ -6859,9 +7243,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "CALVES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "CALVES": 20
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -6934,10 +7321,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 60
+        "GLUTES": 60,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -6974,10 +7365,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 65
+        "GLUTES": 65,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -7013,9 +7408,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "GLUTES"
+        "GLUTES",
+        "HAMSTRINGS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "HAMSTRINGS": 35
+      },
       "equipment": [
         "bench"
       ],
@@ -7051,10 +7449,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "GLUTES",
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
-        "HAMSTRINGS": 60
+        "HAMSTRINGS": 60,
+        "LOWER_BACK": 30
       },
       "equipment": [
         "cable machine"
@@ -7152,10 +7552,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 45
+        "GLUTES": 45,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "machine"
@@ -7192,10 +7594,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "machine"
@@ -7219,10 +7623,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "ABS"
       ],
       "muscleWeights": {
-        "GLUTES": 50
+        "GLUTES": 50,
+        "ADDUCTORS": 30,
+        "ABS": 25
       },
       "equipment": [
         "dumbbells"
@@ -7282,9 +7690,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "QUADS"
+        "QUADS",
+        "ADDUCTORS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "ADDUCTORS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -7307,10 +7718,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 60
+        "GLUTES": 60,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -7347,10 +7762,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -7387,10 +7806,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "GLUTES",
-        "QUADS"
+        "QUADS",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "QUADS": 55
+        "QUADS": 55,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -7453,9 +7876,14 @@
       "category": "CALISTHENICS",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "CALVES",
+        "GLUTES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "CALVES": 20,
+        "GLUTES": 25
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -7477,9 +7905,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "CALVES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "CALVES": 20
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -7503,11 +7934,13 @@
       "muscleGroups": [
         "HAMSTRINGS",
         "GLUTES",
-        "TRAPS"
+        "TRAPS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "GLUTES": 65,
-        "TRAPS": 20
+        "TRAPS": 20,
+        "LOWER_BACK": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -7531,10 +7964,18 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "GLUTES",
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "LOWER_BACK",
+        "FOREARMS",
+        "TRAPS",
+        "ABS"
       ],
       "muscleWeights": {
-        "HAMSTRINGS": 60
+        "HAMSTRINGS": 60,
+        "LOWER_BACK": 40,
+        "FOREARMS": 30,
+        "TRAPS": 20,
+        "ABS": 25
       },
       "equipment": [
         "kettlebell"
@@ -7570,9 +8011,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "GLUTES"
+        "GLUTES",
+        "HAMSTRINGS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "HAMSTRINGS": 35
+      },
       "equipment": [
         "resistance band",
         "bench"
@@ -7659,9 +8103,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "ADDUCTORS": 25
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -7684,10 +8131,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 60
+        "GLUTES": 60,
+        "ADDUCTORS": 45
       },
       "equipment": [
         "appropriate resistance"
@@ -7724,10 +8173,16 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "LOWER_BACK",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "LOWER_BACK": 30,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "box or step"
@@ -7764,10 +8219,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "LOWER_BACK",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "LOWER_BACK": 30,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -7976,12 +8435,16 @@
         "QUADS",
         "LOWER_BACK",
         "ABS",
-        "TRAPS"
+        "TRAPS",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "LOWER_BACK": 45,
         "ABS": 35,
-        "TRAPS": 20
+        "TRAPS": 20,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -8005,10 +8468,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -8032,10 +8497,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 60
+        "GLUTES": 60,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -8059,10 +8528,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "machine"
@@ -8086,10 +8557,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 50
+        "GLUTES": 50,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "machine"
@@ -8113,10 +8586,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -8140,10 +8615,16 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "LOWER_BACK",
+        "ADDUCTORS",
+        "ABS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "LOWER_BACK": 30,
+        "ADDUCTORS": 30,
+        "ABS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -8191,10 +8672,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -8218,10 +8701,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -8246,11 +8731,13 @@
       "muscleGroups": [
         "QUADS",
         "GLUTES",
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
         "GLUTES": 50,
-        "FRONT_DELTS": 30
+        "FRONT_DELTS": 30,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -8274,10 +8761,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "barbell"
@@ -8301,10 +8790,16 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS",
+        "ABS"
       ],
       "muscleWeights": {
-        "GLUTES": 50
+        "GLUTES": 50,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25,
+        "ABS": 25
       },
       "equipment": [
         "dumbbells"
@@ -8329,11 +8824,15 @@
       "muscleGroups": [
         "QUADS",
         "GLUTES",
-        "SIDE_DELTS"
+        "SIDE_DELTS",
+        "ADDUCTORS",
+        "ABS"
       ],
       "muscleWeights": {
         "GLUTES": 50,
-        "SIDE_DELTS": 30
+        "SIDE_DELTS": 30,
+        "ADDUCTORS": 30,
+        "ABS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -8380,9 +8879,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "CALVES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "CALVES": 20
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -8405,10 +8907,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "HAMSTRINGS",
-        "GLUTES"
+        "GLUTES",
+        "CALVES"
       ],
       "muscleWeights": {
-        "GLUTES": 45
+        "GLUTES": 45,
+        "CALVES": 20
       },
       "equipment": [
         "appropriate resistance"
@@ -8465,12 +8969,14 @@
         "GLUTES",
         "HAMSTRINGS",
         "FOREARMS",
-        "TRAPS"
+        "TRAPS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 55,
         "FOREARMS": 25,
-        "TRAPS": 20
+        "TRAPS": 20,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "kettlebell"
@@ -8493,9 +8999,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "GLUTES"
+        "GLUTES",
+        "HAMSTRINGS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "HAMSTRINGS": 35
+      },
       "equipment": [
         "barbell",
         "bench"
@@ -8518,9 +9027,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "GLUTES"
+        "GLUTES",
+        "HAMSTRINGS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "HAMSTRINGS": 35
+      },
       "equipment": [
         "machine",
         "bench"
@@ -8659,10 +9171,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "GLUTES",
-        "QUADS"
+        "QUADS",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "QUADS": 55
+        "QUADS": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -8686,10 +9200,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 40
+        "GLUTES": 40,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -8713,10 +9231,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 60
+        "GLUTES": 60,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -8740,10 +9262,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 50
+        "GLUTES": 50,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "machine"
@@ -8817,12 +9341,16 @@
         "QUADS",
         "GLUTES",
         "CALVES",
-        "TRAPS"
+        "TRAPS",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
         "GLUTES": 55,
         "CALVES": 30,
-        "TRAPS": 20
+        "TRAPS": 20,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -8907,10 +9435,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "box or step"
@@ -8934,10 +9466,16 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS",
+        "ABS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25,
+        "ABS": 25
       },
       "equipment": [
         "dumbbells"
@@ -9035,9 +9573,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "OBLIQUES"
+        "OBLIQUES",
+        "ABS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "ABS": 40
+      },
       "equipment": [
         "cable machine"
       ],
@@ -9072,9 +9613,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "OBLIQUES"
+        "OBLIQUES",
+        "ABS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "ABS": 60
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -9146,9 +9690,14 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "ABS"
+        "ABS",
+        "FOREARMS",
+        "OBLIQUES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30,
+        "OBLIQUES": 20
+      },
       "equipment": [
         "pull-up bar"
       ],
@@ -9215,12 +9764,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "barbell"
@@ -9244,10 +9795,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "ABS"
+        "ABS",
+        "LOWER_BACK",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "ABS": 35
+        "ABS": 35,
+        "LOWER_BACK": 30,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -9271,10 +9826,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "HAMSTRINGS",
-        "LOWER_BACK"
+        "LOWER_BACK",
+        "GLUTES"
       ],
       "muscleWeights": {
-        "LOWER_BACK": 60
+        "LOWER_BACK": 60,
+        "GLUTES": 45
       },
       "equipment": [
         "appropriate resistance"
@@ -9325,10 +9882,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRAPS",
-        "UPPER_BACK"
+        "UPPER_BACK",
+        "FOREARMS"
       ],
       "muscleWeights": {
-        "UPPER_BACK": 45
+        "UPPER_BACK": 45,
+        "FOREARMS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -10167,10 +10726,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -10207,10 +10768,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "CHEST": 55
+        "CHEST": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -10246,9 +10809,14 @@
       "category": "CALISTHENICS",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -10326,10 +10894,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 50
+        "BICEPS": 50,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "pull-up bar"
@@ -10366,10 +10936,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "CHEST": 55
+        "CHEST": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -10406,10 +10978,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "bodyweight"
@@ -10446,10 +11020,16 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30,
+        "CALVES": 35,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "bodyweight"
@@ -10486,10 +11066,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 60
+        "GLUTES": 60,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "bodyweight"
@@ -10512,9 +11096,12 @@
       "category": "CALISTHENICS",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "GLUTES"
+        "GLUTES",
+        "HAMSTRINGS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "HAMSTRINGS": 35
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -10626,9 +11213,14 @@
       "category": "CALISTHENICS",
       "loggingType": "HOLD",
       "muscleGroups": [
-        "ABS"
+        "ABS",
+        "FRONT_DELTS",
+        "GLUTES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25,
+        "GLUTES": 20
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -10663,9 +11255,14 @@
       "category": "CALISTHENICS",
       "loggingType": "HOLD",
       "muscleGroups": [
-        "OBLIQUES"
+        "OBLIQUES",
+        "ABS",
+        "GLUTES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "ABS": 30,
+        "GLUTES": 25
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -10724,9 +11321,14 @@
       "category": "CALISTHENICS",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "ABS"
+        "ABS",
+        "FOREARMS",
+        "OBLIQUES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30,
+        "OBLIQUES": 20
+      },
       "equipment": [
         "pull-up bar"
       ],
@@ -10789,10 +11391,12 @@
       "loggingType": "HOLD",
       "muscleGroups": [
         "LOWER_BACK",
-        "ABS"
+        "GLUTES",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "ABS": 35
+        "GLUTES": 40,
+        "UPPER_BACK": 30
       },
       "equipment": [
         "bodyweight"
@@ -10873,12 +11477,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -10915,10 +11521,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "box or step"
@@ -10954,9 +11564,12 @@
       "category": "CALISTHENICS",
       "loggingType": "HOLD",
       "muscleGroups": [
-        "QUADS"
+        "QUADS",
+        "GLUTES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "GLUTES": 30
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -10979,10 +11592,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 60
+        "GLUTES": 60,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "bodyweight"
@@ -11006,10 +11621,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -11032,9 +11649,14 @@
       "category": "CALISTHENICS",
       "loggingType": "HOLD",
       "muscleGroups": [
-        "ABS"
+        "ABS",
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "TRICEPS": 35,
+        "FRONT_DELTS": 20
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -11058,11 +11680,13 @@
       "muscleGroups": [
         "FRONT_DELTS",
         "SIDE_DELTS",
-        "TRICEPS"
+        "TRICEPS",
+        "TRAPS"
       ],
       "muscleWeights": {
         "SIDE_DELTS": 55,
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "TRAPS": 25
       },
       "equipment": [
         "bodyweight"
@@ -11275,11 +11899,15 @@
       "muscleGroups": [
         "LATS",
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "TRICEPS": 55,
-        "CHEST": 45
+        "CHEST": 45,
+        "BICEPS": 40,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "bodyweight"
@@ -11764,10 +12392,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "ABS",
-        "LATS"
+        "LATS",
+        "FOREARMS",
+        "OBLIQUES"
       ],
       "muscleWeights": {
-        "LATS": 35
+        "LATS": 35,
+        "FOREARMS": 30,
+        "OBLIQUES": 20
       },
       "equipment": [
         "bodyweight"
@@ -11831,10 +12463,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 60
+        "GLUTES": 60,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "bodyweight"
@@ -11858,10 +12492,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "bodyweight"
@@ -11885,10 +12521,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 50
+        "GLUTES": 50,
+        "CALVES": 35,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "bodyweight"
@@ -11912,10 +12552,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 50
+        "GLUTES": 50,
+        "CALVES": 35,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "box or step"
@@ -12064,10 +12708,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 50
+        "TRICEPS": 50,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12091,10 +12737,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12131,10 +12779,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "TRICEPS"
       ],
       "muscleWeights": {
-        "FRONT_DELTS": 50
+        "FRONT_DELTS": 50,
+        "TRICEPS": 50
       },
       "equipment": [
         "bodyweight"
@@ -12159,11 +12809,13 @@
       "muscleGroups": [
         "CHEST",
         "OBLIQUES",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
         "OBLIQUES": 40,
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12187,10 +12839,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12214,10 +12868,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12241,10 +12897,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12297,10 +12955,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12324,10 +12984,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12380,10 +13042,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "TRICEPS"
       ],
       "muscleWeights": {
-        "FRONT_DELTS": 45
+        "FRONT_DELTS": 45,
+        "TRICEPS": 55
       },
       "equipment": [
         "bodyweight"
@@ -12408,11 +13072,13 @@
       "muscleGroups": [
         "CHEST",
         "TRICEPS",
-        "OBLIQUES"
+        "OBLIQUES",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
         "TRICEPS": 55,
-        "OBLIQUES": 35
+        "OBLIQUES": 35,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12436,10 +13102,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "CHEST": 55
+        "CHEST": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12492,10 +13160,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "CHEST": 50
+        "CHEST": 50,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12519,10 +13189,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "CHEST": 45
+        "CHEST": 45,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12575,10 +13247,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "CHEST": 45
+        "CHEST": 45,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12602,10 +13276,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "CHEST": 55
+        "CHEST": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -12860,11 +13536,13 @@
       "muscleGroups": [
         "FRONT_DELTS",
         "SIDE_DELTS",
-        "TRICEPS"
+        "TRICEPS",
+        "TRAPS"
       ],
       "muscleWeights": {
         "SIDE_DELTS": 55,
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "TRAPS": 25
       },
       "equipment": [
         "bodyweight"
@@ -12889,11 +13567,13 @@
       "muscleGroups": [
         "FRONT_DELTS",
         "SIDE_DELTS",
-        "TRICEPS"
+        "TRICEPS",
+        "TRAPS"
       ],
       "muscleWeights": {
         "SIDE_DELTS": 55,
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "TRAPS": 25
       },
       "equipment": [
         "bodyweight"
@@ -12946,10 +13626,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 50
+        "BICEPS": 50,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "pull-up bar"
@@ -13062,10 +13744,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 35
+        "BICEPS": 35,
+        "UPPER_BACK": 40
       },
       "equipment": [
         "pull-up bar"
@@ -13177,11 +13861,13 @@
       "muscleGroups": [
         "LATS",
         "FOREARMS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "FOREARMS": 45,
-        "BICEPS": 40
+        "BICEPS": 40,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "pull-up bar"
@@ -13325,12 +14011,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 60,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -13356,12 +14044,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -13387,12 +14077,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 60,
         "TRAPS": 30,
-        "BICEPS": 40
+        "BICEPS": 40,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -13419,13 +14111,15 @@
         "UPPER_BACK",
         "TRAPS",
         "BICEPS",
-        "ABS"
+        "ABS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 60,
         "TRAPS": 30,
         "BICEPS": 35,
-        "ABS": 30
+        "ABS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -13451,12 +14145,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 55,
         "TRAPS": 30,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -13605,12 +14301,16 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "ABS"
+        "ABS",
+        "REAR_DELTS",
+        "BICEPS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 55,
         "TRAPS": 30,
-        "ABS": 45
+        "ABS": 45,
+        "REAR_DELTS": 40,
+        "BICEPS": 35
       },
       "equipment": [
         "bodyweight"
@@ -13722,11 +14422,15 @@
       "muscleGroups": [
         "LATS",
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "TRICEPS": 55,
-        "CHEST": 45
+        "CHEST": 45,
+        "BICEPS": 40,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "bodyweight"
@@ -13751,11 +14455,15 @@
       "muscleGroups": [
         "LATS",
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "TRICEPS": 55,
-        "CHEST": 45
+        "CHEST": 45,
+        "BICEPS": 40,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "bodyweight"
@@ -13809,11 +14517,15 @@
       "muscleGroups": [
         "LATS",
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "TRICEPS": 50,
-        "CHEST": 40
+        "CHEST": 40,
+        "BICEPS": 40,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "resistance band"
@@ -13866,10 +14578,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -13977,11 +14691,13 @@
       "muscleGroups": [
         "OBLIQUES",
         "ABS",
-        "LATS"
+        "LATS",
+        "FOREARMS"
       ],
       "muscleWeights": {
         "ABS": 45,
-        "LATS": 30
+        "LATS": 30,
+        "FOREARMS": 30
       },
       "equipment": [
         "pull-up bar"
@@ -14044,9 +14760,12 @@
       "category": "CALISTHENICS",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "ABS"
+        "ABS",
+        "LATS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "LATS": 30
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -14106,10 +14825,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "ABS",
-        "LOWER_BACK"
+        "LOWER_BACK",
+        "GLUTES"
       ],
       "muscleWeights": {
-        "LOWER_BACK": 40
+        "LOWER_BACK": 40,
+        "GLUTES": 40
       },
       "equipment": [
         "bodyweight"
@@ -14244,9 +14965,16 @@
       "category": "CALISTHENICS",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "OBLIQUES"
+        "OBLIQUES",
+        "ABS",
+        "GLUTES",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "ABS": 30,
+        "GLUTES": 30,
+        "FRONT_DELTS": 30
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -14268,9 +14996,14 @@
       "category": "CALISTHENICS",
       "loggingType": "HOLD",
       "muscleGroups": [
-        "OBLIQUES"
+        "OBLIQUES",
+        "ABS",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "ABS": 30,
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -14321,11 +15054,13 @@
       "muscleGroups": [
         "ABS",
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
         "TRICEPS": 40,
-        "CHEST": 35
+        "CHEST": 35,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -14349,10 +15084,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "ABS",
-        "LATS"
+        "LATS",
+        "FOREARMS",
+        "OBLIQUES"
       ],
       "muscleWeights": {
-        "LATS": 35
+        "LATS": 35,
+        "FOREARMS": 30,
+        "OBLIQUES": 20
       },
       "equipment": [
         "bodyweight"
@@ -14376,10 +15115,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "box or step"
@@ -14403,10 +15144,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "bodyweight"
@@ -14430,10 +15173,16 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS",
+        "CALVES"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25,
+        "CALVES": 35
       },
       "equipment": [
         "bodyweight"
@@ -14457,10 +15206,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 50
+        "GLUTES": 50,
+        "CALVES": 35,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "box or step"
@@ -14484,10 +15237,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "CALVES": 35,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "bodyweight"
@@ -14511,10 +15268,16 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 50
+        "GLUTES": 50,
+        "ADDUCTORS": 30,
+        "CALVES": 35,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "bodyweight"
@@ -14564,9 +15327,12 @@
       "category": "CALISTHENICS",
       "loggingType": "HOLD",
       "muscleGroups": [
-        "QUADS"
+        "QUADS",
+        "GLUTES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "GLUTES": 30
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -14590,11 +15356,13 @@
       "muscleGroups": [
         "QUADS",
         "GLUTES",
-        "CALVES"
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
         "GLUTES": 45,
-        "CALVES": 35
+        "CALVES": 35,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "bodyweight"
@@ -14618,10 +15386,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 45
+        "GLUTES": 45,
+        "CALVES": 35,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "bodyweight"
@@ -14674,10 +15446,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 50
+        "GLUTES": 50,
+        "CALVES": 35,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "bodyweight"
@@ -14701,10 +15477,16 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS",
+        "CALVES"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25,
+        "CALVES": 35
       },
       "equipment": [
         "bodyweight"
@@ -14727,9 +15509,16 @@
       "category": "CALISTHENICS",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "QUADS"
+        "QUADS",
+        "ADDUCTORS",
+        "CALVES",
+        "HAMSTRINGS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "ADDUCTORS": 30,
+        "CALVES": 35,
+        "HAMSTRINGS": 25
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -14752,10 +15541,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "CALVES": 35,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "bodyweight"
@@ -14779,10 +15572,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "HAMSTRINGS",
-        "GLUTES"
+        "GLUTES",
+        "CALVES"
       ],
       "muscleWeights": {
-        "GLUTES": 25
+        "GLUTES": 25,
+        "CALVES": 20
       },
       "equipment": [
         "bodyweight"
@@ -14805,9 +15600,14 @@
       "category": "CALISTHENICS",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "CALVES",
+        "GLUTES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "CALVES": 20,
+        "GLUTES": 25
+      },
       "equipment": [
         "bodyweight"
       ],
@@ -14912,11 +15712,13 @@
       "muscleGroups": [
         "QUADS",
         "GLUTES",
-        "FULL_BODY"
+        "FULL_BODY",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
         "GLUTES": 45,
-        "FULL_BODY": 30
+        "FULL_BODY": 30,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "bodyweight"
@@ -15026,11 +15828,13 @@
       "muscleGroups": [
         "LATS",
         "UPPER_BACK",
-        "ABS"
+        "ABS",
+        "BICEPS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 45,
-        "ABS": 40
+        "ABS": 40,
+        "BICEPS": 40
       },
       "equipment": [
         "pull-up bar"
@@ -15054,10 +15858,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "FULL_BODY",
-        "LATS"
+        "LATS",
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "LATS": 35
+        "LATS": 35,
+        "BICEPS": 40,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "pull-up bar"
@@ -15175,11 +15983,13 @@
       "muscleGroups": [
         "FULL_BODY",
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
         "CHEST": 35,
-        "TRICEPS": 35
+        "TRICEPS": 35,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -15341,11 +16151,13 @@
       "muscleGroups": [
         "FULL_BODY",
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
         "CHEST": 40,
-        "TRICEPS": 45
+        "TRICEPS": 45,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -15422,12 +16234,14 @@
         "CHEST",
         "TRICEPS",
         "LATS",
-        "ABS"
+        "ABS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
         "TRICEPS": 45,
         "LATS": 40,
-        "ABS": 35
+        "ABS": 35,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "dumbbells"
@@ -16957,7 +17771,10 @@
       "category": "CARDIO",
       "loggingType": "DURATION_DISTANCE",
       "muscleGroups": [
-        "FULL_BODY"
+        "QUADS",
+        "GLUTES",
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {},
       "equipment": [
@@ -18128,13 +18945,15 @@
         "TRAPS",
         "GLUTES",
         "HAMSTRINGS",
-        "UPPER_BACK"
+        "UPPER_BACK",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "TRAPS": 60,
         "GLUTES": 60,
         "HAMSTRINGS": 55,
-        "UPPER_BACK": 50
+        "UPPER_BACK": 50,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "barbell"
@@ -18160,12 +18979,14 @@
         "FULL_BODY",
         "TRAPS",
         "GLUTES",
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "TRAPS": 60,
         "GLUTES": 55,
-        "HAMSTRINGS": 50
+        "HAMSTRINGS": 50,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -18191,12 +19012,14 @@
         "FULL_BODY",
         "TRAPS",
         "GLUTES",
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "TRAPS": 60,
         "GLUTES": 50,
-        "HAMSTRINGS": 55
+        "HAMSTRINGS": 55,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -18223,13 +19046,15 @@
         "GLUTES",
         "TRAPS",
         "UPPER_BACK",
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "GLUTES": 65,
         "TRAPS": 60,
         "UPPER_BACK": 50,
-        "HAMSTRINGS": 50
+        "HAMSTRINGS": 50,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "barbell"
@@ -18255,12 +19080,14 @@
         "QUADS",
         "GLUTES",
         "TRAPS",
-        "UPPER_BACK"
+        "UPPER_BACK",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "GLUTES": 60,
         "TRAPS": 65,
-        "UPPER_BACK": 50
+        "UPPER_BACK": 50,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -18287,13 +19114,15 @@
         "HAMSTRINGS",
         "TRAPS",
         "UPPER_BACK",
-        "QUADS"
+        "QUADS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 60,
         "TRAPS": 60,
         "UPPER_BACK": 50,
-        "QUADS": 50
+        "QUADS": 50,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -18319,12 +19148,18 @@
         "FULL_BODY",
         "FRONT_DELTS",
         "QUADS",
-        "TRAPS"
+        "TRAPS",
+        "TRICEPS",
+        "SIDE_DELTS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "FRONT_DELTS": 65,
         "QUADS": 60,
-        "TRAPS": 60
+        "TRAPS": 60,
+        "TRICEPS": 50,
+        "SIDE_DELTS": 45,
+        "LOWER_BACK": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -18350,12 +19185,14 @@
         "FRONT_DELTS",
         "QUADS",
         "TRICEPS",
-        "TRAPS"
+        "TRAPS",
+        "SIDE_DELTS"
       ],
       "muscleWeights": {
         "QUADS": 60,
         "TRICEPS": 55,
-        "TRAPS": 30
+        "TRAPS": 30,
+        "SIDE_DELTS": 45
       },
       "equipment": [
         "appropriate resistance"
@@ -18381,12 +19218,14 @@
         "FRONT_DELTS",
         "QUADS",
         "TRICEPS",
-        "TRAPS"
+        "TRAPS",
+        "SIDE_DELTS"
       ],
       "muscleWeights": {
         "QUADS": 60,
         "TRICEPS": 55,
-        "TRAPS": 30
+        "TRAPS": 30,
+        "SIDE_DELTS": 45
       },
       "equipment": [
         "appropriate resistance"
@@ -18412,12 +19251,14 @@
         "QUADS",
         "FRONT_DELTS",
         "GLUTES",
-        "TRICEPS"
+        "TRICEPS",
+        "ABS"
       ],
       "muscleWeights": {
         "FRONT_DELTS": 65,
         "GLUTES": 55,
-        "TRICEPS": 45
+        "TRICEPS": 45,
+        "ABS": 25
       },
       "equipment": [
         "barbell"
@@ -18443,12 +19284,14 @@
         "TRAPS",
         "UPPER_BACK",
         "HAMSTRINGS",
-        "GLUTES"
+        "GLUTES",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "UPPER_BACK": 60,
         "HAMSTRINGS": 55,
-        "GLUTES": 50
+        "GLUTES": 50,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -18474,12 +19317,14 @@
         "TRAPS",
         "UPPER_BACK",
         "GLUTES",
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "UPPER_BACK": 60,
         "GLUTES": 55,
-        "HAMSTRINGS": 50
+        "HAMSTRINGS": 50,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -18536,12 +19381,14 @@
         "FRONT_DELTS",
         "FOREARMS",
         "TRICEPS",
-        "TRAPS"
+        "TRAPS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "FOREARMS": 55,
         "TRICEPS": 50,
-        "TRAPS": 35
+        "TRAPS": 35,
+        "LOWER_BACK": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -18568,13 +19415,15 @@
         "HAMSTRINGS",
         "FOREARMS",
         "LOWER_BACK",
-        "TRAPS"
+        "TRAPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 70,
         "FOREARMS": 65,
         "LOWER_BACK": 45,
-        "TRAPS": 30
+        "TRAPS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -18646,12 +19495,14 @@
         "GLUTES",
         "HAMSTRINGS",
         "UPPER_BACK",
-        "BICEPS"
+        "BICEPS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 60,
         "UPPER_BACK": 55,
-        "BICEPS": 45
+        "BICEPS": 45,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -18708,12 +19559,16 @@
         "TRAPS",
         "QUADS",
         "GLUTES",
-        "ABS"
+        "ABS",
+        "LOWER_BACK",
+        "FOREARMS"
       ],
       "muscleWeights": {
         "QUADS": 60,
         "GLUTES": 55,
-        "ABS": 50
+        "ABS": 50,
+        "LOWER_BACK": 30,
+        "FOREARMS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -18739,12 +19594,14 @@
         "GLUTES",
         "QUADS",
         "HAMSTRINGS",
-        "UPPER_BACK"
+        "UPPER_BACK",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "QUADS": 65,
         "HAMSTRINGS": 55,
-        "UPPER_BACK": 45
+        "UPPER_BACK": 45,
+        "LOWER_BACK": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -18832,12 +19689,14 @@
         "FRONT_DELTS",
         "GLUTES",
         "TRICEPS",
-        "TRAPS"
+        "TRAPS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "GLUTES": 55,
         "TRICEPS": 50,
-        "TRAPS": 30
+        "TRAPS": 30,
+        "LOWER_BACK": 25
       },
       "equipment": [
         "kettlebell"
@@ -18863,12 +19722,14 @@
         "GLUTES",
         "HAMSTRINGS",
         "FRONT_DELTS",
-        "TRAPS"
+        "TRAPS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 60,
         "FRONT_DELTS": 50,
-        "TRAPS": 45
+        "TRAPS": 45,
+        "LOWER_BACK": 30
       },
       "equipment": [
         "kettlebell"
@@ -18893,11 +19754,13 @@
       "muscleGroups": [
         "OBLIQUES",
         "HAMSTRINGS",
-        "SIDE_DELTS"
+        "SIDE_DELTS",
+        "GLUTES"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 50,
-        "SIDE_DELTS": 40
+        "SIDE_DELTS": 40,
+        "GLUTES": 35
       },
       "equipment": [
         "kettlebell"
@@ -18984,11 +19847,15 @@
       "muscleGroups": [
         "QUADS",
         "GLUTES",
-        "ABS"
+        "ABS",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
         "GLUTES": 55,
-        "ABS": 45
+        "ABS": 45,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "kettlebell"
@@ -19045,12 +19912,14 @@
         "GLUTES",
         "TRAPS",
         "UPPER_BACK",
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "TRAPS": 60,
         "UPPER_BACK": 55,
-        "HAMSTRINGS": 50
+        "HAMSTRINGS": 50,
+        "LOWER_BACK": 30
       },
       "equipment": [
         "kettlebell"
@@ -19198,11 +20067,15 @@
       "muscleGroups": [
         "GLUTES",
         "HAMSTRINGS",
-        "LOWER_BACK"
+        "LOWER_BACK",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 65,
-        "LOWER_BACK": 35
+        "LOWER_BACK": 35,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "kettlebell"
@@ -19321,9 +20194,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "cable machine"
       ],
@@ -19345,9 +20221,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "dumbbells"
       ],
@@ -19369,9 +20248,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "dumbbells"
       ],
@@ -19393,9 +20275,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "dumbbells"
       ],
@@ -19444,9 +20329,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "cable machine"
       ],
@@ -19468,9 +20356,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "BICEPS"
+        "BICEPS",
+        "FOREARMS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -19567,9 +20458,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "dumbbells"
       ],
@@ -19645,9 +20539,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "dumbbells"
       ],
@@ -19669,9 +20566,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FRONT_DELTS": 25
+      },
       "equipment": [
         "cable machine"
       ],
@@ -19694,10 +20594,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 55
+        "TRICEPS": 55,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "machine"
@@ -19721,10 +20623,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 35
+        "BICEPS": 35,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "cable machine"
@@ -19748,10 +20652,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "LATS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
-        "BICEPS": 30
+        "BICEPS": 30,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "cable machine"
@@ -19776,11 +20682,13 @@
       "muscleGroups": [
         "UPPER_BACK",
         "TRAPS",
-        "REAR_DELTS"
+        "REAR_DELTS",
+        "FOREARMS"
       ],
       "muscleWeights": {
         "TRAPS": 60,
-        "REAR_DELTS": 45
+        "REAR_DELTS": 45,
+        "FOREARMS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -19806,12 +20714,14 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 30
+        "BICEPS": 30,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "dumbbells"
@@ -19996,11 +20906,13 @@
       "muscleGroups": [
         "HAMSTRINGS",
         "GLUTES",
-        "TRAPS"
+        "TRAPS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "GLUTES": 65,
-        "TRAPS": 20
+        "TRAPS": 20,
+        "LOWER_BACK": 40
       },
       "equipment": [
         "appropriate resistance"
@@ -20053,10 +20965,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 60
+        "GLUTES": 60,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "box or step"
@@ -20080,10 +20996,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "GLUTES",
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "HAMSTRINGS": 55
+        "HAMSTRINGS": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "machine"
@@ -20133,12 +21051,14 @@
         "HAMSTRINGS",
         "LOWER_BACK",
         "GLUTES",
-        "TRAPS"
+        "TRAPS",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
         "LOWER_BACK": 60,
         "GLUTES": 55,
-        "TRAPS": 30
+        "TRAPS": 30,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -20163,11 +21083,13 @@
       "muscleGroups": [
         "QUADS",
         "GLUTES",
-        "LOWER_BACK"
+        "LOWER_BACK",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
         "GLUTES": 60,
-        "LOWER_BACK": 40
+        "LOWER_BACK": 40,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -20196,7 +21118,7 @@
       ],
       "muscleWeights": {
         "LOWER_BACK": 65,
-        "GLUTES": 50
+        "GLUTES": 45
       },
       "equipment": [
         "appropriate resistance"
@@ -20220,10 +21142,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 50
+        "GLUTES": 50,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -20247,10 +21171,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -20279,7 +21205,7 @@
       ],
       "muscleWeights": {
         "LOWER_BACK": 60,
-        "GLUTES": 50
+        "GLUTES": 45
       },
       "equipment": [
         "appropriate resistance"
@@ -20308,7 +21234,7 @@
       ],
       "muscleWeights": {
         "LOWER_BACK": 60,
-        "GLUTES": 50
+        "GLUTES": 45
       },
       "equipment": [
         "appropriate resistance"
@@ -20333,11 +21259,15 @@
       "muscleGroups": [
         "GLUTES",
         "HAMSTRINGS",
-        "LOWER_BACK"
+        "LOWER_BACK",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 65,
-        "LOWER_BACK": 40
+        "LOWER_BACK": 40,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -20361,10 +21291,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 60
+        "GLUTES": 60,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "resistance band",
@@ -20389,10 +21323,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 60
+        "GLUTES": 60,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "box or step"
@@ -20416,10 +21354,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "resistance band",
@@ -20444,10 +21384,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 55
+        "GLUTES": 55,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "resistance band"
@@ -20473,12 +21415,16 @@
         "GLUTES",
         "HAMSTRINGS",
         "LOWER_BACK",
-        "TRAPS"
+        "TRAPS",
+        "FOREARMS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 65,
         "LOWER_BACK": 40,
-        "TRAPS": 25
+        "TRAPS": 25,
+        "FOREARMS": 30,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "resistance band"
@@ -20502,10 +21448,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "TRICEPS"
+        "TRICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "TRICEPS": 65
+        "TRICEPS": 65,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bench"
@@ -20530,11 +21478,13 @@
       "muscleGroups": [
         "FRONT_DELTS",
         "TRICEPS",
-        "TRAPS"
+        "TRAPS",
+        "SIDE_DELTS"
       ],
       "muscleWeights": {
         "TRICEPS": 55,
-        "TRAPS": 25
+        "TRAPS": 25,
+        "SIDE_DELTS": 45
       },
       "equipment": [
         "appropriate resistance"
@@ -20587,10 +21537,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "CHEST",
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "TRICEPS"
       ],
       "muscleWeights": {
-        "FRONT_DELTS": 50
+        "FRONT_DELTS": 50,
+        "TRICEPS": 55
       },
       "equipment": [
         "bench"
@@ -20614,10 +21566,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 45
+        "GLUTES": 45,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -20671,10 +21625,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRAPS",
-        "UPPER_BACK"
+        "UPPER_BACK",
+        "FOREARMS"
       ],
       "muscleWeights": {
-        "UPPER_BACK": 45
+        "UPPER_BACK": 45,
+        "FOREARMS": 30
       },
       "equipment": [
         "machine"
@@ -20700,12 +21656,16 @@
         "LATS",
         "UPPER_BACK",
         "TRAPS",
-        "BICEPS"
+        "BICEPS",
+        "LOWER_BACK",
+        "REAR_DELTS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 65,
         "TRAPS": 30,
-        "BICEPS": 35
+        "BICEPS": 35,
+        "LOWER_BACK": 35,
+        "REAR_DELTS": 40
       },
       "equipment": [
         "machine"
@@ -20760,10 +21720,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "TRICEPS",
-        "CHEST"
+        "CHEST",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
-        "CHEST": 50
+        "CHEST": 50,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "machine",
@@ -20788,10 +21750,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 45
+        "GLUTES": 45,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "machine"
@@ -20815,10 +21779,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "GLUTES": 50
+        "GLUTES": 50,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -20842,10 +21808,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 65
+        "GLUTES": 65,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "machine"
@@ -20897,9 +21867,12 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "GLUTES"
+        "GLUTES",
+        "HAMSTRINGS"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "HAMSTRINGS": 35
+      },
       "equipment": [
         "machine",
         "bench"
@@ -20947,10 +21920,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "GLUTES"
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "GLUTES": 65
+        "GLUTES": 65,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -21055,11 +22032,13 @@
       "muscleGroups": [
         "QUADS",
         "GLUTES",
-        "ADDUCTORS"
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
         "GLUTES": 55,
-        "ADDUCTORS": 40
+        "ADDUCTORS": 40,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -21083,10 +22062,16 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "CALVES"
+        "CALVES",
+        "ADDUCTORS",
+        "HAMSTRINGS",
+        "GLUTES"
       ],
       "muscleWeights": {
-        "CALVES": 35
+        "CALVES": 35,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25,
+        "GLUTES": 35
       },
       "equipment": [
         "box or step"
@@ -21110,10 +22095,14 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "CALVES"
+        "CALVES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
-        "CALVES": 35
+        "CALVES": 35,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "box or step"
@@ -21137,10 +22126,16 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "CALVES"
+        "CALVES",
+        "ADDUCTORS",
+        "HAMSTRINGS",
+        "GLUTES"
       ],
       "muscleWeights": {
-        "CALVES": 40
+        "CALVES": 40,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25,
+        "GLUTES": 35
       },
       "equipment": [
         "box or step"
@@ -21164,10 +22159,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "QUADS",
-        "CALVES"
+        "CALVES",
+        "ADDUCTORS"
       ],
       "muscleWeights": {
-        "CALVES": 35
+        "CALVES": 35,
+        "ADDUCTORS": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -21293,11 +22290,13 @@
       "muscleGroups": [
         "HAMSTRINGS",
         "LOWER_BACK",
-        "GLUTES"
+        "GLUTES",
+        "FOREARMS"
       ],
       "muscleWeights": {
         "LOWER_BACK": 60,
-        "GLUTES": 45
+        "GLUTES": 45,
+        "FOREARMS": 30
       },
       "equipment": [
         "barbell"
@@ -21322,11 +22321,13 @@
       "muscleGroups": [
         "HAMSTRINGS",
         "LOWER_BACK",
-        "GLUTES"
+        "GLUTES",
+        "FOREARMS"
       ],
       "muscleWeights": {
         "LOWER_BACK": 60,
-        "GLUTES": 45
+        "GLUTES": 45,
+        "FOREARMS": 30
       },
       "equipment": [
         "dumbbells"
@@ -21527,12 +22528,14 @@
         "FULL_BODY",
         "FRONT_DELTS",
         "GLUTES",
-        "HAMSTRINGS"
+        "HAMSTRINGS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "FRONT_DELTS": 55,
         "GLUTES": 60,
-        "HAMSTRINGS": 55
+        "HAMSTRINGS": 55,
+        "LOWER_BACK": 30
       },
       "equipment": [
         "appropriate resistance"
@@ -21558,12 +22561,14 @@
         "FULL_BODY",
         "TRAPS",
         "GLUTES",
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "TRAPS": 55,
         "GLUTES": 55,
-        "FRONT_DELTS": 50
+        "FRONT_DELTS": 50,
+        "LOWER_BACK": 30
       },
       "equipment": [
         "dumbbells"
@@ -21589,12 +22594,16 @@
         "FULL_BODY",
         "FRONT_DELTS",
         "QUADS",
-        "TRAPS"
+        "TRAPS",
+        "TRICEPS",
+        "SIDE_DELTS"
       ],
       "muscleWeights": {
         "FRONT_DELTS": 60,
         "QUADS": 55,
-        "TRAPS": 50
+        "TRAPS": 50,
+        "TRICEPS": 50,
+        "SIDE_DELTS": 45
       },
       "equipment": [
         "dumbbells"
@@ -21620,12 +22629,14 @@
         "QUADS",
         "FRONT_DELTS",
         "GLUTES",
-        "TRICEPS"
+        "TRICEPS",
+        "ABS"
       ],
       "muscleWeights": {
         "FRONT_DELTS": 65,
         "GLUTES": 55,
-        "TRICEPS": 45
+        "TRICEPS": 45,
+        "ABS": 25
       },
       "equipment": [
         "dumbbells"
@@ -21651,12 +22662,16 @@
         "QUADS",
         "GLUTES",
         "FRONT_DELTS",
-        "TRAPS"
+        "TRAPS",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
         "GLUTES": 60,
         "FRONT_DELTS": 50,
-        "TRAPS": 35
+        "TRAPS": 35,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "barbell"
@@ -21682,12 +22697,16 @@
         "QUADS",
         "GLUTES",
         "UPPER_BACK",
-        "ABS"
+        "ABS",
+        "ADDUCTORS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
         "GLUTES": 60,
         "UPPER_BACK": 40,
-        "ABS": 35
+        "ABS": 35,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "appropriate resistance"
@@ -21712,11 +22731,13 @@
       "muscleGroups": [
         "QUADS",
         "GLUTES",
-        "CALVES"
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
         "GLUTES": 50,
-        "CALVES": 35
+        "CALVES": 35,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "box or step"
@@ -21771,12 +22792,14 @@
         "GLUTES",
         "HAMSTRINGS",
         "UPPER_BACK",
-        "BICEPS"
+        "BICEPS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 60,
         "UPPER_BACK": 55,
-        "BICEPS": 45
+        "BICEPS": 45,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -21802,12 +22825,14 @@
         "GLUTES",
         "HAMSTRINGS",
         "UPPER_BACK",
-        "BICEPS"
+        "BICEPS",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 60,
         "UPPER_BACK": 55,
-        "BICEPS": 45
+        "BICEPS": 45,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -21861,11 +22886,13 @@
       "muscleGroups": [
         "LATS",
         "UPPER_BACK",
-        "ABS"
+        "ABS",
+        "BICEPS"
       ],
       "muscleWeights": {
         "UPPER_BACK": 55,
-        "ABS": 45
+        "ABS": 45,
+        "BICEPS": 40
       },
       "equipment": [
         "pull-up bar"
@@ -22002,7 +23029,7 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "FULL_BODY"
+        "TRAPS"
       ],
       "muscleWeights": {},
       "equipment": [
@@ -22028,11 +23055,13 @@
       "muscleGroups": [
         "LOWER_BACK",
         "GLUTES",
-        "TRAPS"
+        "TRAPS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
         "GLUTES": 55,
-        "TRAPS": 45
+        "TRAPS": 45,
+        "HAMSTRINGS": 35
       },
       "equipment": [
         "bodyweight"
@@ -22057,11 +23086,13 @@
       "muscleGroups": [
         "ABS",
         "FRONT_DELTS",
-        "TRAPS"
+        "TRAPS",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
         "FRONT_DELTS": 40,
-        "TRAPS": 40
+        "TRAPS": 40,
+        "HAMSTRINGS": 35
       },
       "equipment": [
         "bodyweight"
@@ -22175,11 +23206,15 @@
       "muscleGroups": [
         "FOREARMS",
         "TRAPS",
-        "GLUTES"
+        "GLUTES",
+        "LOWER_BACK",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "TRAPS": 40,
-        "GLUTES": 40
+        "GLUTES": 40,
+        "LOWER_BACK": 40,
+        "UPPER_BACK": 35
       },
       "equipment": [
         "appropriate resistance"
@@ -22423,11 +23458,13 @@
       "muscleGroups": [
         "CHEST",
         "BICEPS",
-        "FRONT_DELTS"
+        "FRONT_DELTS",
+        "TRICEPS"
       ],
       "muscleWeights": {
         "BICEPS": 55,
-        "FRONT_DELTS": 50
+        "FRONT_DELTS": 50,
+        "TRICEPS": 55
       },
       "equipment": [
         "bodyweight"
@@ -22533,11 +23570,13 @@
       "muscleGroups": [
         "FRONT_DELTS",
         "SIDE_DELTS",
-        "TRICEPS"
+        "TRICEPS",
+        "TRAPS"
       ],
       "muscleWeights": {
         "SIDE_DELTS": 60,
-        "TRICEPS": 60
+        "TRICEPS": 60,
+        "TRAPS": 25
       },
       "equipment": [
         "bodyweight"
@@ -22649,11 +23688,13 @@
       "muscleGroups": [
         "LATS",
         "ABS",
-        "BICEPS"
+        "BICEPS",
+        "UPPER_BACK"
       ],
       "muscleWeights": {
         "ABS": 55,
-        "BICEPS": 40
+        "BICEPS": 40,
+        "UPPER_BACK": 50
       },
       "equipment": [
         "pull-up bar"
@@ -22676,9 +23717,14 @@
       "category": "CALISTHENICS",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "ABS"
+        "ABS",
+        "FOREARMS",
+        "OBLIQUES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30,
+        "OBLIQUES": 20
+      },
       "equipment": [
         "pull-up bar"
       ],
@@ -22701,10 +23747,12 @@
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
         "OBLIQUES",
-        "ABS"
+        "ABS",
+        "FOREARMS"
       ],
       "muscleWeights": {
-        "ABS": 45
+        "ABS": 45,
+        "FOREARMS": 30
       },
       "equipment": [
         "pull-up bar"
@@ -23298,11 +24346,13 @@
       "muscleGroups": [
         "CHEST",
         "TRICEPS",
-        "BICEPS"
+        "BICEPS",
+        "FRONT_DELTS"
       ],
       "muscleWeights": {
         "TRICEPS": 60,
-        "BICEPS": 40
+        "BICEPS": 40,
+        "FRONT_DELTS": 40
       },
       "equipment": [
         "bodyweight"
@@ -24575,11 +25625,13 @@
       "muscleGroups": [
         "QUADS",
         "GLUTES",
-        "CALVES"
+        "CALVES",
+        "HAMSTRINGS"
       ],
       "muscleWeights": {
         "GLUTES": 55,
-        "CALVES": 40
+        "CALVES": 40,
+        "HAMSTRINGS": 25
       },
       "equipment": [
         "box or step"
@@ -24663,12 +25715,14 @@
         "GLUTES",
         "HAMSTRINGS",
         "TRAPS",
-        "UPPER_BACK"
+        "UPPER_BACK",
+        "LOWER_BACK"
       ],
       "muscleWeights": {
         "HAMSTRINGS": 60,
         "TRAPS": 55,
-        "UPPER_BACK": 45
+        "UPPER_BACK": 45,
+        "LOWER_BACK": 35
       },
       "equipment": [
         "medicine ball"
@@ -24728,9 +25782,14 @@
       "category": "STRENGTH",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "ABS"
+        "ABS",
+        "FOREARMS",
+        "OBLIQUES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30,
+        "OBLIQUES": 20
+      },
       "equipment": [
         "appropriate resistance"
       ],
@@ -24837,9 +25896,14 @@
       "category": "CALISTHENICS",
       "loggingType": "WEIGHT_REPS",
       "muscleGroups": [
-        "ABS"
+        "ABS",
+        "FOREARMS",
+        "OBLIQUES"
       ],
-      "muscleWeights": {},
+      "muscleWeights": {
+        "FOREARMS": 30,
+        "OBLIQUES": 20
+      },
       "equipment": [
         "captain's chair"
       ],
@@ -24954,6 +26018,659 @@
       "easierVariationKey": "timego.seed.v1.dumbbell-side-bend",
       "harderVariationKeys": [],
       "reviewStatus": "REVIEWED_COMPLETE"
+    },
+    {
+      "key": "timego.seed.v1.cable-crunch",
+      "name": "Cable Crunch",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "ABS"
+      ],
+      "muscleWeights": {},
+      "equipment": [
+        "cable machine"
+      ],
+      "difficulty": "INTERMEDIATE",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.dumbbell-romanian-deadlift",
+      "name": "Dumbbell Romanian Deadlift",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "HAMSTRINGS",
+        "GLUTES",
+        "LOWER_BACK",
+        "TRAPS"
+      ],
+      "muscleWeights": {
+        "GLUTES": 65,
+        "LOWER_BACK": 40,
+        "TRAPS": 20
+      },
+      "equipment": [
+        "dumbbells"
+      ],
+      "difficulty": "INTERMEDIATE",
+      "complexity": "MEDIUM",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.assisted-pull-up-machine",
+      "name": "Assisted Pull-Up Machine",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "LATS",
+        "UPPER_BACK",
+        "BICEPS"
+      ],
+      "muscleWeights": {
+        "UPPER_BACK": 60,
+        "BICEPS": 40
+      },
+      "equipment": [
+        "machine"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.assisted-dip-machine",
+      "name": "Assisted Dip Machine",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "TRICEPS",
+        "CHEST",
+        "FRONT_DELTS"
+      ],
+      "muscleWeights": {
+        "CHEST": 55,
+        "FRONT_DELTS": 40
+      },
+      "equipment": [
+        "machine"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.bayesian-curl",
+      "name": "Bayesian Curl",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "BICEPS",
+        "FOREARMS"
+      ],
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
+      "equipment": [
+        "cable machine"
+      ],
+      "difficulty": "INTERMEDIATE",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.single-leg-calf-raise",
+      "name": "Single-Leg Calf Raise",
+      "aliases": [],
+      "category": "CALISTHENICS",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "CALVES"
+      ],
+      "muscleWeights": {},
+      "equipment": [
+        "box or step"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.lying-leg-curl",
+      "name": "Lying Leg Curl",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "HAMSTRINGS",
+        "CALVES"
+      ],
+      "muscleWeights": {
+        "CALVES": 20
+      },
+      "equipment": [
+        "machine"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.neutral-grip-pull-up",
+      "name": "Neutral-Grip Pull-Up",
+      "aliases": [],
+      "category": "CALISTHENICS",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "LATS",
+        "UPPER_BACK",
+        "BICEPS"
+      ],
+      "muscleWeights": {
+        "UPPER_BACK": 60,
+        "BICEPS": 40
+      },
+      "equipment": [
+        "pull-up bar"
+      ],
+      "difficulty": "INTERMEDIATE",
+      "complexity": "MEDIUM",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.cable-overhead-triceps-extension",
+      "name": "Cable Overhead Triceps Extension",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "TRICEPS"
+      ],
+      "muscleWeights": {},
+      "equipment": [
+        "cable machine"
+      ],
+      "difficulty": "INTERMEDIATE",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.dumbbell-step-up",
+      "name": "Dumbbell Step-Up",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "QUADS",
+        "GLUTES",
+        "ADDUCTORS",
+        "HAMSTRINGS"
+      ],
+      "muscleWeights": {
+        "GLUTES": 60,
+        "ADDUCTORS": 30,
+        "HAMSTRINGS": 25
+      },
+      "equipment": [
+        "dumbbells",
+        "box or step"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "MEDIUM",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.dumbbell-tricep-kickback",
+      "name": "Dumbbell Tricep Kickback",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "TRICEPS"
+      ],
+      "muscleWeights": {},
+      "equipment": [
+        "dumbbells"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.barbell-shrug",
+      "name": "Barbell Shrug",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "TRAPS",
+        "FOREARMS",
+        "UPPER_BACK"
+      ],
+      "muscleWeights": {
+        "FOREARMS": 30,
+        "UPPER_BACK": 30
+      },
+      "equipment": [
+        "barbell"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.russian-twist",
+      "name": "Russian Twist",
+      "aliases": [],
+      "category": "CALISTHENICS",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "OBLIQUES",
+        "ABS"
+      ],
+      "muscleWeights": {
+        "ABS": 60
+      },
+      "equipment": [
+        "bodyweight"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.decline-sit-up",
+      "name": "Decline Sit-Up",
+      "aliases": [],
+      "category": "CALISTHENICS",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "ABS"
+      ],
+      "muscleWeights": {},
+      "equipment": [
+        "bench"
+      ],
+      "difficulty": "INTERMEDIATE",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.machine-lat-pulldown",
+      "name": "Machine Lat Pulldown",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "LATS",
+        "BICEPS",
+        "UPPER_BACK"
+      ],
+      "muscleWeights": {
+        "BICEPS": 35,
+        "UPPER_BACK": 50
+      },
+      "equipment": [
+        "machine"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.dumbbell-shoulder-press",
+      "name": "Dumbbell Shoulder Press",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "FRONT_DELTS",
+        "SIDE_DELTS",
+        "TRICEPS",
+        "TRAPS"
+      ],
+      "muscleWeights": {
+        "SIDE_DELTS": 60,
+        "TRICEPS": 50,
+        "TRAPS": 25
+      },
+      "equipment": [
+        "dumbbells"
+      ],
+      "difficulty": "INTERMEDIATE",
+      "complexity": "MEDIUM",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.ez-bar-skull-crusher",
+      "name": "EZ-Bar Skull Crusher",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "TRICEPS"
+      ],
+      "muscleWeights": {},
+      "equipment": [
+        "barbell",
+        "bench"
+      ],
+      "difficulty": "INTERMEDIATE",
+      "complexity": "MEDIUM",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.smith-machine-incline-press",
+      "name": "Smith Machine Incline Press",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "CHEST",
+        "FRONT_DELTS",
+        "TRICEPS"
+      ],
+      "muscleWeights": {
+        "FRONT_DELTS": 55,
+        "TRICEPS": 50
+      },
+      "equipment": [
+        "machine",
+        "bench"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.machine-incline-press",
+      "name": "Machine Incline Press",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "CHEST",
+        "FRONT_DELTS",
+        "TRICEPS"
+      ],
+      "muscleWeights": {
+        "FRONT_DELTS": 55,
+        "TRICEPS": 50
+      },
+      "equipment": [
+        "machine"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.rope-hammer-curl",
+      "name": "Rope Hammer Curl",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "BICEPS",
+        "FOREARMS"
+      ],
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
+      "equipment": [
+        "cable machine"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.cable-bicep-curl",
+      "name": "Cable Bicep Curl",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "BICEPS",
+        "FOREARMS"
+      ],
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
+      "equipment": [
+        "cable machine"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.overhead-cable-curl",
+      "name": "Overhead Cable Curl",
+      "aliases": [],
+      "category": "STRENGTH",
+      "loggingType": "WEIGHT_REPS",
+      "muscleGroups": [
+        "BICEPS",
+        "FOREARMS"
+      ],
+      "muscleWeights": {
+        "FOREARMS": 30
+      },
+      "equipment": [
+        "cable machine"
+      ],
+      "difficulty": "INTERMEDIATE",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.stair-climber",
+      "name": "Stair Climber",
+      "aliases": [],
+      "category": "CARDIO",
+      "loggingType": "DURATION_DISTANCE",
+      "muscleGroups": [
+        "FULL_BODY"
+      ],
+      "muscleWeights": {},
+      "equipment": [
+        "cardio equipment"
+      ],
+      "difficulty": "BEGINNER",
+      "complexity": "LOW",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
+    },
+    {
+      "key": "timego.seed.v1.hip-airplane",
+      "name": "Hip Airplane",
+      "aliases": [],
+      "category": "WARMUP",
+      "loggingType": "DURATION_DISTANCE",
+      "muscleGroups": [
+        "GLUTES"
+      ],
+      "muscleWeights": {},
+      "equipment": [
+        "open space"
+      ],
+      "difficulty": "INTERMEDIATE",
+      "complexity": "MEDIUM",
+      "purpose": "",
+      "setup": [],
+      "steps": [],
+      "cues": [],
+      "mistakes": [],
+      "easierVariationKey": null,
+      "harderVariationKeys": [],
+      "reviewStatus": "METADATA_ONLY"
     }
   ]
 }

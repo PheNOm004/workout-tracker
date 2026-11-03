@@ -28,6 +28,22 @@ fun restSecondsFor(prescription: Prescription?, defaultSeconds: Int, adaptive: B
     return (base + nudge).coerceAtLeast(MIN_REST_SECONDS)
 }
 
+/** Which routine exercise to open once rest is over: [restedId] while it still has prescribed working sets
+ *  left (or has no prescription, so "next set" can't be known), otherwise the next exercise in [orderedIds]
+ *  that isn't finished. Null when every later exercise is done, so the caller leaves the screen alone. */
+fun nextExerciseAfterRest(
+    orderedIds: List<Long>,
+    restedId: Long,
+    doneSets: (Long) -> Int,
+    prescribedSets: (Long) -> Int?,
+): Long? {
+    val current = orderedIds.indexOf(restedId)
+    if (current < 0) return null
+    val prescribed = prescribedSets(restedId)
+    if (prescribed == null || doneSets(restedId) < prescribed) return restedId
+    return orderedIds.drop(current + 1).firstOrNull { doneSets(it) < (prescribedSets(it) ?: 1) }
+}
+
 /** "2:05", or "+0:12" once over. */
 fun formatRestClock(remainingSeconds: Int): String {
     val abs = kotlin.math.abs(remainingSeconds)

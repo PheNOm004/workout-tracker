@@ -471,6 +471,8 @@ fun ExerciseSections(
         if (onSelectFilter != null) onSelectFilter(filter) else localFilter = filter
     }
     var expandedGroupKeys by remember { mutableStateOf<List<String>>(emptyList()) }
+    // Hoisted out of the lazy item: state remembered inside it is dropped when the section scrolls off screen.
+    var expandedCategories by remember { mutableStateOf(setOf<String>()) }
     val setQuery: (String) -> Unit = { value -> onSearchQueryChange?.invoke(value) ?: run { localQuery = value } }
 
     if (showSearchField) {
@@ -596,69 +598,77 @@ fun ExerciseSections(
         return
     }
 
-    val byCategory = remember(orderedExercises) { orderedExercises.groupBy { it.category } }
+    val byCategory = remember(orderedExercises) {
+        orderedExercises.groupBy { it.category }.mapValues { (_, list) ->
+            list.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }.toSortedMap()
+        }
+    }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    // Flat lazy items (category header, group header, then one item per exercise): only rows on screen are
+    // composed, so opening a 100-exercise group like Chest costs the same as a small one like Biceps. Nesting
+    // the rows inside one item composed every row up front and skipped frames.
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp, max = 520.dp),
     ) {
         ExerciseCategory.entries.forEach { category ->
-            val inCategory = byCategory[category.name].orEmpty()
-            if (inCategory.isEmpty()) return@forEach
+            val byMuscleGroup = byCategory[category.name] ?: return@forEach
+            val expanded = category.name in expandedCategories
             item(key = "category-${category.name}") {
-                var expanded by remember(category) { mutableStateOf(false) }
-                val catBringIntoView = remember { BringIntoViewRequester() }
-                LaunchedEffect(expanded) {
-                    if (expanded) catBringIntoView.bringIntoView()
-                }
                 val catChevronRotation by animateFloatAsState(
                     targetValue = if (expanded) 90f else 0f,
                     animationSpec = TimeGoMotion.rotate,
                     label = "catChevronRotation",
                 )
-                Column(
-                    modifier = Modifier.fillMaxWidth().bringIntoViewRequester(catBringIntoView),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = Spacing.Large, bottom = Spacing.ExtraSmall)
+                        .clickable { expandedCategories = if (expanded) expandedCategories - category.name else expandedCategories + category.name },
                 ) {
+                    val visual = categoryVisual(category)
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = if (expanded) "Collapse" else "Expand",
+                        tint = visual.accent,
+                        modifier = Modifier.padding(start = 8.dp, end = 4.dp).graphicsLayer { rotationZ = catChevronRotation },
+                    )
+                    Text(formatEnumLabel(category.name), style = MaterialTheme.typography.titleMedium)
+                }
+            }
+            if (!expanded) return@forEach
+            byMuscleGroup.forEach { (group, groupExercises) ->
+                val groupKey = "${category.name}:$group"
+                val groupExpanded = groupKey in expandedGroupKeys
+                item(key = "group-$groupKey") {
+                    val groupChevronRotation by animateFloatAsState(
+                        targetValue = if (groupExpanded) 90f else 0f,
+                        animationSpec = TimeGoMotion.rotate,
+                        label = "groupChevronRotation",
+                    )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = Spacing.Large, bottom = Spacing.ExtraSmall)
-                            .clickable { expanded = !expanded },
+                            .padding(top = Spacing.Small)
+                            .clickable { expandedGroupKeys = toggleExpandedExerciseGroupKeys(expandedGroupKeys, groupKey) },
                     ) {
-                        val visual = categoryVisual(category)
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = if (expanded) "Collapse" else "Expand",
-                            tint = visual.accent,
-                            modifier = Modifier.padding(start = 8.dp, end = 4.dp).graphicsLayer { rotationZ = catChevronRotation },
+                            contentDescription = if (groupExpanded) "Collapse" else "Expand",
+                            modifier = Modifier.padding(start = 32.dp, end = 4.dp).graphicsLayer { rotationZ = groupChevronRotation },
                         )
-                        Text(formatEnumLabel(category.name), style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            formatEnumLabel(group),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = if (groupExpanded) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = Spacing.ExtraSmall),
+                        )
                     }
-                    AnimatedExpand(expanded) {
-                        val byMuscleGroup = remember(inCategory) {
-                            inCategory.groupBy { it.muscleGroups.firstOrNull() ?: "OTHER" }.toSortedMap()
-                        }
-                        byMuscleGroup.forEach { (group, groupExercises) ->
-                            val groupKey = "${category.name}:$group"
-                            val groupExpanded = groupKey in expandedGroupKeys
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = Spacing.Small)
-                                    .clickable { expandedGroupKeys = toggleExpandedExerciseGroupKeys(expandedGroupKeys, groupKey) },
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription = if (groupExpanded) "Collapse" else "Expand",
-                                    modifier = Modifier.padding(start = 32.dp, end = 4.dp),
-                                )
-                                Text(formatEnumLabel(group), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            AnimatedExpand(groupExpanded) {
-                                groupExercises.forEach { exercise -> itemContent(exercise) }
-                            }
-                        }
-                    }
+                }
+                if (groupExpanded) {
+                    items(groupExercises, key = { "ex-${category.name}-${it.id}" }) { exercise -> itemContent(exercise) }
                 }
             }
         }

@@ -143,4 +143,19 @@ class SeedExercisesTest {
         val holdExercises = SEED_EXERCISES.filter { it.loggingType == LoggingType.HOLD.name }
         assertEquals(true, holdExercises.all { it.category == ExerciseCategory.CALISTHENICS.name })
     }
+
+    @Test
+    fun `main lifts credit their well-known secondary muscles`() {
+        val byName = SEED_EXERCISES.associateBy { it.name }
+        fun has(exercise: String, group: MuscleGroup) = group.name in byName.getValue(exercise).muscleGroups
+        assertEquals(true, has("Barbell Bench Press", MuscleGroup.FRONT_DELTS))
+        assertEquals(true, has("Barbell Row", MuscleGroup.REAR_DELTS))
+        assertEquals(true, has("Romanian Deadlift", MuscleGroup.LOWER_BACK))
+        assertEquals(true, has("Barbell Back Squat", MuscleGroup.ADDUCTORS))
+        assertEquals(true, has("Conventional Deadlift", MuscleGroup.FOREARMS))
+        assertEquals(true, has("Hammer Curl", MuscleGroup.FOREARMS))
+        assertEquals(true, has("Leg Curl", MuscleGroup.CALVES))
+        // Secondary credit stays below the primary-mover threshold so it never changes recovery or rotation.
+        assertEquals(true, byName.getValue("Barbell Bench Press").muscleWeights.getValue(MuscleGroup.FRONT_DELTS.name) < 70)
+    }
 }
