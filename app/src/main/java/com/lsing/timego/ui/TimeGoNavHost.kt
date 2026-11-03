@@ -188,7 +188,7 @@ fun TimeGoNavHost() {
                     onAdjust = logViewModel::adjustRest,
                     onDismiss = {
                         // Skipping or finishing a rest means you are about to log: take them to the logging page.
-                        logViewModel.dismissRest()
+                        logViewModel.finishRest()
                         selectedRoute = "log"
                     },
                     onBarHeightChange = { restBarHeightPx = it },

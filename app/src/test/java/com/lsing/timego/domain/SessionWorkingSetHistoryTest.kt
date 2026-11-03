@@ -5,12 +5,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SessionWorkingSetHistoryTest {
-    private fun setLog(id: Long, sessionId: Long, loggedAt: Long, isWarmup: Boolean = false) = SetLog(
+    private fun setLog(id: Long, sessionId: Long, loggedAt: Long, isWarmup: Boolean = false, reps: Int = 8) = SetLog(
         id = id,
         sessionId = sessionId,
         exerciseId = 1,
         weightKg = 60.0,
-        reps = 8,
+        reps = reps,
         targetReps = 8,
         loggedAtEpochMillis = loggedAt,
         isWarmup = isWarmup,
@@ -52,5 +52,14 @@ class SessionWorkingSetHistoryTest {
         )
         val result = sessionWorkingSetHistory(sets, mapOf(10L to 500L))
         assertEquals(listOf(sets[1], sets[0]), result) // session 99 (fallback 0) sorts before session 10 (500)
+    }
+
+    @Test
+    fun `top set history picks the best set of the session, not the fatigued last one`() {
+        val sets = listOf(
+            setLog(1, sessionId = 10, loggedAt = 100, reps = 8),
+            setLog(2, sessionId = 10, loggedAt = 200, reps = 6),
+        )
+        assertEquals(listOf(sets[0]), sessionTopSetHistory(sets, mapOf(10L to 0L)))
     }
 }

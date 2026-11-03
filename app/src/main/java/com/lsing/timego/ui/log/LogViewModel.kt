@@ -48,6 +48,7 @@ import com.lsing.timego.domain.lastWorkingSetByExercise
 import com.lsing.timego.domain.latestWeightKg
 import com.lsing.timego.domain.workoutTargetGroups
 import com.lsing.timego.domain.muscleBalanceForTimeframe
+import com.lsing.timego.domain.plannedWeeklyTargetSets
 import com.lsing.timego.domain.muscleGroupsAffectedInSession
 import com.lsing.timego.domain.muscleGroupsWorkedInSession
 import com.lsing.timego.domain.muscleGroupIntensityForSession
@@ -61,6 +62,7 @@ import com.lsing.timego.domain.goalRepRange
 import com.lsing.timego.domain.inferredRoutineLastDone
 import com.lsing.timego.domain.routineLastCompletedDates
 import com.lsing.timego.domain.routinesForToday
+import com.lsing.timego.domain.sessionTopSetHistory
 import com.lsing.timego.domain.sessionWorkingSetHistory
 import com.lsing.timego.domain.familiarAlternativesFor
 import com.lsing.timego.domain.suggestedExerciseFor
@@ -124,6 +126,10 @@ data class LandingSummary(
 data class SetLoggedPulse(val exerciseId: Long, val eventId: Long)
 
 data class ActiveTimer(val exerciseId: Long, val startedAtEpochMillis: Long)
+
+/** Open [exerciseId] next. [userInitiated] is a Done/Skip tap; false means the rest simply ran out, which the
+ *  screen ignores while the keyboard is up so it never yanks focus away mid-entry. */
+data class AdvanceRequest(val exerciseId: Long, val userInitiated: Boolean)
 
 /** Named holder for the four-way [combine] feeding suggestions/landing balance -- destructured at
  *  the collector, so the positional tuple never escapes this file. */
@@ -268,6 +274,9 @@ class LogViewModel(
     private val _bothSidesExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
     val bothSidesExerciseIds: StateFlow<Set<Long>> = _bothSidesExerciseIds.asStateFlow()
     private var restAlertJob: kotlinx.coroutines.Job? = null
+    private var restExerciseId: Long? = null
+    private val _advanceToExercise = kotlinx.coroutines.flow.MutableSharedFlow<AdvanceRequest>(extraBufferCapacity = 1)
+    val advanceToExercise: kotlinx.coroutines.flow.SharedFlow<AdvanceRequest> = _advanceToExercise
 
     private val _holdDelaySeconds = MutableStateFlow(SettingsRepository.DEFAULT_HOLD_DELAY_SECONDS)
     val holdDelaySeconds: StateFlow<Int> = _holdDelaySeconds.asStateFlow()
@@ -386,6 +395,7 @@ class LogViewModel(
                                         sets = setLogs,
                                         exercisesById = exercisesById,
                                         today = LocalDate.now(),
+                                        weeklyTargetSets = plannedWeeklyTargetFor(currentTrainingProfile),
                                     )
                                 }
                             }
@@ -504,9 +514,10 @@ class LogViewModel(
                     val currentPerf = currentSessionWorkingSets.map { HoldPerformance(it.holdSeconds ?: 0, it.targetHoldSeconds ?: 0) }
                     holdSuggester.suggestNext(historyPerf, currentPerf, exercise.name)?.let { holdMap[exercise.id] = it }
                 } else {
-                    val repRange = repRangeFor(exerciseSets, sessionHistory)
+                    val strengthHistory = sessionTopSetHistory(exerciseSets, sessionStartById)
+                    val repRange = repRangeFor(exerciseSets, strengthHistory)
                         ?: goalRepRange(currentTrainingProfile.goal)?.takeIf { exercise.category != ExerciseCategory.CALISTHENICS.name }
-                    val historyPerf = sessionHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
+                    val historyPerf = strengthHistory.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
                     val currentPerf = currentSessionWorkingSets.map { SetPerformance(it.weightKg, it.reps, it.targetReps, it.rpe) }
                     val baseSuggestion = suggester.suggestNext(historyPerf, currentPerf, weightIncrementFor(exercise), repRange)
                     if (baseSuggestion != null) {
@@ -804,7 +815,8 @@ class LogViewModel(
         viewModelScope.launch {
             repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name)
             emitSetLoggedPulse(exerciseId)
-            if (!isWarmup) startRest(exerciseId, rpe)
+            // A warmup set means the rest is over and the next effort has started; do not leave the old timer counting.
+            if (!isWarmup) startRest(exerciseId, rpe) else dismissRest()
         }
     }
 
@@ -814,6 +826,7 @@ class LogViewModel(
         viewModelScope.launch {
             repository.logCardioSet(sessionId, exerciseId, durationMinutes, distanceKm)
             emitSetLoggedPulse(exerciseId)
+            dismissRest()
         }
     }
 
@@ -828,7 +841,7 @@ class LogViewModel(
         viewModelScope.launch {
             repository.logHoldSet(sessionId, exerciseId, durationSeconds, targetDurationSeconds, isWarmup, targetProvenance.name)
             emitSetLoggedPulse(exerciseId)
-            if (!isWarmup) startRest(exerciseId)
+            if (!isWarmup) startRest(exerciseId) else dismissRest()
         }
     }
 
@@ -850,6 +863,7 @@ class LogViewModel(
         if (_restDefaultSeconds.value <= 0) return
         val name = allExercises.firstOrNull { it.id == exerciseId }?.name
         val seconds = com.lsing.timego.domain.restSecondsFor(activePrescriptions.value[name], _restDefaultSeconds.value, _restAdaptive.value, lastRpe)
+        restExerciseId = exerciseId
         setRest(com.lsing.timego.domain.RestTimerState(System.currentTimeMillis(), seconds))
     }
 
@@ -862,8 +876,31 @@ class LogViewModel(
                 val remainingMillis = state.totalSeconds * 1000L - (System.currentTimeMillis() - state.startedAtMillis)
                 kotlinx.coroutines.delay(remainingMillis.coerceAtLeast(0L))
                 RestAlert.finished(getApplication())
+                emitAdvanceAfterRest(userInitiated = false)
             }
         }
+    }
+
+    /** Rest is over (ran out, Done or Skip): tell the Log screen which routine exercise to open next.
+     *  Silent for freeform sessions, where there is no order to follow. */
+    private fun emitAdvanceAfterRest(userInitiated: Boolean) {
+        val restedId = restExerciseId ?: return
+        val routineId = _selectedRoutineId.value ?: return
+        val order = _routineExercisesById.value[routineId]?.map { it.id } ?: return
+        val namesById = allExercises.associate { it.id to it.name }
+        val next = com.lsing.timego.domain.nextExerciseAfterRest(
+            orderedIds = order,
+            restedId = restedId,
+            doneSets = { id -> _activeSessionSetsByExercise.value[id].orEmpty().count { !it.isWarmup } },
+            prescribedSets = { id -> activePrescriptions.value[namesById[id]]?.sets },
+        ) ?: return
+        _advanceToExercise.tryEmit(AdvanceRequest(next, userInitiated))
+    }
+
+    /** Skip/Done on the rest bar: end the rest and advance. */
+    fun finishRest() {
+        emitAdvanceAfterRest(userInitiated = true)
+        dismissRest()
     }
 
     fun adjustRest(deltaSeconds: Int) {
@@ -913,3 +950,15 @@ class LogViewModel(
 
 private const val ACTIVE_TIMER_EXERCISE_KEY = "timego.activeTimer.exerciseId"
 private const val ACTIVE_TIMER_STARTED_KEY = "timego.activeTimer.startedAtEpochMillis"
+
+/** Working sets a session of this length typically holds (real logs average about 15 in a 60+ minute plan). */
+private fun plannedWeeklyTargetFor(profile: TrainingProfile): Double = plannedWeeklyTargetSets(
+    daysPerWeek = profile.trainingDaysPerWeek,
+    setsPerSession = when (profile.sessionDuration) {
+        com.lsing.timego.profile.SessionDurationRange.MINUTES_15_TO_30 -> 6
+        com.lsing.timego.profile.SessionDurationRange.MINUTES_30_TO_45 -> 10
+        com.lsing.timego.profile.SessionDurationRange.MINUTES_45_TO_60 -> 14
+        com.lsing.timego.profile.SessionDurationRange.MINUTES_60_PLUS -> 18
+        null -> null
+    },
+)

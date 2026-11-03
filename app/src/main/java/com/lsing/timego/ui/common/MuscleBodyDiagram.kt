@@ -342,7 +342,8 @@ fun CroppedMuscleDiagram(
     emptyLabel: String = "Nothing yet",
     colorByRegion: Boolean = false,
 ) {
-    val neutralColor = MaterialTheme.colorScheme.surfaceVariant
+    // onSurface tint reads on both card fills; surfaceVariant sat too close to the raised (hero) card colour.
+    val neutralColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f)
     val drawableGroups = remember(muscleGroups) { diagramGroupsForHeatmap(muscleGroups) }
     val drawableHighlightGroups = remember(highlightGroups) { diagramGroupsForHeatmap(highlightGroups) }
     // With colorByRegion each highlighted muscle takes its region's plate colour, shaded by sub-group.

@@ -43,6 +43,18 @@ class RestTimerTest {
     }
 
     @Test
+    fun `after rest stays on an unfinished exercise then moves to the next unfinished one`() {
+        val order = listOf(1L, 2L, 3L)
+        val done = mapOf(1L to 2, 2L to 3, 3L to 0)
+        val prescribed = mapOf(1L to 3, 2L to 3, 3L to 3)
+        assertEquals(1L, nextExerciseAfterRest(order, 1L, { done[it] ?: 0 }, { prescribed[it] }))
+        assertEquals(3L, nextExerciseAfterRest(order, 2L, { done[it] ?: 0 }, { prescribed[it] }))
+        assertEquals(null, nextExerciseAfterRest(order, 3L, { 3 }, { 3 }))
+        assertEquals(2L, nextExerciseAfterRest(order, 2L, { 5 }, { null }))
+        assertEquals(null, nextExerciseAfterRest(order, 9L, { 0 }, { null }))
+    }
+
+    @Test
     fun `clock formatting`() {
         assertEquals("2:05", formatRestClock(125))
         assertEquals("+0:12", formatRestClock(-12))

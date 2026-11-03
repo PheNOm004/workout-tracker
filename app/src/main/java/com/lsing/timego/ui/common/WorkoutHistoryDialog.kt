@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
@@ -38,6 +39,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -165,6 +168,7 @@ fun WorkoutHistoryDialog(
     durationMinutes: Double? = null,
     groupedEntries: List<WorkoutHistoryGroup> = emptyList(),
     date: LocalDate? = null,
+    muscleIntensities: Map<String, Float> = emptyMap(),
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
@@ -238,6 +242,28 @@ fun WorkoutHistoryDialog(
                                 style = MaterialTheme.typography.labelMedium,
                             )
                         }
+                    }
+                }
+            }
+            if (muscleIntensities.isNotEmpty()) {
+                val worked = muscleIntensities.keys
+                // A card of its own, with the worked regions named underneath, so the map reads as a summary
+                // of the day rather than a loose graphic floating above the list.
+                SurfaceCard(modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp)) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        CroppedMuscleDiagram(
+                            muscleGroups = com.lsing.timego.domain.diagramGroupsForBodyRegionCrop(worked),
+                            intensities = muscleIntensities,
+                            accentColor = MaterialTheme.colorScheme.tertiary,
+                            highlightGroups = worked,
+                            showNeutralContext = true,
+                            colorByRegion = true,
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 150.dp),
+                        )
+                        RegionChipRow(regionLabelsFor(worked), modifier = Modifier.padding(top = Spacing.Small))
                     }
                 }
             }
@@ -441,7 +467,20 @@ fun WorkoutHistoryDialog(
 }
 
 @Composable
-fun StatTile(label: String, value: String, modifier: Modifier = Modifier, caption: String? = null) {
+fun StatTile(label: String, value: String, modifier: Modifier = Modifier, caption: String? = null, inline: Boolean = false) {
+    if (inline) {
+        // One line, label left and value right: compact and fills a wide tile instead of leaving it half empty.
+        SurfaceCard(modifier = modifier.padding(Spacing.ExtraSmall), cornerRadius = 18.dp) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.Medium, vertical = Spacing.Small),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                Text(value, style = LedgerFigureValue, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, softWrap = false)
+            }
+        }
+        return
+    }
     SurfaceCard(
         modifier = modifier.padding(Spacing.ExtraSmall),
         cornerRadius = 18.dp,
@@ -457,7 +496,16 @@ fun StatTile(label: String, value: String, modifier: Modifier = Modifier, captio
                 },
                 label = "statTileValueTransition",
             ) { targetValue ->
-                Text(targetValue, style = LedgerFigureValue, color = MaterialTheme.colorScheme.onSurface)
+                // Shrinks to fit rather than wrapping, so the tile reads the same at any screen width or font scale.
+                var scale by remember(targetValue) { androidx.compose.runtime.mutableFloatStateOf(1f) }
+                Text(
+                    targetValue,
+                    style = LedgerFigureValue.copy(fontSize = LedgerFigureValue.fontSize * scale),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    softWrap = false,
+                    onTextLayout = { if (it.hasVisualOverflow && scale > 0.5f) scale *= 0.9f },
+                )
             }
             if (caption != null) {
                 Text(caption, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

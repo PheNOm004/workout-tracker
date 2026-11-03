@@ -126,7 +126,7 @@ class MuscleDistributionTest {
         val result = muscleGroupIntensityForSession(7, sets, mapOf(7L to pullover, 8L to warmup))
 
         assertEquals(1.0f, result["LATS"]!!, 0.001f)
-        assertEquals(0.35f, result["CHEST"]!!, 0.001f)
+        assertEquals(Math.sqrt(0.35).toFloat(), result["CHEST"]!!, 0.001f)
         assertEquals(null, result["QUADS"])
     }
 
@@ -172,7 +172,8 @@ class MuscleDistributionTest {
             today = LocalDate.of(2026, 8, 12),
         )
 
-        assertEquals(mapOf("CHEST" to 0.5f, "QUADS" to 1f), yearDistribution)
+        // One working set each: sets, not kg, so a heavy squat does not dim the chest.
+        assertEquals(mapOf("CHEST" to 1f, "QUADS" to 1f), yearDistribution)
     }
 
     @Test
@@ -521,4 +522,25 @@ class MuscleDistributionTest {
         assertEquals(0.5f, previous["BICEPS"]!!, 0.001f)
     }
 
+
+    @Test
+    fun `full body tag does not set the heatmap maximum`() {
+        val chest = Exercise(id = 1, name = "Bench", muscleGroups = listOf("CHEST"), isCustom = false, category = "STRENGTH")
+        val full = Exercise(id = 2, name = "Get-Up", muscleGroups = listOf("FULL_BODY"), isCustom = false, category = "STRENGTH")
+        val sets = listOf(
+            SetLog(id = 1, sessionId = 1, exerciseId = 1, weightKg = 50.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 0),
+            SetLog(id = 2, sessionId = 1, exerciseId = 2, weightKg = 10.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 1),
+            SetLog(id = 3, sessionId = 1, exerciseId = 2, weightKg = 10.0, reps = 5, targetReps = 5, loggedAtEpochMillis = 2),
+        )
+        val result = muscleGroupIntensityForSession(1, sets, mapOf(1L to chest, 2L to full))
+        assertEquals(1.0f, result["CHEST"]!!, 0.001f)
+    }
+
+    @Test
+    fun `planned weekly target follows the profile plan and falls back to ten`() {
+        assertEquals(9.6, plannedWeeklyTargetSets(4, 18), 0.001)
+        assertEquals(3.0, plannedWeeklyTargetSets(1, 6), 0.001)
+        assertEquals(10.0, plannedWeeklyTargetSets(null, 18), 0.001)
+        assertEquals(10.0, plannedWeeklyTargetSets(4, null), 0.001)
+    }
 }

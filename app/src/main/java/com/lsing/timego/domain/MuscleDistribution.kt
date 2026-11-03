@@ -22,6 +22,11 @@ fun effortWeight(rpe: Int?): Double = when {
     else -> 0.15
 }
 
+/** Square-root stretch of a 0-1 share of the strongest muscle. A linear share leaves genuinely trained but
+ *  smaller muscles (a third of the top group) in the dark end of the heat scale, where they read as untrained;
+ *  sqrt lifts them into visible colour while 0 stays 0 and the top group stays 1. */
+internal fun heatIntensity(share: Double): Float = kotlin.math.sqrt(share.coerceIn(0.0, 1.0)).toFloat()
+
 fun muscleDistributionForTimeframe(
     timeframe: ProgressTimeframe,
     sessions: List<WorkoutSession>,
@@ -31,10 +36,13 @@ fun muscleDistributionForTimeframe(
 ): Map<String, Float> {
     val since = timeframe.sinceDate(today)
     val sessionDateById = sessions.associate { it.id to it.date }
-    val rawDistribution = muscleGroupVolumeDistribution(sets, exercisesById, sessionDateById, since)
-    val maxVolume = rawDistribution.values.maxOrNull() ?: return emptyMap()
-    if (maxVolume <= 0.0) return emptyMap()
-    return rawDistribution.mapValues { (_, volume) -> (volume / maxVolume).toFloat() }
+    // Effort-weighted sets, not kg x reps: load is not comparable across muscles (a lateral raise is never
+    // going to move what a squat does), so volume left small muscles looking untrained on the heatmap.
+    val rawDistribution = muscleGroupEffectiveSetDistribution(sets, exercisesById, sessionDateById, since)
+    // FULL_BODY is a catch-all tag, not a drawable muscle: letting it set the maximum would dim every real group.
+    val maxSets = rawDistribution.filterKeys { it != MuscleGroup.FULL_BODY.name }.values.maxOrNull() ?: return emptyMap()
+    if (maxSets <= 0.0) return emptyMap()
+    return rawDistribution.mapValues { (_, effectiveSets) -> heatIntensity(effectiveSets / maxSets) }
 }
 
 /** Total volume per muscle group across WEIGHT_REPS/HOLD sets logged on or after [since] -- an
@@ -74,8 +82,8 @@ fun muscleGroupVolumeDistribution(
  *  filtering and [Exercise.muscleWeights] partial-credit conventions but counting RPE-weighted
  *  sets instead of load -- sets are the unit fitness research treats as comparable across muscle
  *  groups, unlike kg-moved. Deliberately a separate function: [muscleGroupVolumeDistribution] and
- *  [muscleDistributionForTimeframe] remain unchanged and continue to drive the body-diagram
- *  heatmap, which must not change. */
+ *  [muscleDistributionForTimeframe] are kept for load-based reporting; the heatmap itself now uses
+ *  this set-based count (changed 2026-11-03, see the TimeGo decisions note). */
 fun muscleGroupEffectiveSetDistribution(
     history: List<SetLog>,
     exercisesById: Map<Long, Exercise>,
@@ -101,6 +109,23 @@ fun muscleGroupEffectiveSetDistribution(
 
 private const val TARGET_EFFECTIVE_SETS_PER_WEEK = 10.0
 
+/** Average muscle-group credit one working set earns across the exercise library (a set credits its
+ *  primary muscle fully and secondary muscles partially; measured at 1.6 on real logs, 1.8 across the seed). */
+private const val CREDIT_PER_WORKING_SET = 1.6
+
+/** Muscle groups a planned week is spread over. Fewer than the 18 drawable groups: calves, obliques and
+ *  adductors are trained lightly in any normal plan, so dividing by all of them would set the bar too low. */
+private const val PLANNED_MUSCLE_GROUPS = 12
+
+/** Weekly effective-set target per muscle taken from the user's own plan: planned sessions x working sets
+ *  per session, times the credit each set earns, spread over [PLANNED_MUSCLE_GROUPS]. A 4-day, 60+ minute
+ *  plan (18 sets a session) works out at about 9.6, close to the fixed ~10 guideline; shorter or less frequent
+ *  plans get a proportionally smaller target. Null inputs (profile not filled in) fall back to the fixed 10. */
+fun plannedWeeklyTargetSets(daysPerWeek: Int?, setsPerSession: Int?): Double {
+    if (daysPerWeek == null || setsPerSession == null) return TARGET_EFFECTIVE_SETS_PER_WEEK
+    return (daysPerWeek * setsPerSession * CREDIT_PER_WORKING_SET / PLANNED_MUSCLE_GROUPS).coerceIn(3.0, 20.0)
+}
+
 /** [muscleGroupEffectiveSetDistribution] normalized against a fixed weekly target (evidence-
  *  grounded per the design spec: ~10 effective sets/muscle/week) rather than the period's own max
  *  group -- unlike the reverted frequency-vs-own-baseline attempt, this target is external and
@@ -116,10 +141,11 @@ fun muscleBalanceForTimeframe(
     sets: List<SetLog>,
     exercisesById: Map<Long, Exercise>,
     today: LocalDate,
+    weeklyTargetSets: Double = TARGET_EFFECTIVE_SETS_PER_WEEK,
 ): Map<String, Float> {
     val since = timeframe.sinceDate(today)
     val sessionDateById = sessions.associate { it.id to it.date }
-    return muscleBalanceForDateRange(sets, exercisesById, sessionDateById, since, today)
+    return muscleBalanceForDateRange(sets, exercisesById, sessionDateById, since, today, weeklyTargetSets)
 }
 
 /** Scores a closed date range against the same fixed weekly effective-set target as the primary
@@ -131,12 +157,13 @@ fun muscleBalanceForDateRange(
     sessionDateById: Map<Long, LocalDate>,
     since: LocalDate,
     until: LocalDate,
+    weeklyTargetSets: Double = TARGET_EFFECTIVE_SETS_PER_WEEK,
 ): Map<String, Float> {
     val effectiveSets = muscleGroupEffectiveSetDistribution(sets, exercisesById, sessionDateById, since, until)
     if (effectiveSets.isEmpty()) return emptyMap()
     val daysInWindow = ChronoUnit.DAYS.between(since, until) + 1
     val weeksInWindow = daysInWindow / 7.0
-    val target = TARGET_EFFECTIVE_SETS_PER_WEEK * weeksInWindow
+    val target = weeklyTargetSets * weeksInWindow
     return effectiveSets.mapValues { (_, value) -> (value / target).toFloat().coerceIn(0f, 1f) }
 }
 
@@ -147,6 +174,7 @@ fun previousMuscleBalanceForTimeframe(
     sets: List<SetLog>,
     exercisesById: Map<Long, Exercise>,
     today: LocalDate,
+    weeklyTargetSets: Double = TARGET_EFFECTIVE_SETS_PER_WEEK,
 ): Map<String, Float> {
     val currentStart = timeframe.sinceDate(today)
     val windowDays = ChronoUnit.DAYS.between(currentStart, today) + 1
@@ -158,6 +186,7 @@ fun previousMuscleBalanceForTimeframe(
         sessionDateById = sessions.associate { it.id to it.date },
         since = previousStart,
         until = previousEnd,
+        weeklyTargetSets = weeklyTargetSets,
     )
 }
 
@@ -173,24 +202,33 @@ fun orderedMuscleDistributionForChart(distribution: Map<String, Float>): Map<Str
             }
     }
 
-/** Relative per-muscle contribution for one session, using the same weighted-volume calculation
- *  as the Progress tab. The strongest group in the session is 1.0; secondary groups retain their
+/** Relative per-muscle contribution for one session, using the same effort-weighted set count
+ *  as the Progress heatmap. The strongest group in the session is 1.0; secondary groups retain their
  *  lower weighted intensity instead of receiving the same flat highlight as primary groups. */
 fun muscleGroupIntensityForSession(
     sessionId: Long,
     setLogs: List<SetLog>,
     exercisesById: Map<Long, Exercise>,
 ): Map<String, Float> {
-    val sessionSets = setLogs.filter { it.sessionId == sessionId }
-    val rawDistribution = muscleGroupVolumeDistribution(
+    return muscleGroupIntensityForSets(setLogs.filter { it.sessionId == sessionId }, exercisesById)
+}
+
+/** Same relative intensity as [muscleGroupIntensityForSession] for any set list, e.g. every session on one
+ *  day (the Progress attendance chart's day sheet). */
+fun muscleGroupIntensityForSets(
+    sessionSets: List<SetLog>,
+    exercisesById: Map<Long, Exercise>,
+): Map<String, Float> {
+    val rawDistribution = muscleGroupEffectiveSetDistribution(
         history = sessionSets,
         exercisesById = exercisesById,
         sessionDateById = sessionSets.associate { it.sessionId to LocalDate.MIN },
         since = LocalDate.MIN,
     )
-    val maxVolume = rawDistribution.values.maxOrNull() ?: return emptyMap()
-    if (maxVolume <= 0.0) return emptyMap()
-    return rawDistribution.mapValues { (_, volume) -> (volume / maxVolume).toFloat() }
+    // FULL_BODY is a catch-all tag, not a drawable muscle: letting it set the maximum would dim every real group.
+    val maxSets = rawDistribution.filterKeys { it != MuscleGroup.FULL_BODY.name }.values.maxOrNull() ?: return emptyMap()
+    if (maxSets <= 0.0) return emptyMap()
+    return rawDistribution.mapValues { (_, effectiveSets) -> heatIntensity(effectiveSets / maxSets) }
 }
 
 data class MuscleSetSummary(

@@ -18,3 +18,14 @@ fun sessionWorkingSetHistory(setLogs: List<SetLog>, sessionStartById: Map<Long, 
     }
     return latestBySession.values.sortedBy { sessionStartById[it.sessionId] ?: 0L }
 }
+
+/** Like [sessionWorkingSetHistory] but represents each session by its top working set (highest estimated
+ *  1RM, earliest on a tie) instead of its last. Later sets of an exercise run about a rep short of the
+ *  locked target through fatigue alone, so judging "hit the target" on the last set read ordinary fatigue
+ *  as repeated misses and triggered deloads. Strength only: holds keep the last set. */
+fun sessionTopSetHistory(setLogs: List<SetLog>, sessionStartById: Map<Long, Long>): List<SetLog> =
+    setLogs.filter { !it.isWarmup }
+        .groupBy { it.sessionId }
+        .values
+        .map { sets -> sets.sortedBy { it.loggedAtEpochMillis }.maxBy { estimatedOneRepMax(it.weightKg, it.reps) } }
+        .sortedBy { sessionStartById[it.sessionId] ?: 0L }

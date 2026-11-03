@@ -101,6 +101,9 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _historyGroupedForSelectedDate = MutableStateFlow<List<WorkoutHistoryGroup>>(emptyList())
     val historyGroupedForSelectedDate: StateFlow<List<WorkoutHistoryGroup>> = _historyGroupedForSelectedDate.asStateFlow()
 
+    private val _historyIntensities = MutableStateFlow<Map<String, Float>>(emptyMap())
+    val historyIntensities: StateFlow<Map<String, Float>> = _historyIntensities.asStateFlow()
+
     private val _historyLabel = MutableStateFlow<String?>(null)
     val historyLabel: StateFlow<String?> = _historyLabel.asStateFlow()
 
@@ -265,6 +268,7 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
         _selectedHistoryDate.value = date
         if (date == null) {
             _historyForSelectedDate.value = emptyList()
+            _historyIntensities.value = emptyMap()
             _historyLabel.value = null
             _historyDurationMinutes.value = null
             return
@@ -302,6 +306,7 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
         val sets = latestSetLogs.filter { it.sessionId in sessionIds }.sortedBy { it.loggedAtEpochMillis }
         _historyForSelectedDate.value = buildDayHistoryEntries(sets, exercisesById)
         _historyGroupedForSelectedDate.value = buildGroupedDayHistory(sets, exercisesById)
+        _historyIntensities.value = com.lsing.timego.domain.muscleGroupIntensityForSets(sets, exercisesById)
         _historyLabel.value = sessionDayLabel(sets, exercisesById)
         // Same span-of-logged-timestamps estimate trainingStats() uses, scoped to this one day's
         // sessions -- a session with only one set contributes 0 (no span to measure).

@@ -121,7 +121,7 @@ fun RestTimerBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp)
-            .frosted(RoundedCornerShape(30.dp), borderWidth = 0.5.dp)
+            .frosted(RoundedCornerShape(32.dp), borderWidth = 0.5.dp)
             .animateContentSize(TimeGoMotion.expandEnter)
             .tactilePress(toggleSource, pressedScale = 0.985f)
             .clickable(
