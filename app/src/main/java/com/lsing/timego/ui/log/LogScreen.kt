@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.isImeVisible
@@ -67,6 +68,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
@@ -105,6 +107,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -175,6 +178,7 @@ private val LocalSideModes = androidx.compose.runtime.compositionLocalOf {
 
 /** Opens the exercise detail sheet by exercise name; provided once at the top of LogScreen so every row header
  *  (session list and picker) gets the info button without threading a callback through each row. */
+private val LocalRpeEntryMode = androidx.compose.runtime.compositionLocalOf { com.lsing.timego.data.RpeEntryMode.AFTER_SET }
 private val LocalShowExerciseDetails = androidx.compose.runtime.compositionLocalOf<(String) -> Unit> { {} }
 
 /** Items LoggingContent's list renders before the first exercise card: activeHeader, activeSummary,
@@ -189,6 +193,7 @@ private val LocalAutoScrollExpandedCard = androidx.compose.runtime.compositionLo
 @Composable
 fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
+    val rpeEntryMode by viewModel.rpeEntryMode.collectAsStateWithLifecycle()
     val landingSummary by viewModel.landingSummary.collectAsStateWithLifecycle()
     val routines by viewModel.routines.collectAsStateWithLifecycle()
     val routineExercisesById by viewModel.routineExercisesById.collectAsStateWithLifecycle()
@@ -265,6 +270,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
 
     androidx.compose.runtime.CompositionLocalProvider(
         LocalSideModes provides sideModes,
+        LocalRpeEntryMode provides rpeEntryMode,
         LocalShowExerciseDetails provides { name -> detailExercise = exerciseLibrary.firstOrNull { it.name == name } },
     ) {
     AnimatedContent(
@@ -986,14 +992,17 @@ private fun LoggingContent(
             // place the card instantly rather than layering a second scroll animation on top of it.
             focusAppliedOnce = true
             activeListState.scrollToItem(target, topGap)
-            return@LaunchedEffect
-        }
-        activeListState.animateScrollToItem(target, topGap)
-        delay(300)
-        // Only correct if the previous card's collapse left this one off its mark.
-        val offset = activeListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == target }?.offset
-        if (offset == null || kotlin.math.abs(offset + topGap) > with(density) { 8.dp.roundToPx() }) {
+        } else {
             activeListState.animateScrollToItem(target, topGap)
+        }
+        // The card keeps growing for a moment after it opens (and the list can only scroll as far as it is long), so
+        // re-check a few times and correct whenever it is off its mark.
+        repeat(4) {
+            delay(250)
+            val offset = activeListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == target }?.offset
+            if (offset == null || kotlin.math.abs(offset - topGap) > with(density) { 8.dp.roundToPx() }) {
+                activeListState.animateScrollToItem(target, topGap)
+            }
         }
     }
 
@@ -1158,6 +1167,7 @@ private fun LoggingContent(
                             onLog = { duration, target, isWarmup, targetProvenance -> viewModel.logHoldSet(exercise.id, duration, target, isWarmup, targetProvenance) },
                             onStartTimer = { viewModel.startTimer(exercise.id) },
                             onCancelTimer = { viewModel.clearActiveTimer(exercise.id) },
+                            todaySetCount = currentExerciseSets.count { !it.isWarmup },
                         )
                         LoggingType.DURATION_DISTANCE.name -> CardioLogRow(
                             exerciseId = exercise.id,
@@ -1177,6 +1187,7 @@ private fun LoggingContent(
                             onLog = { duration, distance -> viewModel.logCardioSet(exercise.id, duration, distance) },
                             onStartTimer = { viewModel.startTimer(exercise.id) },
                             onCancelTimer = { viewModel.clearActiveTimer(exercise.id) },
+                            todaySetCount = currentExerciseSets.size,
                         )
                         else -> StrengthLogRow(
                             exerciseId = exercise.id,
@@ -1211,6 +1222,7 @@ private fun LoggingContent(
 }
 
 @Composable
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 private fun ExercisePickerContent(
     exercises: List<com.lsing.timego.data.Exercise>,
     viewModel: LogViewModel,
@@ -1247,6 +1259,8 @@ private fun ExercisePickerContent(
         )
     }
     var showOrderMenu by remember { mutableStateOf(false) }
+    // The dock hides behind the keyboard, so its clearance is dead space while the keyboard is up.
+    val bottomClearance = if (WindowInsets.isImeVisible) 0.dp else LocalDockHeight.current + LocalRestClearance.current
     Box(modifier = Modifier.fillMaxSize().imePadding()) {
         Column(
             modifier = Modifier
@@ -1261,14 +1275,14 @@ private fun ExercisePickerContent(
             ) {
                 IconButton(
                     onClick = onBack,
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(48.dp),
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to current session")
                 }
                 Box {
                     IconButton(
                         onClick = { showOrderMenu = true },
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(48.dp),
                     ) {
                         Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Change exercise order")
                     }
@@ -1351,7 +1365,7 @@ private fun ExercisePickerContent(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(Spacing.ExtraLarge + 72.dp + LocalDockHeight.current + LocalRestClearance.current))
+            Spacer(modifier = Modifier.height(Spacing.ExtraLarge + 72.dp + bottomClearance))
         }
         SurfaceCard(
             modifier = Modifier
@@ -1359,7 +1373,7 @@ private fun ExercisePickerContent(
                 .fillMaxWidth()
                 // LocalDockHeight already includes the system navigation-bar inset; the rest bar docks
                 // at the same spot, so lift the search field above it while a rest is showing.
-                .padding(bottom = LocalDockHeight.current + LocalRestClearance.current)
+                .padding(bottom = bottomClearance)
                 .padding(horizontal = Spacing.Large, vertical = Spacing.Small),
             hero = true,
         ) {
@@ -1372,7 +1386,7 @@ private fun ExercisePickerContent(
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.ExtraSmall, vertical = Spacing.ExtraSmall),
                 singleLine = true,
-                shape = MaterialTheme.shapes.small,
+                shape = RoundedCornerShape(20.dp), // concentric with the 24dp card minus its 4dp inset
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { onSearchQueryChange("") }) {
@@ -1386,7 +1400,7 @@ private fun ExercisePickerContent(
             onClick = { showAddDialog = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = Spacing.Large, bottom = LocalDockHeight.current + LocalRestClearance.current + 88.dp),
+                .padding(end = Spacing.Large, bottom = bottomClearance + 88.dp),
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Add custom exercise")
         }
@@ -1431,6 +1445,7 @@ private fun ExercisePickerRow(
             onLog = onLogHold,
             onStartTimer = onStartTimer,
             onCancelTimer = onCancelTimer,
+            todaySetCount = currentSessionSets.count { !it.isWarmup },
         )
         LoggingType.DURATION_DISTANCE.name -> CardioLogRow(
             exerciseId = exercise.id,
@@ -1448,6 +1463,7 @@ private fun ExercisePickerRow(
             onLog = onLogCardio,
             onStartTimer = onStartTimer,
             onCancelTimer = onCancelTimer,
+            todaySetCount = currentSessionSets.size,
         )
         else -> StrengthLogRow(
             exerciseId = exercise.id,
@@ -1477,6 +1493,7 @@ private fun ExercisePickerRow(
  *  until you tap it open. The leading icon is decorative (contentDescription = null): category is
  *  carried by icon shape alone (see categoryVisual), and naming it here would be redundant with
  *  what TalkBack already reads from the exercise name and expand/collapse icon. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun ExerciseRowHeader(
     exerciseName: String,
@@ -1504,22 +1521,25 @@ private fun ExerciseRowHeader(
             .padding(Spacing.Medium),
     ) {
         Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.padding(end = Spacing.Small))
-        Text(exerciseName, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
         // Two states, told apart by label and colour: green TODAY once a set is logged, blue TARGET
-        // (derived from last session) before that.
+        // (derived from last session) before that. The badge sits under the name so a long name never fights it.
         val (badgeLabel, badgeValue, badgeColor) = when {
-            todaySummary != null -> Triple("TODAY · $todaySetCount ${if (todaySetCount == 1) "SET" else "SETS"}", todaySummary, PlateGreen)
+            todaySummary != null -> Triple("TODAY \u00b7 $todaySetCount ${if (todaySetCount == 1) "SET" else "SETS"}", todaySummary, PlateGreen)
             suggestionSummary != null -> Triple("TARGET", suggestionSummary, PlateBlue)
             else -> Triple(null, null, Color.Unspecified)
         }
-        if (badgeValue != null) {
-            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = Spacing.Small)) {
-                Text(badgeLabel!!, style = MaterialTheme.typography.labelSmall, color = badgeColor.copy(alpha = 0.75f))
-                Text(badgeValue, style = LedgerFigureValue.copy(fontSize = 14.sp), color = badgeColor)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(exerciseName, style = MaterialTheme.typography.titleSmall)
+            if (badgeValue != null) {
+                // FlowRow so the figure drops to its own line at large text sizes instead of being squeezed into a column.
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.Small), verticalArrangement = Arrangement.Center) {
+                    Text(badgeLabel!!, style = MaterialTheme.typography.labelSmall, color = badgeColor.copy(alpha = 0.75f))
+                    Text(badgeValue, style = LedgerFigureValue.copy(fontSize = 14.sp), color = badgeColor)
+                }
             }
         }
         val showDetails = LocalShowExerciseDetails.current
-        IconButton(onClick = { showDetails(exerciseName) }, modifier = Modifier.size(40.dp)) {
+        IconButton(onClick = { showDetails(exerciseName) }, modifier = Modifier.size(48.dp)) {
             Icon(
                 Icons.Outlined.Info,
                 contentDescription = "Exercise details",
@@ -1527,7 +1547,7 @@ private fun ExerciseRowHeader(
                 modifier = Modifier.size(20.dp),
             )
         }
-        IconButton(onClick = onToggleFavorite, modifier = Modifier.size(40.dp)) {
+        IconButton(onClick = onToggleFavorite, modifier = Modifier.size(48.dp)) {
             Icon(
                 if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                 contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
@@ -1553,22 +1573,29 @@ private fun ExerciseCard(expanded: Boolean, pulseId: Long = 0L, content: @Compos
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     var cardHeight by remember { mutableStateOf(0) }
     var cardWidth by remember { mutableStateOf(0) }
-    val viewportHeightPx = LocalWindowInfo.current.containerSize.height.toFloat().coerceAtLeast(1f)
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val topGapPx = with(density) { 12.dp.toPx() }
+    val bottomClearancePx = with(density) { (LocalDockHeight.current + LocalRestClearance.current + 112.dp).toPx() }
+    val topChromePx = with(density) { 220.dp.toPx() }
+    val windowHeightPx = LocalWindowInfo.current.containerSize.height.toFloat()
 
     val autoScroll = LocalAutoScrollExpandedCard.current
-    LaunchedEffect(expanded, cardHeight, cardWidth, viewportHeightPx) {
+    LaunchedEffect(expanded, cardHeight, cardWidth, bottomClearancePx, windowHeightPx) {
         if (autoScroll && expanded && cardHeight > 0 && cardWidth > 0) {
             // Recenter after every animated size change using the actual window viewport. This
             // avoids a second fixed-delay correction and keeps the expanded exercise in the
             // visual middle while the keyboard/insets are changing.
             withFrameNanos { }
-            val extraPadding = ((viewportHeightPx - cardHeight) / 2f).coerceAtLeast(0f)
+            // Keep the whole card clear of what floats over the list (search bar, rest bar, dock), and show
+            // its top first when it is taller than the space left.
+            val visiblePx = (windowHeightPx - bottomClearancePx - topChromePx).coerceAtLeast(1f)
+            val top = if (cardHeight > visiblePx) cardHeight - visiblePx else -topGapPx
             bringIntoViewRequester.bringIntoView(
                 androidx.compose.ui.geometry.Rect(
                     left = 0f,
-                    top = -extraPadding,
+                    top = top,
                     right = cardWidth.toFloat(),
-                    bottom = cardHeight + extraPadding,
+                    bottom = cardHeight + bottomClearancePx,
                 ),
             )
         }
@@ -1664,13 +1691,21 @@ private fun StrengthLogRow(
     } else {
         null
     }
-    val canLog = reps != null && validRpe && if (isBodyweight) totalBodyweightLoad != null else enteredWeight != null
+    // With a target on screen and nothing typed, one tap logs the target as shown.
+    val useTarget = suggestion != null && weightText.isBlank() && repsText.isBlank()
+    val canLog = validRpe && (useTarget || (reps != null && if (isBodyweight) totalBodyweightLoad != null else enteredWeight != null))
     val dismissKeyboard = rememberDismissKeyboard()
     val weightFocus = remember { FocusRequester() }
     val repsFocus = remember { FocusRequester() }
     val rpeFocus = remember { FocusRequester() }
     val logSet: () -> Unit = {
-        if (isBodyweight) {
+        if (useTarget && suggestion != null) {
+            val addedKg = if (isBodyweight) latestBodyWeightKg?.let { bw -> suggestion.weightKg - bw } ?: suggestion.weightKg else null
+            onLog(suggestion.weightKg, suggestion.reps, suggestion.reps, isWarmup, addedKg, rpe, targetProvenanceFor(true))
+            rpeText = ""
+            isWarmup = false
+            dismissKeyboard()
+        } else if (isBodyweight) {
             if (reps != null && enteredWeight != null && totalBodyweightLoad != null) {
                 onLog(totalBodyweightLoad, reps, suggestion?.reps ?: reps, isWarmup, enteredWeight, rpe, targetProvenanceFor(suggestion != null))
                 weightText = ""
@@ -1737,26 +1772,6 @@ private fun StrengthLogRow(
                     modifier = Modifier.padding(horizontal = Spacing.Medium),
                 )
             }
-            lastSetHint?.let { hint ->
-                Text(
-                    hint,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
-                )
-            }
-            if (currentSessionSets.isNotEmpty()) {
-                val setsSummary = currentSessionSets.mapIndexed { idx, s ->
-                    val w = if (isBodyweight && s.addedWeightKg != null) formatCalisthenicsWeight(s.addedWeightKg) else "${displayKg(s.weightKg)}kg"
-                    "#${idx + 1}: $w x ${s.reps}"
-                }.joinToString("  •  ")
-                Text(
-                    "Today: $setsSummary",
-                    style = LedgerFigureValue.copy(fontSize = 12.sp),
-                    color = PlateGreen,
-                    modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
-                )
-            }
             if (isBodyweight && bodyWeight == null) {
                 Text(
                     "Log a valid body weight on Progress before logging calisthenics.",
@@ -1765,137 +1780,128 @@ private fun StrengthLogRow(
                     modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
                 )
             }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = Spacing.Medium),
-            ) {
-                Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
-                Text("Warmup set", style = MaterialTheme.typography.bodySmall)
-                if (!isBodyweight && (combined || com.lsing.timego.domain.supportsCombinedEntry(exerciseName))) {
-                    Checkbox(checked = combined, onCheckedChange = { sideModes.toggleCombinedEntry(exerciseId) })
-                    Text("Both dumbbells combined", style = MaterialTheme.typography.bodySmall)
-                }
+            val rpeMode = LocalRpeEntryMode.current
+            val workingDone = currentSessionSets.count { !it.isWarmup }
+            val lastDisplayKg = lastWorkingSet?.let {
+                if (isBodyweight && it.addedWeightKg != null) it.addedWeightKg else displayKg(it.weightKg)
             }
-            Column(modifier = Modifier.fillMaxWidth().padding(Spacing.Medium)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = weightText,
-                        onValueChange = { weightText = it },
-                        label = { Text(if (isBodyweight) "added kg" else if (combined) "kg (both)" else "kg") },
-                        placeholder = if (isBodyweight) { { Text("0") } } else null,
-                        isError = weightText.isNotBlank() && (enteredWeight == null || (isBodyweight && totalBodyweightLoad == null)),
-                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                        keyboardActions = rememberAdvanceKeyboardActions(onNext = { repsFocus.requestFocus() }),
-                        shape = MaterialTheme.shapes.small,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Hairline,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
-                        ),
-                        modifier = Modifier.weight(1f).padding(end = Spacing.Small).focusRequester(weightFocus),
-                    )
-                    OutlinedTextField(
-                        value = repsText,
-                        onValueChange = { repsText = it },
-                        label = { Text("reps") },
-                        isError = repsText.isNotBlank() && reps == null,
-                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                        keyboardActions = rememberAdvanceKeyboardActions(onNext = { rpeFocus.requestFocus() }),
-                        shape = MaterialTheme.shapes.small,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Hairline,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
-                        ),
-                        modifier = Modifier.weight(1f).padding(end = Spacing.Small).focusRequester(repsFocus),
-                    )
-                    OutlinedTextField(
-                        value = rpeText,
-                        onValueChange = { rpeText = it },
-                        label = { Text("RPE") },
-                        placeholder = { Text(prescription?.rpeText ?: "1-10") },
-                        isError = !validRpe,
-                        singleLine = true,
-                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                        keyboardActions = rememberAdvanceKeyboardActions(onDone = { if (canLog) logSet() }),
-                        shape = MaterialTheme.shapes.small,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Hairline,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
-                        ),
-                        modifier = Modifier.weight(1f).focusRequester(rpeFocus),
+            val targetKg = suggestion?.let {
+                if (isBodyweight) latestBodyWeightKg?.let { bw -> it.weightKg - bw } ?: it.weightKg else displayKg(it.weightKg)
+            }
+            fun formatKg(value: Double) = "%.1f".format(value).trimEnd('0').trimEnd('.')
+            val shownKg = enteredWeight ?: targetKg
+            val deltaKg = if (shownKg != null && lastDisplayKg != null) shownKg - lastDisplayKg else null
+            val weightCaption = when {
+                deltaKg == null -> null
+                kotlin.math.abs(deltaKg) < 0.05 -> "same as last"
+                deltaKg > 0 -> "+${formatKg(deltaKg)} vs last"
+                else -> "${formatKg(deltaKg)} vs last"
+            }
+            val repsCaption = if (repsText.isBlank()) null else (suggestion?.let { "target ${it.reps}" }
+                ?: prescription?.let { "target ${it.repMin}-${it.repMax}" })
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Medium),
+            ) {
+                SetTimeline(done = workingDone, planned = prescription?.sets)
+                var selectedField by rememberSaveable(exerciseName) { mutableStateOf(EntryField.WEIGHT) }
+                val tileCaption = listOfNotNull(weightCaption, suggestion?.let { "target ${it.reps}" } ?: prescription?.let { "target ${it.repMin}-${it.repMax}" })
+                    .joinToString("  \u00b7  ").ifEmpty { if (suggestion == null && prescription == null) "No history yet, enter your first set" else null }
+                SetEntryTile(
+                    weightUnit = if (isBodyweight) "added kg" else if (combined) "kg (both)" else "kg",
+                    weightText = weightText,
+                    onWeightChange = { weightText = it },
+                    weightPlaceholder = if (isBodyweight) "0" else targetKg?.let(::formatKg) ?: "\u2013",
+                    weightError = weightText.isNotBlank() && (enteredWeight == null || (isBodyweight && totalBodyweightLoad == null)),
+                    repsText = repsText,
+                    onRepsChange = { repsText = it },
+                    repsPlaceholder = suggestion?.reps?.toString() ?: prescription?.repMin?.toString() ?: "\u2013",
+                    placeholderIsTarget = suggestion != null || prescription != null,
+                    repsError = repsText.isNotBlank() && reps == null,
+                    selected = selectedField,
+                    onSelect = { selectedField = it },
+                    caption = tileCaption,
+                    captionColor = if ((deltaKg ?: 0.0) > 0.05) PlateGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                    weightKeyboardActions = rememberAdvanceKeyboardActions(onNext = { repsFocus.requestFocus() }),
+                    repsKeyboardActions = rememberAdvanceKeyboardActions(onDone = { if (canLog) logSet() }),
+                    weightFocus = weightFocus,
+                    repsFocus = repsFocus,
+                )
+                StepperStrip(
+                    adjusting = if (selectedField == EntryField.WEIGHT) "Adjusting kg" else "Adjusting reps",
+                    step = if (selectedField == EntryField.WEIGHT) "2.5 kg" else "1 rep",
+                    onMinus = {
+                        if (selectedField == EntryField.WEIGHT) {
+                            val next = ((enteredWeight ?: targetKg ?: 0.0) - 2.5).coerceAtLeast(0.0)
+                            weightText = if (next == 0.0 && isBodyweight) "" else formatKg(next)
+                        } else {
+                            repsText = ((reps ?: suggestion?.reps ?: 1) - 1).coerceAtLeast(1).toString()
+                        }
+                    },
+                    onPlus = {
+                        if (selectedField == EntryField.WEIGHT) weightText = formatKg((enteredWeight ?: targetKg ?: 0.0) + 2.5)
+                        else repsText = ((reps ?: suggestion?.reps ?: 0) + 1).toString()
+                    },
+                    minusDescription = if (selectedField == EntryField.WEIGHT) "Decrease weight by 2.5 kilograms" else "Decrease reps by one",
+                    plusDescription = if (selectedField == EntryField.WEIGHT) "Increase weight by 2.5 kilograms" else "Increase reps by one",
+                )
+                // Slider mode: the RPE strip is part of the card (it slides in with it). It stays optional.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = rpeMode == com.lsing.timego.data.RpeEntryMode.SLIDER,
+                    enter = androidx.compose.animation.expandVertically(TimeGoMotion.expandEnter) + androidx.compose.animation.fadeIn(TimeGoMotion.contentEnter),
+                    exit = androidx.compose.animation.shrinkVertically(TimeGoMotion.expandExit) + androidx.compose.animation.fadeOut(TimeGoMotion.contentExit),
+                ) {
+                    RpeSlider(
+                        value = rpe,
+                        defaultValue = (prescription?.rpeLow ?: 8).coerceIn(5, 10),
+                        onValueChange = { rpeText = it.toString() },
+                        onClear = { rpeText = "" },
                     )
                 }
-                // Quick Stepper Chips for Fast In-Gym Adjustment
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall),
-                ) {
-                    AnimatedAssistChip(
-                        onClick = {
-                            val cur = enteredWeight ?: 0.0
-                            val next = (cur - 2.5).coerceAtLeast(0.0)
-                            weightText = if (next == 0.0 && isBodyweight) "" else "%.1f".format(next).trimEnd('0').trimEnd('.')
-                        },
-                        label = { Text("-2.5kg", style = MaterialTheme.typography.labelSmall) },
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.Small), verticalArrangement = Arrangement.spacedBy(Spacing.Small)) {
+                    FilterChip(
+                        selected = isWarmup,
+                        onClick = { isWarmup = !isWarmup },
+                        label = { Text("Warmup") },
                     )
-                    AnimatedAssistChip(
-                        onClick = {
-                            val cur = enteredWeight ?: 0.0
-                            val next = cur + 2.5
-                            weightText = "%.1f".format(next).trimEnd('0').trimEnd('.')
-                        },
-                        label = { Text("+2.5kg", style = MaterialTheme.typography.labelSmall) },
-                    )
-                    AnimatedAssistChip(
-                        onClick = {
-                            val curReps = reps ?: 0
-                            val next = (curReps - 1).coerceAtLeast(1)
-                            repsText = next.toString()
-                        },
-                        label = { Text("-1 rep", style = MaterialTheme.typography.labelSmall) },
-                    )
-                    AnimatedAssistChip(
-                        onClick = {
-                            val curReps = reps ?: (suggestion?.reps ?: 0)
-                            val next = curReps + 1
-                            repsText = next.toString()
-                        },
-                        label = { Text("+1 rep", style = MaterialTheme.typography.labelSmall) },
-                    )
+                    if (!isBodyweight && (combined || com.lsing.timego.domain.supportsCombinedEntry(exerciseName))) {
+                        FilterChip(
+                            selected = combined,
+                            onClick = { sideModes.toggleCombinedEntry(exerciseId) },
+                            label = { Text("Both dumbbells") },
+                        )
+                    }
                 }
                 prescription?.let {
                     Text(
                         text = listOfNotNull(it.summary, it.note).joinToString(separator = "\u000A"),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = Spacing.Small),
                     )
                 }
                 val logInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                val workingSetNumber = currentSessionSets.count { !it.isWarmup } + 1
+                val workingSetNumber = workingDone + 1
                 Button(
                     enabled = canLog,
                     shape = MaterialTheme.shapes.small,
+                    colors = ButtonDefaults.buttonColors(
+                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
                     interactionSource = logInteractionSource,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 52.dp)
-                        .padding(top = Spacing.Small)
+                        .heightIn(min = 56.dp)
                         .tactilePress(logInteractionSource, pressedScale = 0.97f),
                     onClick = logSet,
                 ) {
                     Text(
-                        if (isWarmup) "Log warmup set" else "Log set $workingSetNumber",
+                        when {
+                            !canLog -> if (isBodyweight) "Enter reps" else "Enter weight and reps"
+                            isWarmup -> "Log warmup set"
+                            useTarget && suggestion != null -> "Log set $workingSetNumber \u00b7 ${formatKg(targetKg ?: 0.0)} x ${suggestion.reps}"
+                            else -> "Log set $workingSetNumber"
+                        },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                     )
@@ -1922,6 +1928,7 @@ private fun CardioLogRow(
     onLog: (durationMinutes: Double, distanceKm: Double?) -> Unit,
     onStartTimer: () -> Unit,
     onCancelTimer: () -> Unit,
+    todaySetCount: Int = 0,
 ) {
     var useTimer by rememberSaveable(exerciseName) { mutableStateOf(false) }
     var durationText by rememberSaveable(exerciseName) { mutableStateOf("") }
@@ -1929,10 +1936,13 @@ private fun CardioLogRow(
     val duration = durationText.toPositiveFiniteDoubleOrNull()
     val distance = distanceText.toPositiveFiniteDoubleOrNull()
     val validDistance = distanceText.isBlank() || distance != null
+    // Real cardio needs a distance (pace and speed come from it); a warm-up like skipping does not.
+    val distanceRequired = category == ExerciseCategory.CARDIO.name
+    val distanceOk = validDistance && (!distanceRequired || distance != null)
     val dismissKeyboardCardio = rememberDismissKeyboard()
     val minutesFocus = remember { FocusRequester() }
     val logCardio: () -> Unit = {
-        if (duration != null && validDistance) {
+        if (duration != null && distanceOk) {
             onLog(duration, distance)
             durationText = ""
             distanceText = ""
@@ -1951,80 +1961,99 @@ private fun CardioLogRow(
                 thickness = 0.5.dp,
                 modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.ExtraSmall),
             )
-            if (duration != null) {
-                val pace = distance?.let { averagePaceMinPerKm(duration, it) }
-                val calories = bodyWeightKg?.let { estimatedCalorieBurn(met, it, duration) }
-                val details = listOfNotNull(
-                    pace?.let { "Pace: ${"%.1f".format(it)} min/km" },
+            var cardioSelected by rememberSaveable(exerciseName) { mutableStateOf(EntryField.WEIGHT) }
+            val kmFocus = remember { FocusRequester() }
+            val cardioDetails = duration?.let { minutes ->
+                val pace = distance?.let { averagePaceMinPerKm(minutes, it) }
+                val calories = bodyWeightKg?.let { estimatedCalorieBurn(met, it, minutes) }
+                listOfNotNull(
+                    pace?.let { "Pace ${"%.1f".format(it)} min/km" },
                     calories?.let { "~${it.toInt()} kcal" },
-                ).joinToString(" -- ")
-                if (details.isNotEmpty()) {
-                    Text(
-                        details,
-                        style = LedgerFigureValue.copy(fontSize = 13.sp),
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(horizontal = Spacing.Medium),
-                    )
-                }
+                ).joinToString("  \u00b7  ").ifEmpty { null }
             }
-            OutlinedTextField(
-                value = distanceText,
-                onValueChange = { distanceText = it },
-                label = { Text("km (optional)") },
-                isError = !validDistance,
-                textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                        keyboardActions = rememberAdvanceKeyboardActions(onNext = { minutesFocus.requestFocus() }),
-                shape = MaterialTheme.shapes.small,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = Hairline,
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
-                ),
-                modifier = Modifier.padding(horizontal = Spacing.Medium),
-            )
-            if (!timerVisible) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        value = durationText,
-                        onValueChange = { durationText = it },
-                        label = { Text("minutes") },
-                        isError = durationText.isNotBlank() && duration == null,
-                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                        keyboardActions = rememberAdvanceKeyboardActions(onDone = logCardio),
-                        shape = MaterialTheme.shapes.small,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Hairline,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
-                        ),
-                        modifier = Modifier.weight(1f).padding(end = Spacing.Small).focusRequester(minutesFocus),
+            fun fmt(value: Double) = "%.1f".format(value).trimEnd('0').trimEnd('.')
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Medium),
+            ) {
+                SetTimeline(done = todaySetCount, planned = null)
+                if (!timerVisible) {
+                    SetEntryTile(
+                        weightUnit = "minutes",
+                        weightText = durationText,
+                        onWeightChange = { durationText = it },
+                        weightPlaceholder = "\u2013",
+                        weightError = durationText.isNotBlank() && duration == null,
+                        repsText = distanceText,
+                        onRepsChange = { distanceText = it },
+                        repsPlaceholder = "\u2013",
+                        placeholderIsTarget = false,
+                        repsError = !validDistance,
+                        selected = cardioSelected,
+                        onSelect = { cardioSelected = it },
+                        caption = cardioDetails ?: if (distanceRequired) "Add distance to get your pace" else "Distance is optional",
+                        captionColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        weightKeyboardActions = rememberAdvanceKeyboardActions(onNext = { kmFocus.requestFocus() }),
+                        repsKeyboardActions = rememberAdvanceKeyboardActions(onDone = logCardio),
+                        weightFocus = minutesFocus,
+                        repsFocus = kmFocus,
+                        secondUnit = "km",
+                        secondDecimal = true,
+                        separator = "\u00b7",
                     )
+                    StepperStrip(
+                        adjusting = if (cardioSelected == EntryField.WEIGHT) "Adjusting minutes" else "Adjusting km",
+                        step = if (cardioSelected == EntryField.WEIGHT) "1 min" else "0.5 km",
+                        onMinus = {
+                            if (cardioSelected == EntryField.WEIGHT) durationText = fmt(((duration ?: 0.0) - 1.0).coerceAtLeast(0.0)).let { if (it == "0") "" else it }
+                            else distanceText = fmt(((distance ?: 0.0) - 0.5).coerceAtLeast(0.0)).let { if (it == "0") "" else it }
+                        },
+                        onPlus = {
+                            if (cardioSelected == EntryField.WEIGHT) durationText = fmt((duration ?: 0.0) + 1.0)
+                            else distanceText = fmt((distance ?: 0.0) + 0.5)
+                        },
+                        minusDescription = if (cardioSelected == EntryField.WEIGHT) "Decrease minutes by one" else "Decrease distance by half a kilometre",
+                        plusDescription = if (cardioSelected == EntryField.WEIGHT) "Increase minutes by one" else "Increase distance by half a kilometre",
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.Small)) {
+                        FilterChip(selected = false, onClick = { useTimer = true }, label = { Text("Use timer") })
+                    }
                     val cardioLogInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Button(
-                        enabled = duration != null && validDistance,
+                        enabled = duration != null && distanceOk,
                         shape = MaterialTheme.shapes.small,
+                        colors = ButtonDefaults.buttonColors(
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
                         interactionSource = cardioLogInteractionSource,
-                        modifier = Modifier.tactilePress(cardioLogInteractionSource, pressedScale = 0.94f),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).tactilePress(cardioLogInteractionSource, pressedScale = 0.97f),
                         onClick = logCardio,
                     ) {
-                        Text("Log", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                        Text(
+                            when {
+                                duration == null -> "Enter minutes"
+                                !distanceOk -> if (validDistance) "Enter distance" else "Check distance"
+                                else -> "Log set ${todaySetCount + 1} \u00b7 ${fmt(duration)} min${distance?.let { " \u00b7 ${fmt(it)} km" } ?: ""}"
+                            },
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                        )
                     }
-                }
-                OutlinedButton(
-                    onClick = { useTimer = true },
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.padding(horizontal = Spacing.Medium).padding(bottom = Spacing.Small),
-                ) { Text("Use timer") }
-            } else {
+                } else {
+                    SingleEntryTile(
+                        unit = if (distanceRequired) "km" else "km (optional)",
+                        text = distanceText,
+                        onTextChange = { distanceText = it },
+                        placeholder = "\\u2013",
+                        placeholderIsTarget = false,
+                        caption = null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                        keyboardActions = rememberAdvanceKeyboardActions(onDone = {}),
+                        focusRequester = kmFocus,
+                        isError = !validDistance,
+                        filterInput = ::filterDecimal,
+                    )
                 TimerControls(
                     timerKey = exerciseId,
                     activeTimerKey = activeTimer?.exerciseId,
@@ -2046,6 +2075,7 @@ private fun CardioLogRow(
                         distanceText = ""
                     },
                 )
+                }
             }
         }
     }
@@ -2073,6 +2103,7 @@ private fun HoldLogRow(
     onLog: (durationSeconds: Int, targetDurationSeconds: Int, isWarmup: Boolean, targetProvenance: TargetProvenance) -> Unit,
     onStartTimer: () -> Unit,
     onCancelTimer: () -> Unit,
+    todaySetCount: Int = 0,
 ) {
     val sideModes = LocalSideModes.current
     val bothSides = exerciseId in sideModes.bothSidesIds
@@ -2116,11 +2147,14 @@ private fun HoldLogRow(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = Spacing.Medium),
             ) {
-                Checkbox(checked = isWarmup, onCheckedChange = { isWarmup = it })
-                Text("Warmup set", style = MaterialTheme.typography.bodySmall)
+                FilterChip(selected = isWarmup, onClick = { isWarmup = !isWarmup }, label = { Text("Warmup") })
                 if (bothSides || com.lsing.timego.domain.supportsBothSides(exerciseName)) {
-                    Checkbox(checked = bothSides, onCheckedChange = { sideModes.toggleBothSides(exerciseId); sideIndex = 0 })
-                    Text("Both sides", style = MaterialTheme.typography.bodySmall)
+                    Spacer(modifier = Modifier.width(Spacing.Small))
+                    FilterChip(
+                        selected = bothSides,
+                        onClick = { sideModes.toggleBothSides(exerciseId); sideIndex = 0 },
+                        label = { Text("Both sides") },
+                    )
                 }
             }
             if (bothSides && timerVisible) {
@@ -2132,51 +2166,70 @@ private fun HoldLogRow(
                 )
             }
             if (!timerVisible) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    val manualDuration = manualDurationText.toPositiveIntOrNull()
-                    val dismissKeyboardHold = rememberDismissKeyboard()
-                    val logHold: () -> Unit = {
-                        if (manualDuration != null) {
-                            onLog(manualDuration, suggestion?.targetDurationSeconds ?: manualDuration, isWarmup, targetProvenanceFor(suggestion != null))
-                            manualDurationText = ""
-                            isWarmup = false
-                            dismissKeyboardHold()
-                        }
+                val manualDuration = manualDurationText.toPositiveIntOrNull()
+                val dismissKeyboardHold = rememberDismissKeyboard()
+                val holdTarget = suggestion?.targetDurationSeconds
+                val useHoldTarget = holdTarget != null && manualDurationText.isBlank()
+                val canLogHold = useHoldTarget || manualDuration != null
+                val holdFocus = remember { FocusRequester() }
+                val logHold: () -> Unit = {
+                    val seconds = if (useHoldTarget) holdTarget else manualDuration
+                    if (seconds != null) {
+                        onLog(seconds, holdTarget ?: seconds, isWarmup, targetProvenanceFor(suggestion != null))
+                        manualDurationText = ""
+                        isWarmup = false
+                        dismissKeyboardHold()
                     }
-                    OutlinedTextField(
-                        value = manualDurationText,
-                        onValueChange = { manualDurationText = it },
-                        label = { Text("seconds") },
-                        isError = manualDurationText.isNotBlank() && manualDuration == null,
-                        textStyle = LedgerFigureValue.copy(fontSize = 16.sp),
-                        singleLine = true,
+                }
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.Medium),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Medium),
+                ) {
+                    SetTimeline(done = todaySetCount, planned = null)
+                    SingleEntryTile(
+                        unit = "seconds",
+                        text = manualDurationText,
+                        onTextChange = { manualDurationText = it },
+                        placeholder = holdTarget?.toString() ?: "\u2013",
+                        placeholderIsTarget = holdTarget != null,
+                        caption = holdTarget?.let { "target ${it}s" } ?: "No history yet, enter your first hold",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                         keyboardActions = rememberAdvanceKeyboardActions(onDone = logHold),
-                        shape = MaterialTheme.shapes.small,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Hairline,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.25f),
-                        ),
-                        modifier = Modifier.weight(1f).padding(end = Spacing.Small),
+                        focusRequester = holdFocus,
+                        isError = manualDurationText.isNotBlank() && manualDuration == null,
+                        filterInput = { filterWholeNumber(it) },
                     )
+                    StepperStrip(
+                        adjusting = "Adjusting seconds",
+                        step = "5 s",
+                        onMinus = { manualDurationText = ((manualDuration ?: holdTarget ?: 0) - 5).coerceAtLeast(5).toString() },
+                        onPlus = { manualDurationText = ((manualDuration ?: holdTarget ?: 0) + 5).toString() },
+                        minusDescription = "Decrease by five seconds",
+                        plusDescription = "Increase by five seconds",
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.Small)) {
+                        FilterChip(selected = false, onClick = { useTimer = true }, label = { Text("Use timer instead") })
+                    }
                     val holdLogInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Button(
-                        enabled = manualDuration != null,
+                        enabled = canLogHold,
                         shape = MaterialTheme.shapes.small,
+                        colors = ButtonDefaults.buttonColors(
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
                         interactionSource = holdLogInteractionSource,
-                        modifier = Modifier.tactilePress(holdLogInteractionSource, pressedScale = 0.94f),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).tactilePress(holdLogInteractionSource, pressedScale = 0.97f),
                         onClick = logHold,
-                    ) { Text("Log set", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) }
+                    ) {
+                        val seconds = if (useHoldTarget) holdTarget else manualDuration
+                        Text(
+                            if (seconds != null) "Log set ${todaySetCount + 1} \u00b7 ${seconds}s" else "Enter seconds",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                        )
+                    }
                 }
-                TextButton(
-                    onClick = { useTimer = true },
-                    modifier = Modifier.padding(horizontal = Spacing.Medium),
-                ) { Text("Use timer instead") }
             } else {
                 TimerControls(
                     timerKey = exerciseId,

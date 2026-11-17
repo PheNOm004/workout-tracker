@@ -147,7 +147,7 @@ fun ConsistencyHeatmapSkeleton(modifier: Modifier = Modifier) {
                         Text(
                             text = month,
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 9.sp,
+                                fontSize = 11.sp,
                                 letterSpacing = 1.sp,
                                 fontWeight = FontWeight.Bold,
                             ),
@@ -194,7 +194,7 @@ fun ConsistencyHeatmapSkeleton(modifier: Modifier = Modifier) {
                 ) {
                     Text(
                         "Less",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -210,7 +210,7 @@ fun ConsistencyHeatmapSkeleton(modifier: Modifier = Modifier) {
                     }
                     Text(
                         "More",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     )
                 }
@@ -275,7 +275,7 @@ fun MuscleDistributionSkeleton(modifier: Modifier = Modifier) {
                         Text(
                             "ANTERIOR",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 9.sp,
+                                fontSize = 11.sp,
                                 letterSpacing = 1.sp,
                                 fontWeight = FontWeight.Bold,
                             ),
@@ -312,7 +312,7 @@ fun MuscleDistributionSkeleton(modifier: Modifier = Modifier) {
                         Text(
                             "POSTERIOR",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 9.sp,
+                                fontSize = 11.sp,
                                 letterSpacing = 1.sp,
                                 fontWeight = FontWeight.Bold,
                             ),
@@ -493,7 +493,7 @@ fun ExercisePerformanceSkeleton(modifier: Modifier = Modifier) {
                     listOf("Week 1", "Week 6", "Week 12", "Current").forEach { label ->
                         Text(
                             label,
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         )
                     }
@@ -548,7 +548,7 @@ fun RoutineCardSkeleton(modifier: Modifier = Modifier) {
                             Text(
                                 day,
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
                                 ),
                                 color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),

@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -45,7 +46,8 @@ fun PillSelector(
 ) {
     val accent = MaterialTheme.colorScheme.primary
     val shape = RoundedCornerShape(26.dp)
-    val optionWidth = 96.dp
+    // Grow with the system font size so labels such as "Training" are not clipped at large text scales.
+    val optionWidth = 96.dp * LocalDensity.current.fontScale.coerceIn(1f, 1.6f)
     Box(modifier = modifier.padding(5.dp)) {
         val indicatorX by animateDpAsState(
             targetValue = optionWidth * selectedIndex,

@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lsing.timego.data.BackupManager
+import com.lsing.timego.data.backupMessage
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.data.MuscleGroup
 import com.lsing.timego.data.RestoreSummary
@@ -62,6 +63,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
 
     private val _restAdaptive = MutableStateFlow(true)
     val restAdaptive: StateFlow<Boolean> = _restAdaptive.asStateFlow()
+
+    private val _rpeEntryMode = MutableStateFlow(com.lsing.timego.data.RpeEntryMode.AFTER_SET)
+    val rpeEntryMode: StateFlow<com.lsing.timego.data.RpeEntryMode> = _rpeEntryMode.asStateFlow()
 
     private val _restTimerSeconds = MutableStateFlow(SettingsRepository.DEFAULT_REST_TIMER_SECONDS)
     val restTimerSeconds: StateFlow<Int> = _restTimerSeconds.asStateFlow()
@@ -137,6 +141,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
                             settingsRepository.themeMode.collect { _themeMode.value = it }
                         }
                         launch {
+                            settingsRepository.rpeEntryMode.collect { _rpeEntryMode.value = it }
+                        }
+                        launch {
                             settingsRepository.trainingLean.collect { _trainingLean.value = it }
                         }
                     }
@@ -146,6 +153,10 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
 
     fun setThemeMode(mode: com.lsing.timego.data.ThemeMode) {
         viewModelScope.launch { settingsRepository.setThemeMode(mode) }
+    }
+
+    fun setRpeEntryMode(mode: com.lsing.timego.data.RpeEntryMode) {
+        viewModelScope.launch { settingsRepository.setRpeEntryMode(mode) }
     }
 
     fun setRestAdaptive(adaptive: Boolean) {
@@ -201,7 +212,7 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             backupManager.export(destination).fold(
                 onSuccess = { _backupResult.value = BackupResult("Backup saved.", isError = false) },
-                onFailure = { e -> _backupResult.value = BackupResult("Export failed: ${e.message}", isError = true) },
+                onFailure = { e -> _backupResult.value = BackupResult(e.backupMessage("Backup could not be saved. Check the location and try again."), isError = true) },
             )
         }
     }
@@ -210,7 +221,7 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             backupManager.restore(source).fold(
                 onSuccess = { summary -> _backupResult.value = BackupResult(summary.toMessage(), isError = false) },
-                onFailure = { e -> _backupResult.value = BackupResult("Restore failed: ${e.message}", isError = true) },
+                onFailure = { e -> _backupResult.value = BackupResult(e.backupMessage("That file could not be restored. Pick a backup made by TimeGo."), isError = true) },
             )
         }
     }

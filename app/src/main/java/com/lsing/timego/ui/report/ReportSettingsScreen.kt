@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -44,7 +45,7 @@ fun ReportSettingsScreen(viewModel: ReportViewModel, emailVerified: Boolean, clo
         val report: WorkoutReport? = if (cadence == "weekly") state.weeklyPreview else state.monthlyPreview
         report?.let { ReportPreviewSheet(it, if (cadence == "weekly") "Weekly report preview" else "Monthly report preview") { preview = null } }
     }
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.Large), verticalArrangement = Arrangement.spacedBy(Spacing.Medium)) {
+    Column(modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(Spacing.Large), verticalArrangement = Arrangement.spacedBy(Spacing.Medium)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to account") }
             Column { Text("Email reports", style = MaterialTheme.typography.headlineSmall); Text("Both choices are off by default", color = MaterialTheme.colorScheme.onSurfaceVariant) }

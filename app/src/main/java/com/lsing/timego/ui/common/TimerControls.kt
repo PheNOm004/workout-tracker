@@ -190,7 +190,7 @@ fun TimerControls(
                             Text(
                                 "GET READY",
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
+                                    fontSize = 11.sp,
                                     letterSpacing = 1.sp,
                                     fontWeight = FontWeight.Bold,
                                 ),
@@ -224,7 +224,7 @@ fun TimerControls(
                             Text(
                                 "HOLDING",
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
+                                    fontSize = 11.sp,
                                     letterSpacing = 1.sp,
                                     fontWeight = FontWeight.Bold,
                                 ),

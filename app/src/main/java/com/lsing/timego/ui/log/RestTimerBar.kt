@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
@@ -52,6 +54,8 @@ import com.lsing.timego.ui.common.frosted
 import com.lsing.timego.ui.common.tactilePress
 import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.PlateBlue
+import com.lsing.timego.ui.theme.PlateGreen
+import com.lsing.timego.ui.theme.PlateRed
 import com.lsing.timego.ui.theme.PlateYellow
 import com.lsing.timego.ui.theme.TimeGoMotion
 import kotlinx.coroutines.delay
@@ -110,6 +114,8 @@ fun RestTimerBar(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     onMinimize: (() -> Unit)? = null,
+    /** When set, the bar asks how many reps were left and reports the matching RPE (10, 9, 8, or 7). */
+    onRateEffort: ((rpe: Int) -> Unit)? = null,
 ) {
     val remaining by rememberRestRemaining(state)
     val over = remaining <= 0
@@ -157,10 +163,44 @@ fun RestTimerBar(
             }
             Button(onClick = onDismiss, modifier = Modifier.height(44.dp)) { Text(if (over) "Done" else "Skip") }
         }
+        if (onRateEffort != null) RepsLeftPrompt(onRateEffort)
         AnimatedVisibility(visible = expanded) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FilledTonalButton(onClick = { onAdjust(-15) }, modifier = Modifier.weight(1f).height(44.dp)) { Text("-15s") }
                 FilledTonalButton(onClick = { onAdjust(15) }, modifier = Modifier.weight(1f).height(44.dp)) { Text("+15s") }
+            }
+        }
+    }
+}
+
+/** "How many reps were left?" as four big buttons; each carries a small effort-coloured mark. One tap records the RPE. */
+@Composable
+private fun RepsLeftPrompt(onRate: (Int) -> Unit) {
+    val repsLeftOptions = listOf(
+        Triple("0", 10, PlateRed),
+        Triple("1", 9, lerp(PlateRed, PlateYellow, 0.5f)),
+        Triple("2", 8, PlateYellow),
+        Triple("3+", 7, PlateGreen),
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("How many reps were left?", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            repsLeftOptions.forEach { (label, rpe, mark) ->
+                val source = remember { MutableInteractionSource() }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp)
+                        .tactilePress(source, pressedScale = 0.95f)
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .clickable(interactionSource = source, indication = null, onClickLabel = "$label reps left, RPE $rpe") { onRate(rpe) },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(label, style = LedgerFigureEmphasis.copy(fontSize = 20.sp), color = MaterialTheme.colorScheme.onSurface)
+                    Box(modifier = Modifier.padding(top = 3.dp).size(width = 16.dp, height = 3.dp).clip(CircleShape).background(mark))
+                }
             }
         }
     }

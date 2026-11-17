@@ -1,6 +1,7 @@
 package com.lsing.timego.data
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import androidx.room.Room
 import androidx.room.withTransaction
@@ -16,6 +17,11 @@ const val TIMEGO_BACKUP_MIME_TYPE = "application/vnd.sqlite3"
 internal const val MAX_BACKUP_BYTES = 64L * 1024L * 1024L
 private val SQLITE_HEADER = "SQLite format 3\u0000".toByteArray(Charsets.US_ASCII)
 
+/** A failure whose message is written for the user. Anything else (Room, SQLite, IO) is shown as a generic line. */
+class BackupUserException(message: String) : IllegalStateException(message)
+
+fun Throwable.backupMessage(fallback: String): String = if (this is BackupUserException) message ?: fallback else fallback
+
 internal fun InputStream.copyBackupTo(output: OutputStream, maxBytes: Long = MAX_BACKUP_BYTES): Long {
     require(maxBytes >= 0L) { "Backup size limit cannot be negative" }
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
@@ -25,12 +31,20 @@ internal fun InputStream.copyBackupTo(output: OutputStream, maxBytes: Long = MAX
         if (bytesRead < 0) break
         if (bytesRead == 0) continue
         if (totalBytes > maxBytes - bytesRead) {
-            error("Backup exceeds the allowed restore size")
+            throw BackupUserException("Backup exceeds the allowed restore size")
         }
         output.write(buffer, 0, bytesRead)
         totalBytes += bytesRead
     }
     return totalBytes
+}
+
+/** Any SQLite file passes the header check; only a TimeGo database has Room's master table and a known version. */
+internal fun File.requireTimeGoSchema(maxVersion: Int = TIMEGO_DB_VERSION) {
+    val ok = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READONLY).use { sqlite ->
+        sqlite.version in 1..maxVersion && sqlite.rawQuery("SELECT 1 FROM sqlite_master WHERE name = 'room_master_table'", null).use { it.moveToFirst() }
+    }
+    if (!ok) throw BackupUserException("The selected file is not a TimeGo backup, or comes from a newer app version")
 }
 
 internal fun File.hasSqliteHeader(): Boolean = inputStream().use { input ->
@@ -72,7 +86,7 @@ class BackupManager(private val context: Context, private val db: TimeGoDatabase
             db.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").use { it.moveToFirst() }
             val liveDbFile = context.getDatabasePath(TIMEGO_DATABASE_FILE_NAME)
             val out = context.contentResolver.openOutputStream(destination)
-                ?: error("Could not open the chosen location for writing")
+                ?: throw BackupUserException("Could not open the chosen location for writing")
             out.use { stream -> liveDbFile.inputStream().use { it.copyTo(stream) } }
             Unit
         }
@@ -83,9 +97,10 @@ class BackupManager(private val context: Context, private val db: TimeGoDatabase
             val tempFile = File.createTempFile("timego-restore-", ".db", context.cacheDir)
             try {
                 val input = context.contentResolver.openInputStream(source)
-                    ?: error("Could not open the chosen file for reading")
+                    ?: throw BackupUserException("Could not open the chosen file for reading")
                 input.use { stream -> tempFile.outputStream().use { stream.copyBackupTo(it) } }
-                check(tempFile.hasSqliteHeader()) { "The selected file is not a TimeGo SQLite backup" }
+                if (!tempFile.hasSqliteHeader()) throw BackupUserException("The selected file is not a TimeGo SQLite backup")
+                tempFile.requireTimeGoSchema()
 
                 val backupDb = Room.databaseBuilder(context, TimeGoDatabase::class.java, tempFile.absolutePath)
                     .addMigrations(*ALL_MIGRATIONS)

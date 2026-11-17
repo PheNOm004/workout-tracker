@@ -231,14 +231,14 @@ private fun CompletedSetBadge(
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(16.dp)
+                .size(18.dp)
                 .clip(CircleShape)
                 .background(if (set.isWarmup) MaterialTheme.colorScheme.outline else PlateGreen),
         ) {
             if (set.isWarmup) {
                 Text(
                     "W",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                     color = MaterialTheme.colorScheme.surface,
                 )
             } else {

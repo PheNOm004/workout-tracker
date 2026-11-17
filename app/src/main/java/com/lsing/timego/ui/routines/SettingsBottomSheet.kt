@@ -52,6 +52,8 @@ fun SettingsBottomSheet(
     onSetRestTimerSeconds: (Int) -> Unit,
     restAdaptive: Boolean,
     onSetRestAdaptive: (Boolean) -> Unit,
+    rpeEntryMode: com.lsing.timego.data.RpeEntryMode,
+    onSetRpeEntryMode: (com.lsing.timego.data.RpeEntryMode) -> Unit,
     themeMode: com.lsing.timego.data.ThemeMode,
     onSetThemeMode: (com.lsing.timego.data.ThemeMode) -> Unit,
     trainingLean: TrainingLean,
@@ -152,6 +154,42 @@ fun SettingsBottomSheet(
                     )
                 }
             }
+
+            Text(
+                "Rate effort (RPE)",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = Spacing.Small, bottom = Spacing.ExtraSmall),
+            )
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+            ) {
+                com.lsing.timego.data.RpeEntryMode.entries.forEach { mode ->
+                    FilterChip(
+                        selected = rpeEntryMode == mode,
+                        onClick = { onSetRpeEntryMode(mode) },
+                        label = {
+                            Text(
+                                when (mode) {
+                                    com.lsing.timego.data.RpeEntryMode.AFTER_SET -> "After the set"
+                                    com.lsing.timego.data.RpeEntryMode.SLIDER -> "Slider"
+                                    com.lsing.timego.data.RpeEntryMode.OFF -> "Off"
+                                },
+                            )
+                        },
+                    )
+                }
+            }
+            Text(
+                when (rpeEntryMode) {
+                    com.lsing.timego.data.RpeEntryMode.AFTER_SET -> "After each working set the rest timer asks how many reps you had left. One tap, or ignore it."
+                    com.lsing.timego.data.RpeEntryMode.SLIDER -> "Open an RPE slider on the entry card before you log the set."
+                    com.lsing.timego.data.RpeEntryMode.OFF -> "RPE is not asked for. Adaptive rest uses the program rest only."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
+            )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
 

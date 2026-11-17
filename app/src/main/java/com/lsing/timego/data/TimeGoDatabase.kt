@@ -213,10 +213,11 @@ val ALL_MIGRATIONS = arrayOf(
 )
 
 const val TIMEGO_DATABASE_FILE_NAME = "timego.db"
+const val TIMEGO_DB_VERSION = 17
 
 @Database(
     entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class, ShadowSnapshotEntity::class, ShadowAuditEntity::class, ExerciseGuidance::class, SyncMetadata::class],
-    version = 17,
+    version = TIMEGO_DB_VERSION,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

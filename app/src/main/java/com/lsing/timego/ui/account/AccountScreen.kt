@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -51,14 +52,14 @@ fun AccountScreen(viewModel: AccountViewModel, onOpenCloudBackup: () -> Unit, on
     var alsoDeleteLocal by rememberSaveable { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.Large),
+        modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(Spacing.Large),
         verticalArrangement = Arrangement.spacedBy(Spacing.Small),
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to settings") }
             Column(modifier = Modifier.padding(start = Spacing.Small)) {
                 Text("Account", style = MaterialTheme.typography.headlineSmall)
-                Text("Optional — TimeGo remains usable without signing in", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Optional. TimeGo remains usable without signing in", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         when (val auth = state.authState) {
@@ -85,7 +86,7 @@ fun AccountScreen(viewModel: AccountViewModel, onOpenCloudBackup: () -> Unit, on
                 if (!auth.verified) {
                     Button(onClick = { scope.launch { viewModel.sendVerification() } }) { Text("Send verification email") }
                     OutlinedButton(onClick = { scope.launch { viewModel.refreshVerification() } }, enabled = !state.busy) {
-                        Text("I've verified — check again")
+                        Text("I've verified, check again")
                     }
                 }
                 OutlinedButton(onClick = { scope.launch { viewModel.signOut() } }, modifier = Modifier.fillMaxWidth()) { Text("Sign out") }

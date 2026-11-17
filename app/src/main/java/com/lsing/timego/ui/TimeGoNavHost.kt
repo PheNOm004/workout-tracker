@@ -23,6 +23,13 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableIntStateOf
@@ -161,6 +168,7 @@ fun TimeGoNavHost() {
     // The rest timer belongs to the whole app, not the Log tab: full bar on Log, a corner circle elsewhere.
     val logViewModel: LogViewModel = viewModel()
     val restTimer by logViewModel.restTimer.collectAsStateWithLifecycle()
+    val rpePromptSetId by logViewModel.rpePromptSetId.collectAsStateWithLifecycle()
     var restExpandedOffLog by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(selectedRoute, restTimer == null) { restExpandedOffLog = false }
     val restBarShowing = restTimer != null && (selectedRoute == "log" || restExpandedOffLog)
@@ -174,7 +182,9 @@ fun TimeGoNavHost() {
             LocalRestClearance provides if (restBarShowing) restBarHeight else 0.dp,
             LocalScreenOverlayHost provides overlayHost,
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            // In landscape the system bars and cutout sit at the sides; keep content (and the dock) clear of them.
+            val sideInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
+            Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(sideInsets)) {
                 RetainedNavContent(
                     selectedRoute = selectedRoute,
                     modifier = Modifier.padding(innerPadding).hazeSource(hazeState),
@@ -192,6 +202,7 @@ fun TimeGoNavHost() {
                         selectedRoute = "log"
                     },
                     onBarHeightChange = { restBarHeightPx = it },
+                    onRateEffort = if (rpePromptSetId != null) logViewModel::rateLastSet else null,
                     modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = dockHeight),
                 )
                 TimeGoBottomDock(
@@ -219,6 +230,7 @@ private fun RestTimerOverlay(
     onAdjust: (Int) -> Unit,
     onDismiss: () -> Unit,
     onBarHeightChange: (Int) -> Unit,
+    onRateEffort: ((Int) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     // Keep the last timer so the exit animation still has something to draw after the state clears.
@@ -257,6 +269,7 @@ private fun RestTimerOverlay(
                 onAdjust = onAdjust,
                 onDismiss = onDismiss,
                 onMinimize = if (onLogTab) null else ({ onExpandedOffLogChange(false) }),
+                onRateEffort = onRateEffort,
                 modifier = Modifier.onSizeChanged { onBarHeightChange(it.height) },
             )
         }
@@ -313,6 +326,7 @@ private fun TimeGoBottomDock(
     ) {
         BoxWithConstraints(
             modifier = Modifier
+                .widthIn(max = 520.dp)
                 .fillMaxWidth()
                 .frosted(shape)
                 .padding(6.dp),

@@ -156,7 +156,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         addedWeightKg: Double? = null,
         rpe: Int? = null,
         targetProvenance: String = TargetProvenance.UNKNOWN.name,
-    ) {
+    ): Long {
         requireValidWeightRepsLog(
             sessionId = sessionId,
             exerciseId = exerciseId,
@@ -167,7 +167,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
             rpe = rpe,
             targetProvenance = targetProvenance,
         )
-        db.withTransaction {
+        return db.withTransaction {
         val id = db.setLogDao().insert(
             SetLog(
                 sessionId = sessionId,
@@ -183,6 +183,16 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
             ),
         )
         syncRepository.markPending("set_log", id)
+        id
+        }
+    }
+
+    /** Adds or changes the RPE of an already logged set, e.g. when it is asked for on the rest timer. */
+    suspend fun setSetRpe(setId: Long, rpe: Int?) {
+        require(rpe == null || rpe in 1..10) { "RPE must be 1 to 10" }
+        db.withTransaction {
+            db.setLogDao().updateRpe(setId, rpe)
+            syncRepository.markPending("set_log", setId)
         }
     }
 

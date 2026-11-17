@@ -142,7 +142,7 @@ fun HeatmapGrid(ratios: Map<LocalDate, Float>, lightColor: Color, darkColor: Col
                                         if (isMonthStart) {
                                             Text(
                                                 weekStart.month.getDisplayName(TextStyle.SHORT, displayLocale),
-                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
                                                 softWrap = false,

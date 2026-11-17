@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.layout.BoxScope
+import android.os.Build
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
@@ -71,6 +73,10 @@ fun Modifier.frosted(shape: Shape, blurRadius: Dp = GlassBlurRadius, borderWidth
     // glass, otherwise text shows through the frost sharp.
     val baseColor = MaterialTheme.colorScheme.background
     val base = clip(shape)
+    // Below Android 12 there is no blur to hide the content behind, so use a near-opaque base instead of the bare tint.
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        return base.background(baseColor.copy(alpha = 0.985f)).background(palette.glass).border(borderWidth, palette.glassEdge, shape)
+    }
     return (if (haze == null) base else base.hazeEffect(haze) {
         this.blurRadius = blurRadius
         tints = listOf(HazeTint(palette.glass))

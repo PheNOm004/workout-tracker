@@ -144,6 +144,8 @@ private data class LandingInputs(
  *  link); non-null filters [displayedExercises] to that routine's exercises and tags logged
  *  sessions with it. On first load, if today has a scheduled routine, it's auto-selected instead
  *  of defaulting to freeform -- that's the whole point of routine scheduling (Update 1.1). */
+private const val DOUBLE_TAP_WINDOW_MILLIS = 600L
+
 class LogViewModel(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
@@ -269,6 +271,11 @@ class LogViewModel(
     val restTimer: StateFlow<com.lsing.timego.domain.RestTimerState?> = _restTimer.asStateFlow()
     private val _restDefaultSeconds = MutableStateFlow(SettingsRepository.DEFAULT_REST_TIMER_SECONDS)
     private val _restAdaptive = MutableStateFlow(true)
+    private val _rpeEntryMode = MutableStateFlow(com.lsing.timego.data.RpeEntryMode.AFTER_SET)
+    val rpeEntryMode: StateFlow<com.lsing.timego.data.RpeEntryMode> = _rpeEntryMode.asStateFlow()
+    /** The just-logged working set that is waiting for a "reps left" answer on the rest timer, if any. */
+    private val _rpePromptSetId = MutableStateFlow<Long?>(null)
+    val rpePromptSetId: StateFlow<Long?> = _rpePromptSetId.asStateFlow()
     private val _combinedEntryExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
     val combinedEntryExerciseIds: StateFlow<Set<Long>> = _combinedEntryExerciseIds.asStateFlow()
     private val _bothSidesExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
@@ -315,6 +322,9 @@ class LogViewModel(
                         }
                         launch {
                             settingsRepository.restAdaptive.collect { _restAdaptive.value = it }
+                        }
+                        launch {
+                            settingsRepository.rpeEntryMode.collect { _rpeEntryMode.value = it }
                         }
                         launch {
                             settingsRepository.combinedEntryExerciseIds.collect { _combinedEntryExerciseIds.value = it }
@@ -795,6 +805,16 @@ class LogViewModel(
         }
     }
 
+    private var lastSetLoggedAtMillis = 0L
+
+    /** True for a second tap landing right after a logged set, so a double tap cannot log the set twice. */
+    private fun isDoubleTap(): Boolean {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastSetLoggedAtMillis < DOUBLE_TAP_WINDOW_MILLIS) return true
+        lastSetLoggedAtMillis = now
+        return false
+    }
+
     fun logSet(
         exerciseId: Long,
         weightKg: Double,
@@ -806,6 +826,7 @@ class LogViewModel(
         targetProvenance: TargetProvenance = TargetProvenance.UNKNOWN,
     ) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
+        if (isDoubleTap()) return
         val exercise = allExercises.firstOrNull { it.id == exerciseId }
         if (exercise != null) {
             try {
@@ -813,15 +834,19 @@ class LogViewModel(
             } catch (_: IllegalArgumentException) {}
         }
         viewModelScope.launch {
-            repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name)
+            val setId = repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name)
             emitSetLoggedPulse(exerciseId)
             // A warmup set means the rest is over and the next effort has started; do not leave the old timer counting.
             if (!isWarmup) startRest(exerciseId, rpe) else dismissRest()
+            if (!isWarmup && rpe == null && _rpeEntryMode.value == com.lsing.timego.data.RpeEntryMode.AFTER_SET && _restTimer.value != null) {
+                _rpePromptSetId.value = setId
+            }
         }
     }
 
     fun logCardioSet(exerciseId: Long, durationMinutes: Double, distanceKm: Double?) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
+        if (isDoubleTap()) return
         preferenceLearner.recordInteraction(ExerciseCategory.CARDIO)
         viewModelScope.launch {
             repository.logCardioSet(sessionId, exerciseId, durationMinutes, distanceKm)
@@ -870,6 +895,7 @@ class LogViewModel(
     private fun setRest(state: com.lsing.timego.domain.RestTimerState?) {
         restAlertJob?.cancel()
         RestAlert.cancel(getApplication())
+        if (state == null) _rpePromptSetId.value = null
         _restTimer.value = state
         if (state != null) {
             restAlertJob = viewModelScope.launch {
@@ -908,6 +934,17 @@ class LogViewModel(
     }
 
     fun dismissRest() = setRest(null)
+
+    /** Records how hard the set just logged was (RPE 1 to 10) and re-fits the rest to it. */
+    fun rateLastSet(rpe: Int) {
+        val setId = _rpePromptSetId.value ?: return
+        _rpePromptSetId.value = null
+        viewModelScope.launch { repository.setSetRpe(setId, rpe) }
+        val current = _restTimer.value ?: return
+        val exerciseName = restExerciseId?.let { id -> allExercises.firstOrNull { it.id == id }?.name }
+        val seconds = com.lsing.timego.domain.restSecondsFor(activePrescriptions.value[exerciseName], _restDefaultSeconds.value, _restAdaptive.value, rpe)
+        setRest(current.copy(totalSeconds = seconds))
+    }
 
     private fun emitSetLoggedPulse(exerciseId: Long) {
         nextPulseEventId += 1

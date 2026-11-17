@@ -27,6 +27,9 @@ interface SetLogDao {
     @Query("SELECT * FROM set_logs ORDER BY loggedAtEpochMillis, id")
     suspend fun allForShadowSnapshot(): List<SetLog>
 
+    @Query("UPDATE set_logs SET rpe = :rpe WHERE id = :id")
+    suspend fun updateRpe(id: Long, rpe: Int?)
+
     @Query("SELECT id FROM set_logs WHERE sessionId = :sessionId")
     suspend fun idsForSession(sessionId: Long): List<Long>
 
