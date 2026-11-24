@@ -36,6 +36,7 @@ import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -108,6 +109,9 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val currentBmi by viewModel.currentBmi.collectAsStateWithLifecycle()
     val muscleDistribution by viewModel.muscleDistribution.collectAsStateWithLifecycle()
     val muscleSetSummaries by viewModel.muscleSetSummaries.collectAsStateWithLifecycle()
+    val effectiveRepsHeat by viewModel.muscleDistributionEffectiveReps.collectAsStateWithLifecycle()
+    val estimatedEffortShare by viewModel.estimatedEffortShare.collectAsStateWithLifecycle()
+    var showEffectiveReps by rememberSaveable { mutableStateOf(false) }
     val trainingStats by viewModel.trainingStats.collectAsStateWithLifecycle()
     val timeframe by viewModel.timeframe.collectAsStateWithLifecycle()
 
@@ -252,12 +256,16 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                         )
                     }
                 }
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall)) {
+                    FilterChip(selected = !showEffectiveReps, onClick = { showEffectiveReps = false }, label = { Text("Sets") })
+                    FilterChip(selected = showEffectiveReps, onClick = { showEffectiveReps = true }, label = { Text("Effective reps (estimate)") })
+                }
                 SurfaceCard(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall),
                 ) {
                     Column(modifier = Modifier.padding(Spacing.Small)) {
                         MuscleBodyDiagram(
-                            intensities = muscleDistribution,
+                            intensities = if (showEffectiveReps) effectiveRepsHeat else muscleDistribution,
                             setSummaries = muscleSetSummaries,
                             periodLabel = timeframeLabel(timeframe),
                             modifier = Modifier
@@ -266,6 +274,15 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
                         )
                     }
+                }
+                if (showEffectiveReps) {
+                    Text(
+                        text = "Effective reps count only reps within five of failure. An estimate, not a measurement." +
+                            if (estimatedEffortShare > 0.30) " Includes estimated effort for sets without RPE." else "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = Spacing.Small),
+                    )
                 }
                 Column(modifier = Modifier.fillMaxWidth()) {
                     val tapToBreakdown = Modifier.clickable { showPeriodBreakdown = true }
