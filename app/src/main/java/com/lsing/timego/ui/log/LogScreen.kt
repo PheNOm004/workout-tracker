@@ -956,6 +956,8 @@ private fun LoggingContent(
     val setLoggedPulse by viewModel.setLoggedPulse.collectAsStateWithLifecycle()
     val activeSessionSetsByExercise by viewModel.activeSessionSetsByExercise.collectAsStateWithLifecycle()
     val prescriptions by viewModel.activePrescriptions.collectAsStateWithLifecycle()
+    val routineNotes by viewModel.routineNotes.collectAsStateWithLifecycle()
+    val draftSetNotes by viewModel.draftSetNotes.collectAsStateWithLifecycle()
     val restTimer by viewModel.restTimer.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     val notificationPermission = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -1204,6 +1206,9 @@ private fun LoggingContent(
                             lastWorkingSet = lastWorkingSets[exercise.id],
                             currentSessionSets = currentExerciseSets,
                             prescription = prescriptions[exercise.name],
+                            routineNote = routineNotes[exercise.id],
+                            draftNote = draftSetNotes[exercise.id].orEmpty(),
+                            onDraftNoteChange = { viewModel.setDraftSetNote(exercise.id, it) },
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
                             isFavorite = exercise.id in favoriteExerciseIds,
@@ -1664,6 +1669,9 @@ private fun StrengthLogRow(
     lastWorkingSet: SetLog?,
     currentSessionSets: List<SetLog> = emptyList(),
     prescription: com.lsing.timego.data.Prescription? = null,
+    routineNote: String? = null,
+    draftNote: String = "",
+    onDraftNoteChange: ((String) -> Unit)? = null,
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
     isFavorite: Boolean,
@@ -1879,12 +1887,28 @@ private fun StrengthLogRow(
                         )
                     }
                 }
-                prescription?.let {
+                // The routine's own note for this exercise wins over the built-in program note.
+                val noteLine = routineNote?.takeIf { it.isNotBlank() } ?: prescription?.note
+                if (prescription != null || noteLine != null) {
                     Text(
-                        text = listOfNotNull(it.summary, it.note).joinToString(separator = "\u000A"),
+                        text = listOfNotNull(prescription?.summary, noteLine).joinToString(separator = "\u000A"),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                if (onDraftNoteChange != null) {
+                    var noteOpen by rememberSaveable(exerciseName) { mutableStateOf(false) }
+                    if (noteOpen || draftNote.isNotBlank()) {
+                        OutlinedTextField(
+                            value = draftNote,
+                            onValueChange = onDraftNoteChange,
+                            label = { Text("Note for the next set") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        TextButton(onClick = { noteOpen = true }) { Text("Add a note to this set") }
+                    }
                 }
                 val logInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                 val workingSetNumber = workingDone + 1

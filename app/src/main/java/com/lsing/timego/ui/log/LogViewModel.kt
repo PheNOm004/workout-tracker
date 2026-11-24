@@ -230,6 +230,17 @@ class LogViewModel(
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
+    /** Notes for the selected routine's exercises (exerciseId to note); shown under the set card. */
+    val routineNotes: StateFlow<Map<Long, String>> =
+        combine(_selectedRoutineId, repository.routineExercises) { routineId, links ->
+            links.filter { it.routineId == routineId && !it.note.isNullOrBlank() }.associate { it.exerciseId to it.note!! }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /** The note being typed for each exercise's next logged set; consumed (and cleared) when that set is logged. */
+    private val _draftSetNotes = MutableStateFlow<Map<Long, String>>(emptyMap())
+    val draftSetNotes: StateFlow<Map<Long, String>> = _draftSetNotes.asStateFlow()
+    fun setDraftSetNote(exerciseId: Long, text: String) { _draftSetNotes.value = _draftSetNotes.value + (exerciseId to text.take(140)) }
+
     private val _latestBodyWeightKg = MutableStateFlow<Double?>(null)
     val latestBodyWeightKg: StateFlow<Double?> = _latestBodyWeightKg.asStateFlow()
 
@@ -834,7 +845,9 @@ class LogViewModel(
             } catch (_: IllegalArgumentException) {}
         }
         viewModelScope.launch {
-            val setId = repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name)
+            val note = _draftSetNotes.value[exerciseId]
+            val setId = repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name, note)
+            _draftSetNotes.value = _draftSetNotes.value - exerciseId
             emitSetLoggedPulse(exerciseId)
             // A warmup set means the rest is over and the next effort has started; do not leave the old timer counting.
             if (!isWarmup) startRest(exerciseId, rpe) else dismissRest()

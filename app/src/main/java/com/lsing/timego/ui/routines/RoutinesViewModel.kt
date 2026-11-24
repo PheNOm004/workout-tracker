@@ -52,6 +52,10 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     private val _routineExercisesById = MutableStateFlow<Map<Long, List<Exercise>>>(emptyMap())
     val routineExercisesById: StateFlow<Map<Long, List<Exercise>>> = _routineExercisesById.asStateFlow()
 
+    /** routineId to (exerciseId to note) for routine exercises that have a note. */
+    private val _routineNotesById = MutableStateFlow<Map<Long, Map<Long, String>>>(emptyMap())
+    val routineNotesById: StateFlow<Map<Long, Map<Long, String>>> = _routineNotesById.asStateFlow()
+
     private val _exercises = MutableStateFlow<List<Exercise>>(emptyList())
     val exercises: StateFlow<List<Exercise>> = _exercises.asStateFlow()
 
@@ -110,6 +114,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
                                 val routineLinksById = routineExercises.groupBy { it.routineId }
 
                                 _routines.value = routines
+                                _routineNotesById.value = routineExercises.filter { !it.note.isNullOrBlank() }
+                                    .groupBy { it.routineId }
+                                    .mapValues { (_, links) -> links.associate { it.exerciseId to it.note!! } }
                                 _routineExercisesById.value = routines.associate { routine ->
                                     routine.id to routineLinksById[routine.id].orEmpty()
                                         .mapNotNull { exercisesById[it.exerciseId] }
@@ -188,12 +195,12 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
         _untrainedGroups.value = rankUntrainedMuscleGroups(staleGroups, lastTrained, today)
     }
 
-    fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) {
-        viewModelScope.launch { repository.createRoutine(name, exerciseIds, daysOfWeek) }
+    fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>, notes: Map<Long, String> = emptyMap()) {
+        viewModelScope.launch { repository.createRoutine(name, exerciseIds, daysOfWeek, notes) }
     }
 
-    fun updateRoutine(routineId: Long, name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) {
-        viewModelScope.launch { repository.updateRoutine(routineId, name, exerciseIds, daysOfWeek) }
+    fun updateRoutine(routineId: Long, name: String, exerciseIds: List<Long>, daysOfWeek: List<String>, notes: Map<Long, String>? = null) {
+        viewModelScope.launch { repository.updateRoutine(routineId, name, exerciseIds, daysOfWeek, notes) }
     }
 
     fun resetSeededRoutine(routineId: Long) {

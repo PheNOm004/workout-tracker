@@ -156,6 +156,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         addedWeightKg: Double? = null,
         rpe: Int? = null,
         targetProvenance: String = TargetProvenance.UNKNOWN.name,
+        note: String? = null,
     ): Long {
         requireValidWeightRepsLog(
             sessionId = sessionId,
@@ -180,6 +181,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                 addedWeightKg = addedWeightKg,
                 rpe = rpe,
                 targetProvenance = targetProvenance,
+                note = com.lsing.timego.domain.normalizeNote(note),
             ),
         )
         syncRepository.markPending("set_log", id)
@@ -440,21 +442,21 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         }
     }
 
-    suspend fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>): Long = db.withTransaction {
+    suspend fun createRoutine(name: String, exerciseIds: List<Long>, daysOfWeek: List<String>, notes: Map<Long, String> = emptyMap()): Long = db.withTransaction {
         val routineId = db.routineDao().insertRoutine(Routine(name = name, daysOfWeek = daysOfWeek))
-        exerciseIds.forEachIndexed { index, exerciseId ->
-            db.routineDao().insertRoutineExercise(RoutineExercise(routineId = routineId, exerciseId = exerciseId, orderIndex = index))
+        com.lsing.timego.domain.relinkRoutineExercises(routineId, emptyList(), exerciseIds, notes).forEach {
+            db.routineDao().insertRoutineExercise(it)
         }
         syncRepository.markPending("routine", routineId)
         routineId
     }
 
-    suspend fun updateRoutine(routineId: Long, name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) = db.withTransaction {
+    suspend fun updateRoutine(routineId: Long, name: String, exerciseIds: List<Long>, daysOfWeek: List<String>, notes: Map<Long, String>? = null) = db.withTransaction {
         val existing = db.routineDao().getRoutineById(routineId) ?: return@withTransaction
         db.routineDao().updateRoutine(existing.copy(name = name, daysOfWeek = daysOfWeek))
         val previous = db.routineDao().exercisesForRoutine(routineId)
         db.routineDao().deleteRoutineExercises(routineId)
-        com.lsing.timego.domain.relinkRoutineExercises(routineId, previous, exerciseIds).forEach {
+        com.lsing.timego.domain.relinkRoutineExercises(routineId, previous, exerciseIds, notes).forEach {
             db.routineDao().insertRoutineExercise(it)
         }
         syncRepository.markPending("routine", routineId)

@@ -44,6 +44,7 @@ data class RoutineFormInitial(
     val exerciseIds: List<Long>,
     val days: Set<String>,
     val nameEditable: Boolean,
+    val notes: Map<Long, String> = emptyMap(),
 )
 
 /** Dedicated hardware-plated dialog for creating a routine with Gauge Panel styling,
@@ -52,12 +53,13 @@ data class RoutineFormInitial(
 fun RoutineFormDialog(
     exercises: List<Exercise>,
     onDismiss: () -> Unit,
-    onCreate: (name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) -> Unit,
+    onCreate: (name: String, exerciseIds: List<Long>, daysOfWeek: List<String>, notes: Map<Long, String>) -> Unit,
     initial: RoutineFormInitial? = null,
 ) {
     var routineName by remember { mutableStateOf(initial?.name.orEmpty()) }
     val selectedExerciseIds = remember { mutableStateOf(initial?.exerciseIds.orEmpty()) }
     val selectedDays = remember { mutableStateOf(initial?.days.orEmpty()) }
+    val notes = remember { mutableStateOf(initial?.notes.orEmpty()) }
 
     TimeGoDialog(
         onDismissRequest = onDismiss,
@@ -72,7 +74,7 @@ fun RoutineFormDialog(
             Button(
                 onClick = {
                     if (routineName.isNotBlank() && selectedExerciseIds.value.isNotEmpty()) {
-                        onCreate(routineName, selectedExerciseIds.value.toList(), selectedDays.value.toList())
+                        onCreate(routineName, selectedExerciseIds.value.toList(), selectedDays.value.toList(), notes.value.filterKeys { it in selectedExerciseIds.value })
                         dismiss()
                     }
                 },
@@ -167,7 +169,7 @@ fun RoutineFormDialog(
                 modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall),
             )
             Text(
-                "Tick exercises, then drag the handle to set the workout order",
+                "Tick exercises, drag the handle to set the order, tap the pencil to add a note",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
@@ -178,6 +180,8 @@ fun RoutineFormDialog(
                     ids = selectedExerciseIds.value,
                     nameOf = { namesById[it].orEmpty() },
                     onReorder = { selectedExerciseIds.value = it },
+                    notes = notes.value,
+                    onNoteChange = { id, text -> notes.value = notes.value + (id to text.take(140)) },
                 )
                 Spacer(Modifier.height(Spacing.Small))
             }

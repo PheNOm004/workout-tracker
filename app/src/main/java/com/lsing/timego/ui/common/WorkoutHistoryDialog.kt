@@ -109,7 +109,8 @@ fun buildDayHistoryEntries(setLogs: List<SetLog>, exercisesById: Map<Long, Exerc
                     "${log.weightKg}kg x ${log.reps}"
                 }
             }
-            exercise.name to description
+            val noted = log.note?.takeIf { it.isNotBlank() }?.let { "$description - $it" } ?: description
+            exercise.name to noted
         }
         .groupBy({ it.first }, { it.second })
         .map { (name, descriptions) -> DayHistoryEntry(name, descriptions) }

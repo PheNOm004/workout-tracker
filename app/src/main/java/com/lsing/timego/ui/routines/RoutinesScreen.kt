@@ -91,6 +91,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     val isHydrated by viewModel.isHydrated.collectAsStateWithLifecycle()
     val routines = viewModel.routines.collectAsStateWithLifecycle().value
     val routineExercisesById by viewModel.routineExercisesById.collectAsStateWithLifecycle()
+    val routineNotesById by viewModel.routineNotesById.collectAsStateWithLifecycle()
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
     val untrainedGroups by viewModel.untrainedGroups.collectAsStateWithLifecycle()
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
@@ -206,7 +207,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
         RoutineFormDialog(
             exercises = exercises,
             onDismiss = { showRoutineForm = false },
-            onCreate = viewModel::createRoutine,
+            onCreate = { name, exerciseIds, days, notes -> viewModel.createRoutine(name, exerciseIds, days, notes) },
         )
     }
 
@@ -214,11 +215,12 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
         RoutineFormDialog(
             exercises = exercises,
             onDismiss = { editingRoutine = null },
-            onCreate = { name, exerciseIds, days -> viewModel.updateRoutine(routine.id, name, exerciseIds, days) },
+            onCreate = { name, exerciseIds, days, notes -> viewModel.updateRoutine(routine.id, name, exerciseIds, days, notes) },
             initial = RoutineFormInitial(
                 name = routine.name,
                 exerciseIds = routineExercisesById[routine.id].orEmpty().map { it.id },
                 days = routine.daysOfWeek.toSet(),
+                notes = routineNotesById[routine.id].orEmpty(),
                 nameEditable = routine.programId == null || routine.programId == com.lsing.timego.data.RIR_PROGRAM_ID,
             ),
         )
