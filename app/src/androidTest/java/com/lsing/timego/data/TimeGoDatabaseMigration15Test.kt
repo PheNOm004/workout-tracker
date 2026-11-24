@@ -19,7 +19,7 @@ class TimeGoDatabaseMigration15Test {
         createSchema14Database(context, TEST_DATABASE)
 
         val migrated = Room.databaseBuilder(context, TimeGoDatabase::class.java, TEST_DATABASE)
-            .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
+            .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)
             .allowMainThreadQueries()
             .build()
         try {
@@ -38,6 +38,7 @@ class TimeGoDatabaseMigration15Test {
             val setLogColumns = migrated.openHelper.readableDatabase.query("PRAGMA table_info(`set_logs`)")
                 .use { cursor -> buildSet { while (cursor.moveToNext()) add(cursor.getString(cursor.getColumnIndexOrThrow("name"))) } }
             assertTrue("Expected side and note columns on set_logs", setLogColumns.containsAll(listOf("side", "note")))
+            assertTrue("Expected modifier columns on set_logs", setLogColumns.containsAll(listOf("modifierKind", "modifierValue")))
             val sessionColumns = migrated.openHelper.readableDatabase.query("PRAGMA table_info(`workout_sessions`)")
                 .use { cursor -> buildSet { while (cursor.moveToNext()) add(cursor.getString(cursor.getColumnIndexOrThrow("name"))) } }
             assertTrue("Expected readiness column on workout_sessions", "readiness" in sessionColumns)
@@ -65,7 +66,7 @@ class TimeGoDatabaseMigration15Test {
         }
 
         val migrated = Room.databaseBuilder(context, TimeGoDatabase::class.java, TEST_DATABASE_16)
-            .addMigrations(MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
+            .addMigrations(MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)
             .allowMainThreadQueries()
             .build()
         try {

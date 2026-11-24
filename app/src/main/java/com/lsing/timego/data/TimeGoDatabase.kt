@@ -209,6 +209,14 @@ val MIGRATION_18_19 = object : Migration(18, 19) {
     }
 }
 
+/** Two nullable text columns for the hold modifier tag. */
+val MIGRATION_19_20 = object : Migration(19, 20) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE set_logs ADD COLUMN modifierKind TEXT")
+        db.execSQL("ALTER TABLE set_logs ADD COLUMN modifierValue TEXT")
+    }
+}
+
 /** Shared with [com.lsing.timego.data.BackupManager], which opens a *separate* temporary Room
  *  instance against a restored backup file -- that copy needs the exact same migration path as the
  *  live database in case it was exported by an older app version. */
@@ -225,11 +233,11 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-    MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
+    MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
 )
 
 const val TIMEGO_DATABASE_FILE_NAME = "timego.db"
-const val TIMEGO_DB_VERSION = 19
+const val TIMEGO_DB_VERSION = 20
 
 @Database(
     entities = [Exercise::class, WorkoutSession::class, SetLog::class, Routine::class, RoutineExercise::class, BodyMetric::class, ShadowSnapshotEntity::class, ShadowAuditEntity::class, ExerciseGuidance::class, SyncMetadata::class],

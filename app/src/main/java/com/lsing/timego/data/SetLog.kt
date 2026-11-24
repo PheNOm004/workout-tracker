@@ -50,4 +50,7 @@ data class SetLog(
     val side: String? = null,
     /** Optional free-text note for this set. Local only: kept in backups, never sent by account sync. */
     val note: String? = null,
+    /** Easier-variation tag on a hold (BAND or ASSIST_KG) and its value; null for a clean set. Holds with a tag never count toward records. */
+    val modifierKind: String? = null,
+    val modifierValue: String? = null,
 )

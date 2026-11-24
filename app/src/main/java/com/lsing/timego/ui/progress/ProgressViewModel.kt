@@ -119,6 +119,10 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _muscleDistribution = MutableStateFlow<Map<String, Float>>(emptyMap())
     val muscleDistribution: StateFlow<Map<String, Float>> = _muscleDistribution.asStateFlow()
 
+    /** Longest hold per modifier for the selected hold exercise; shown beside the clean curve, never merged into it. */
+    private val _assistedHoldBests = MutableStateFlow<List<com.lsing.timego.domain.AssistedBest>>(emptyList())
+    val assistedHoldBests: StateFlow<List<com.lsing.timego.domain.AssistedBest>> = _assistedHoldBests.asStateFlow()
+
     private val _muscleSetSummaries = MutableStateFlow<Map<String, MuscleSetSummary>>(emptyMap())
     val muscleSetSummaries: StateFlow<Map<String, MuscleSetSummary>> = _muscleSetSummaries.asStateFlow()
 
@@ -284,10 +288,12 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                 val exercise = latestExercises.firstOrNull { it.id == exerciseId } ?: return
                 val curve = exerciseProgressCurve(exercise, latestSetLogs.filter { it.exerciseId == exerciseId }, sessionDateById)
                 _strengthCurveUnit.value = curve.unit
+                _assistedHoldBests.value = com.lsing.timego.domain.assistedHoldBests(exercise, latestSetLogs.filter { it.exerciseId == exerciseId })
                 curve.points
             }
             CurveMode.MUSCLE_GROUP -> {
                 val group = _selectedMuscleGroup.value ?: return
+                _assistedHoldBests.value = emptyList()
                 _strengthCurveUnit.value = "kg"
                 muscleGroupStrengthCurve(
                     latestSetLogs,

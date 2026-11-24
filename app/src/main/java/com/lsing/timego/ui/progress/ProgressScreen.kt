@@ -102,6 +102,7 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
     val selectedMuscleGroup by viewModel.selectedMuscleGroup.collectAsStateWithLifecycle()
     val strengthCurve by viewModel.strengthCurve.collectAsStateWithLifecycle()
     val strengthCurveUnit by viewModel.strengthCurveUnit.collectAsStateWithLifecycle()
+    val assistedHoldBests by viewModel.assistedHoldBests.collectAsStateWithLifecycle()
     val bodyMetrics by viewModel.bodyMetrics.collectAsStateWithLifecycle()
     val weightCurve by viewModel.weightCurve.collectAsStateWithLifecycle()
     val currentBmi by viewModel.currentBmi.collectAsStateWithLifecycle()
@@ -419,6 +420,15 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
                                                     label = "exerciseStrengthCurveContent",
                                                     unit = strengthCurveUnit,
                                                 )
+                                                if (strengthCurveUnit == "s" && assistedHoldBests.isNotEmpty()) {
+                                                    Text(
+                                                        "Assisted holds (not on the curve or in records): " +
+                                                            assistedHoldBests.joinToString(", ") { "${it.seconds} s with ${it.label.lowercase()}" },
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.padding(top = Spacing.ExtraSmall),
+                                                    )
+                                                }
                                             }
                                         }
                                     }

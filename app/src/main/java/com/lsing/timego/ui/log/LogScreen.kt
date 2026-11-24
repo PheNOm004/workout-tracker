@@ -224,6 +224,8 @@ private data class LogExtras(
     val nextSides: Map<Long, String> = emptyMap(),
     val onToggleSide: ((Long) -> Unit)? = null,
     val asymmetries: Map<Long, com.lsing.timego.domain.AsymmetryInsight> = emptyMap(),
+    val holdModifiers: Map<Long, com.lsing.timego.domain.LeverageModifier?> = emptyMap(),
+    val onHoldModifierChange: ((Long, com.lsing.timego.domain.LeverageModifier?) -> Unit)? = null,
 )
 private val LocalLogExtras = androidx.compose.runtime.compositionLocalOf { LogExtras() }
 private const val EXPAND_FOLLOW_NANOS = 1_000_000_000L
@@ -256,7 +258,8 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val draftSetNotes by viewModel.draftSetNotes.collectAsStateWithLifecycle()
     val nextSides by viewModel.nextSide.collectAsStateWithLifecycle()
     val asymmetries by viewModel.asymmetryByExerciseId.collectAsStateWithLifecycle()
-    val logExtras = LogExtras(routineNotes, draftSetNotes, viewModel::setDraftSetNote, nextSides, viewModel::toggleNextSide, asymmetries)
+    val holdModifiers by viewModel.holdModifiers.collectAsStateWithLifecycle()
+    val logExtras = LogExtras(routineNotes, draftSetNotes, viewModel::setDraftSetNote, nextSides, viewModel::toggleNextSide, asymmetries, holdModifiers, viewModel::setHoldModifier)
     var peekingLanding by rememberSaveable { mutableStateOf(false) }
     var expandedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
     var librarySearchQuery by rememberSaveable { mutableStateOf("") }
@@ -2253,6 +2256,32 @@ private fun HoldLogRow(
                 modifier = Modifier.padding(horizontal = Spacing.Medium),
             ) {
                 FilterChip(selected = isWarmup, onClick = { isWarmup = !isWarmup }, label = { Text("Warmup") })
+                val holdExtras = LocalLogExtras.current
+                val onHoldModifierChange = holdExtras.onHoldModifierChange
+                if (onHoldModifierChange != null) {
+                    val currentModifier = holdExtras.holdModifiers[exerciseId]
+                    var modifierMenuOpen by remember { mutableStateOf(false) }
+                    Spacer(modifier = Modifier.width(Spacing.Small))
+                    Box {
+                        FilterChip(
+                            selected = currentModifier != null,
+                            onClick = { modifierMenuOpen = true },
+                            label = { Text(currentModifier?.label ?: "+ Modifier") },
+                        )
+                        DropdownMenu(expanded = modifierMenuOpen, onDismissRequest = { modifierMenuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text("None (clean hold)") },
+                                onClick = { onHoldModifierChange(exerciseId, null); modifierMenuOpen = false },
+                            )
+                            com.lsing.timego.domain.LEVERAGE_MODIFIER_PRESETS.forEach { preset ->
+                                DropdownMenuItem(
+                                    text = { Text(preset.label) },
+                                    onClick = { onHoldModifierChange(exerciseId, preset); modifierMenuOpen = false },
+                                )
+                            }
+                        }
+                    }
+                }
                 if (bothSides || com.lsing.timego.domain.supportsBothSides(exerciseName)) {
                     Spacer(modifier = Modifier.width(Spacing.Small))
                     FilterChip(

@@ -230,6 +230,8 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         targetDurationSeconds: Int,
         isWarmup: Boolean = false,
         targetProvenance: String = TargetProvenance.UNKNOWN.name,
+        modifierKind: String? = null,
+        modifierValue: String? = null,
     ) {
         requireValidHoldLog(sessionId, exerciseId, durationSeconds, targetDurationSeconds, targetProvenance)
         db.withTransaction {
@@ -245,6 +247,8 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                 targetHoldSeconds = targetDurationSeconds,
                 isWarmup = isWarmup,
                 targetProvenance = targetProvenance,
+                modifierKind = modifierKind,
+                modifierValue = modifierValue,
             ),
         )
         syncRepository.markPending("set_log", id)

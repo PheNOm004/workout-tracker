@@ -99,7 +99,7 @@ fun personalRecords(
             }
         }
     val holdRecords = history
-        .filter { log -> exercisesById[log.exerciseId]?.loggingType == LoggingType.HOLD.name }
+        .filter { log -> exercisesById[log.exerciseId]?.loggingType == LoggingType.HOLD.name && isCleanSet(log) }
         .groupBy { it.exerciseId }
         .flatMap { (exerciseId, sets) ->
             val longest = sets.maxBy { it.holdSeconds ?: 0 }
@@ -164,6 +164,8 @@ fun exerciseProgressCurve(
     val bestByDate = mutableMapOf<LocalDate, Double>()
     for (log in history) {
         if (log.isWarmup) continue
+        // An assisted hold is easier than the real thing, so it stays off the main curve (see assistedHoldBests).
+        if (isHold && !isCleanSet(log)) continue
         val date = sessionDateById[log.sessionId] ?: continue
         val value = when {
             isHold -> log.holdSeconds?.toDouble()

@@ -263,6 +263,13 @@ class LogViewModel(
     fun setDraftSetNote(exerciseId: Long, text: String) { _draftSetNotes.value = _draftSetNotes.value + (exerciseId to text.take(140)) }
 
     /** Which side the next left/right set will be logged on, per exercise (defaults to left); flips after every set. */
+    /** The modifier chosen for each hold exercise; it sticks for the rest of the session so it is picked once, not per set. */
+    private val _holdModifiers = MutableStateFlow<Map<Long, com.lsing.timego.domain.LeverageModifier?>>(emptyMap())
+    val holdModifiers: StateFlow<Map<Long, com.lsing.timego.domain.LeverageModifier?>> = _holdModifiers.asStateFlow()
+    fun setHoldModifier(exerciseId: Long, modifier: com.lsing.timego.domain.LeverageModifier?) {
+        _holdModifiers.value = _holdModifiers.value + (exerciseId to modifier)
+    }
+
     private val _nextSide = MutableStateFlow<Map<Long, String>>(emptyMap())
     val nextSide: StateFlow<Map<Long, String>> = _nextSide.asStateFlow()
     private val pendingSide = mutableMapOf<Long, String>()
@@ -934,7 +941,8 @@ class LogViewModel(
     ) {
         val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
         viewModelScope.launch {
-            repository.logHoldSet(sessionId, exerciseId, durationSeconds, targetDurationSeconds, isWarmup, targetProvenance.name)
+            val modifier = if (isWarmup) null else _holdModifiers.value[exerciseId]
+            repository.logHoldSet(sessionId, exerciseId, durationSeconds, targetDurationSeconds, isWarmup, targetProvenance.name, modifier?.kind, modifier?.value)
             emitSetLoggedPulse(exerciseId)
             if (!isWarmup) startRest(exerciseId) else dismissRest()
         }
