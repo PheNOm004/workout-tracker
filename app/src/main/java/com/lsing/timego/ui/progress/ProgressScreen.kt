@@ -303,6 +303,17 @@ fun ProgressScreen(viewModel: ProgressViewModel = viewModel()) {
             }
 
             // UNIFIED EXERCISE PERFORMANCE (PRs + Strength Progression Curve)
+            if (records.isNotEmpty()) {
+                item {
+                    SectionHeader("Personal Records", topPadding = Spacing.Small)
+                    val namesById = remember(exercises) { exercises.associateBy { it.id } }
+                    val overview = remember(records, timeframe) {
+                        com.lsing.timego.domain.recordsOverview(records, timeframe.sinceDate(java.time.LocalDate.now()))
+                    }
+                    RecordsCard(overview, namesById)
+                }
+            }
+
             item {
                 SectionHeader("Exercise Performance", topPadding = Spacing.Small)
                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
