@@ -241,6 +241,27 @@ class LogViewModel(
     val draftSetNotes: StateFlow<Map<Long, String>> = _draftSetNotes.asStateFlow()
     fun setDraftSetNote(exerciseId: Long, text: String) { _draftSetNotes.value = _draftSetNotes.value + (exerciseId to text.take(140)) }
 
+    /** Which side the next left/right set will be logged on, per exercise (defaults to left); flips after every set. */
+    private val _nextSide = MutableStateFlow<Map<Long, String>>(emptyMap())
+    val nextSide: StateFlow<Map<Long, String>> = _nextSide.asStateFlow()
+    private val pendingSide = mutableMapOf<Long, String>()
+    fun toggleNextSide(exerciseId: Long) {
+        val current = _nextSide.value[exerciseId] ?: com.lsing.timego.domain.Side.LEFT
+        _nextSide.value = _nextSide.value + (exerciseId to com.lsing.timego.domain.Side.other(current))
+    }
+
+    /** Persistent left/right gaps per exercise, from the last 60 days of labelled sets. */
+    val asymmetryByExerciseId: StateFlow<Map<Long, com.lsing.timego.domain.AsymmetryInsight>> =
+        repository.setLogs
+            .map { logs ->
+                val cutoff = System.currentTimeMillis() - 60L * 86_400_000L
+                logs.filter { it.side != null && it.loggedAtEpochMillis >= cutoff }
+                    .groupBy { it.exerciseId }
+                    .mapNotNull { (id, sets) -> com.lsing.timego.domain.asymmetryInsight(sets)?.let { id to it } }
+                    .toMap()
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
     private val _latestBodyWeightKg = MutableStateFlow<Double?>(null)
     val latestBodyWeightKg: StateFlow<Double?> = _latestBodyWeightKg.asStateFlow()
 
@@ -846,11 +867,20 @@ class LogViewModel(
         }
         viewModelScope.launch {
             val note = _draftSetNotes.value[exerciseId]
-            val setId = repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name, note)
+            // Left/right exercises: the first side of a pair does not start the rest; the second one does.
+            val side = if (!isWarmup && exerciseId in _bothSidesExerciseIds.value) _nextSide.value[exerciseId] ?: com.lsing.timego.domain.Side.LEFT else null
+            var startRestNow = true
+            if (side != null) {
+                val step = com.lsing.timego.domain.stepSidePair(pendingSide[exerciseId], side)
+                if (step.pending == null) pendingSide.remove(exerciseId) else pendingSide[exerciseId] = step.pending
+                startRestNow = step.startRest
+                _nextSide.value = _nextSide.value + (exerciseId to com.lsing.timego.domain.Side.other(side))
+            }
+            val setId = repository.logSet(sessionId, exerciseId, weightKg, reps, targetReps, isWarmup, addedWeightKg, rpe, targetProvenance.name, note, side)
             _draftSetNotes.value = _draftSetNotes.value - exerciseId
             emitSetLoggedPulse(exerciseId)
             // A warmup set means the rest is over and the next effort has started; do not leave the old timer counting.
-            if (!isWarmup) startRest(exerciseId, rpe) else dismissRest()
+            if (isWarmup) dismissRest() else if (startRestNow) startRest(exerciseId, rpe)
             if (shouldPromptForEffort(isWarmup, rpe, _rpeEntryMode.value)) _rpePromptSetId.value = setId
         }
     }

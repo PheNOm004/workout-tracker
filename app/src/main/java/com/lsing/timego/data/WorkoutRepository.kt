@@ -157,6 +157,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         rpe: Int? = null,
         targetProvenance: String = TargetProvenance.UNKNOWN.name,
         note: String? = null,
+        side: String? = null,
     ): Long {
         requireValidWeightRepsLog(
             sessionId = sessionId,
@@ -182,6 +183,7 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
                 rpe = rpe,
                 targetProvenance = targetProvenance,
                 note = com.lsing.timego.domain.normalizeNote(note),
+                side = side,
             ),
         )
         syncRepository.markPending("set_log", id)

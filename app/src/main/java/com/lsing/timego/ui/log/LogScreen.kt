@@ -958,6 +958,9 @@ private fun LoggingContent(
     val prescriptions by viewModel.activePrescriptions.collectAsStateWithLifecycle()
     val routineNotes by viewModel.routineNotes.collectAsStateWithLifecycle()
     val draftSetNotes by viewModel.draftSetNotes.collectAsStateWithLifecycle()
+    val nextSides by viewModel.nextSide.collectAsStateWithLifecycle()
+    val asymmetries by viewModel.asymmetryByExerciseId.collectAsStateWithLifecycle()
+    val sideIds = LocalSideModes.current.bothSidesIds
     val restTimer by viewModel.restTimer.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     val notificationPermission = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -1209,6 +1212,9 @@ private fun LoggingContent(
                             routineNote = routineNotes[exercise.id],
                             draftNote = draftSetNotes[exercise.id].orEmpty(),
                             onDraftNoteChange = { viewModel.setDraftSetNote(exercise.id, it) },
+                            nextSide = if (exercise.id in sideIds) nextSides[exercise.id] ?: com.lsing.timego.domain.Side.LEFT else null,
+                            onToggleSide = { viewModel.toggleNextSide(exercise.id) },
+                            asymmetry = asymmetries[exercise.id],
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
                             isFavorite = exercise.id in favoriteExerciseIds,
@@ -1672,6 +1678,9 @@ private fun StrengthLogRow(
     routineNote: String? = null,
     draftNote: String = "",
     onDraftNoteChange: ((String) -> Unit)? = null,
+    nextSide: String? = null,
+    onToggleSide: (() -> Unit)? = null,
+    asymmetry: com.lsing.timego.domain.AsymmetryInsight? = null,
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
     isFavorite: Boolean,
@@ -1886,6 +1895,27 @@ private fun StrengthLogRow(
                             label = { Text("Both dumbbells") },
                         )
                     }
+                    if (onToggleSide != null && (nextSide != null || com.lsing.timego.domain.supportsBothSides(exerciseName))) {
+                        FilterChip(
+                            selected = nextSide != null,
+                            onClick = { sideModes.toggleBothSides(exerciseId) },
+                            label = { Text("Left / right") },
+                        )
+                    }
+                    if (nextSide != null && onToggleSide != null) {
+                        FilterChip(
+                            selected = true,
+                            onClick = onToggleSide,
+                            label = { Text("Next: ${com.lsing.timego.domain.Side.label(nextSide)}") },
+                        )
+                    }
+                }
+                asymmetry?.let {
+                    Text(
+                        text = "${it.message}. Start with ${com.lsing.timego.domain.Side.label(it.laggingSide)} first and match the other side.",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
                 }
                 // The routine's own note for this exercise wins over the built-in program note.
                 val noteLine = routineNote?.takeIf { it.isNotBlank() } ?: prescription?.note

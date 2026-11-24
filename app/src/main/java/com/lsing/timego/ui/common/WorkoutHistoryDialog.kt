@@ -109,7 +109,8 @@ fun buildDayHistoryEntries(setLogs: List<SetLog>, exercisesById: Map<Long, Exerc
                     "${log.weightKg}kg x ${log.reps}"
                 }
             }
-            val noted = log.note?.takeIf { it.isNotBlank() }?.let { "$description - $it" } ?: description
+            val sided = when (log.side) { "LEFT" -> "L $description"; "RIGHT" -> "R $description"; else -> description }
+            val noted = log.note?.takeIf { it.isNotBlank() }?.let { "$sided - $it" } ?: sided
             exercise.name to noted
         }
         .groupBy({ it.first }, { it.second })
