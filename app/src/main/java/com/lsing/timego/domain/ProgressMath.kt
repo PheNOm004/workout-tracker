@@ -11,6 +11,18 @@ import java.time.LocalDate
  *  needing a real max-effort test every session. */
 fun estimatedOneRepMax(weightKg: Double, reps: Int): Double = weightKg * (1 + reps / 30.0)
 
+/** Best estimated 1RM among [history] (one exercise's sets) logged in the [windowDays] before
+ *  [beforeEpochMillis], or null if none qualify. Excludes the set being evaluated by construction
+ *  (strictly earlier), so a PR set is measured against what it beat instead of pinning at 100%.
+ *  Skips warm-ups, zero-weight sentinels (holds, cardio, bodyweight-only) and reps above 12, where
+ *  Epley drifts. */
+fun referenceOneRepMax(history: List<SetLog>, beforeEpochMillis: Long, windowDays: Int = 90): Double? {
+    val since = beforeEpochMillis - windowDays * 86_400_000L
+    return history
+        .filter { !it.isWarmup && it.weightKg > 0.0 && it.reps in 1..12 && it.loggedAtEpochMillis in since until beforeEpochMillis }
+        .maxOfOrNull { estimatedOneRepMax(it.weightKg, it.reps) }
+}
+
 /** Drives the Progress screen's Muscle Distribution + stat-tile timeframe selector. LIFETIME was
  *  removed (2026-08-26) along with the bar/radar Muscle Balance charts it was mainly useful for;
  *  re-add it here (and the `earliestSessionDate ?: today` fallback) if that migrates back. */
