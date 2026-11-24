@@ -185,6 +185,17 @@ private val LocalShowExerciseDetails = androidx.compose.runtime.compositionLocal
 /** Items LoggingContent's list renders before the first exercise card: activeHeader, activeSummary,
  *  favorites, quickAdd, logExerciseAction, exercisesHeader. Keep in sync when adding items above. */
 private const val FIRST_EXERCISE_ITEM_INDEX = 6
+
+/** Per-exercise notes, left/right state and asymmetry flags, handed to every strength row without threading parameters. */
+private data class LogExtras(
+    val routineNotes: Map<Long, String> = emptyMap(),
+    val draftNotes: Map<Long, String> = emptyMap(),
+    val onDraftNoteChange: ((Long, String) -> Unit)? = null,
+    val nextSides: Map<Long, String> = emptyMap(),
+    val onToggleSide: ((Long) -> Unit)? = null,
+    val asymmetries: Map<Long, com.lsing.timego.domain.AsymmetryInsight> = emptyMap(),
+)
+private val LocalLogExtras = androidx.compose.runtime.compositionLocalOf { LogExtras() }
 private const val EXPAND_FOLLOW_NANOS = 1_000_000_000L
 private const val EXPAND_FOLLOW_FRACTION = 0.25f
 
@@ -211,6 +222,11 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val combinedEntryIds by viewModel.combinedEntryExerciseIds.collectAsStateWithLifecycle()
     val bothSidesIds by viewModel.bothSidesExerciseIds.collectAsStateWithLifecycle()
     val sideModes = SideModes(combinedEntryIds, bothSidesIds, viewModel::toggleCombinedEntry, viewModel::toggleBothSides)
+    val routineNotes by viewModel.routineNotes.collectAsStateWithLifecycle()
+    val draftSetNotes by viewModel.draftSetNotes.collectAsStateWithLifecycle()
+    val nextSides by viewModel.nextSide.collectAsStateWithLifecycle()
+    val asymmetries by viewModel.asymmetryByExerciseId.collectAsStateWithLifecycle()
+    val logExtras = LogExtras(routineNotes, draftSetNotes, viewModel::setDraftSetNote, nextSides, viewModel::toggleNextSide, asymmetries)
     var peekingLanding by rememberSaveable { mutableStateOf(false) }
     var expandedExerciseIds by rememberSaveable { mutableStateOf(listOf<Long>()) }
     var librarySearchQuery by rememberSaveable { mutableStateOf("") }
@@ -273,6 +289,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
 
     androidx.compose.runtime.CompositionLocalProvider(
         LocalSideModes provides sideModes,
+        LocalLogExtras provides logExtras,
         LocalRpeEntryMode provides rpeEntryMode,
         LocalShowExerciseDetails provides { name -> detailExercise = exerciseLibrary.firstOrNull { it.name == name } },
     ) {
@@ -956,11 +973,6 @@ private fun LoggingContent(
     val setLoggedPulse by viewModel.setLoggedPulse.collectAsStateWithLifecycle()
     val activeSessionSetsByExercise by viewModel.activeSessionSetsByExercise.collectAsStateWithLifecycle()
     val prescriptions by viewModel.activePrescriptions.collectAsStateWithLifecycle()
-    val routineNotes by viewModel.routineNotes.collectAsStateWithLifecycle()
-    val draftSetNotes by viewModel.draftSetNotes.collectAsStateWithLifecycle()
-    val nextSides by viewModel.nextSide.collectAsStateWithLifecycle()
-    val asymmetries by viewModel.asymmetryByExerciseId.collectAsStateWithLifecycle()
-    val sideIds = LocalSideModes.current.bothSidesIds
     val restTimer by viewModel.restTimer.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     val notificationPermission = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -1209,12 +1221,6 @@ private fun LoggingContent(
                             lastWorkingSet = lastWorkingSets[exercise.id],
                             currentSessionSets = currentExerciseSets,
                             prescription = prescriptions[exercise.name],
-                            routineNote = routineNotes[exercise.id],
-                            draftNote = draftSetNotes[exercise.id].orEmpty(),
-                            onDraftNoteChange = { viewModel.setDraftSetNote(exercise.id, it) },
-                            nextSide = if (exercise.id in sideIds) nextSides[exercise.id] ?: com.lsing.timego.domain.Side.LEFT else null,
-                            onToggleSide = { viewModel.toggleNextSide(exercise.id) },
-                            asymmetry = asymmetries[exercise.id],
                             isBodyweight = exercise.category == ExerciseCategory.CALISTHENICS.name,
                             latestBodyWeightKg = latestBodyWeightKg,
                             isFavorite = exercise.id in favoriteExerciseIds,
@@ -1675,12 +1681,6 @@ private fun StrengthLogRow(
     lastWorkingSet: SetLog?,
     currentSessionSets: List<SetLog> = emptyList(),
     prescription: com.lsing.timego.data.Prescription? = null,
-    routineNote: String? = null,
-    draftNote: String = "",
-    onDraftNoteChange: ((String) -> Unit)? = null,
-    nextSide: String? = null,
-    onToggleSide: (() -> Unit)? = null,
-    asymmetry: com.lsing.timego.domain.AsymmetryInsight? = null,
     isBodyweight: Boolean,
     latestBodyWeightKg: Double?,
     isFavorite: Boolean,
@@ -1694,6 +1694,14 @@ private fun StrengthLogRow(
     // weighted vest) -- blank/0 means bodyweight-only, not "no weight logged." weightKg (the
     // absolute bodyweight+k total 1RM/PR/suggester math needs) is computed at log time, not typed.
     val sideModes = LocalSideModes.current
+    // Notes and left/right state come from a local so the active list and the exercise picker share them.
+    val extras = LocalLogExtras.current
+    val routineNote = extras.routineNotes[exerciseId]
+    val draftNote = extras.draftNotes[exerciseId].orEmpty()
+    val onDraftNoteChange = extras.onDraftNoteChange?.let { change -> { text: String -> change(exerciseId, text) } }
+    val nextSide = if (exerciseId in sideModes.bothSidesIds) extras.nextSides[exerciseId] ?: com.lsing.timego.domain.Side.LEFT else null
+    val onToggleSide = extras.onToggleSide?.let { toggle -> { toggle(exerciseId) } }
+    val asymmetry = extras.asymmetries[exerciseId]
     // Combined entry only applies to loaded exercises; bodyweight moves keep their added-kg convention.
     val combined = !isBodyweight && exerciseId in sideModes.combinedEntryIds
     fun displayKg(stored: Double) = com.lsing.timego.domain.storedToCombinedEntry(stored, combined)
