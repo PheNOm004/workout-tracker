@@ -64,6 +64,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.DisposableEffect
+import com.lsing.timego.ui.log.RepsLeftPrompt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -171,7 +174,8 @@ fun TimeGoNavHost() {
     val rpePromptSetId by logViewModel.rpePromptSetId.collectAsStateWithLifecycle()
     var restExpandedOffLog by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(selectedRoute, restTimer == null) { restExpandedOffLog = false }
-    val restBarShowing = restTimer != null && (selectedRoute == "log" || restExpandedOffLog)
+    val standalonePromptShowing = rpePromptSetId != null && restTimer == null && selectedRoute == "log"
+    val restBarShowing = standalonePromptShowing || (restTimer != null && (selectedRoute == "log" || restExpandedOffLog))
     val overlayHost = remember { ScreenOverlayHost() }
     var restBarHeightPx by remember { mutableIntStateOf(0) }
     val restBarHeight = with(LocalDensity.current) { restBarHeightPx.toDp() }
@@ -205,6 +209,18 @@ fun TimeGoNavHost() {
                     onRateEffort = if (rpePromptSetId != null) logViewModel::rateLastSet else null,
                     modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = dockHeight),
                 )
+                if (standalonePromptShowing) {
+                    DisposableEffect(Unit) { onDispose { restBarHeightPx = 0 } }
+                    EffortPromptCard(
+                        onRate = logViewModel::rateLastSet,
+                        onSkip = logViewModel::dismissRpePrompt,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(bottom = dockHeight)
+                            .onSizeChanged { restBarHeightPx = it.height },
+                    )
+                }
                 TimeGoBottomDock(
                     selectedRoute = selectedRoute,
                     onSelectRoute = { selectedRoute = it },
@@ -214,6 +230,21 @@ fun TimeGoNavHost() {
                 )
             }
         }
+    }
+}
+
+/** The "reps left" prompt on its own, for when no rest bar is showing (rest timer off or deferred). */
+@Composable
+private fun EffortPromptCard(onRate: (Int) -> Unit, onSkip: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .frosted(RoundedCornerShape(32.dp), borderWidth = 0.5.dp)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        RepsLeftPrompt(onRate)
+        TextButton(onClick = onSkip, modifier = Modifier.align(Alignment.End)) { Text("Skip") }
     }
 }
 

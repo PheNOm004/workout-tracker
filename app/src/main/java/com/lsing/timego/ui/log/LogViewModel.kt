@@ -838,9 +838,7 @@ class LogViewModel(
             emitSetLoggedPulse(exerciseId)
             // A warmup set means the rest is over and the next effort has started; do not leave the old timer counting.
             if (!isWarmup) startRest(exerciseId, rpe) else dismissRest()
-            if (!isWarmup && rpe == null && _rpeEntryMode.value == com.lsing.timego.data.RpeEntryMode.AFTER_SET && _restTimer.value != null) {
-                _rpePromptSetId.value = setId
-            }
+            if (shouldPromptForEffort(isWarmup, rpe, _rpeEntryMode.value)) _rpePromptSetId.value = setId
         }
     }
 
@@ -935,6 +933,9 @@ class LogViewModel(
 
     fun dismissRest() = setRest(null)
 
+    /** Closes the "reps left" prompt without recording an effort. */
+    fun dismissRpePrompt() { _rpePromptSetId.value = null }
+
     /** Records how hard the set just logged was (RPE 1 to 10) and re-fits the rest to it. */
     fun rateLastSet(rpe: Int) {
         val setId = _rpePromptSetId.value ?: return
@@ -999,3 +1000,7 @@ private fun plannedWeeklyTargetFor(profile: TrainingProfile): Double = plannedWe
         null -> null
     },
 )
+
+/** The after-set effort prompt is independent of the rest timer (rest can be off or deferred), so it depends only on the set and the setting. */
+internal fun shouldPromptForEffort(isWarmup: Boolean, rpe: Int?, mode: com.lsing.timego.data.RpeEntryMode): Boolean =
+    !isWarmup && rpe == null && mode == com.lsing.timego.data.RpeEntryMode.AFTER_SET

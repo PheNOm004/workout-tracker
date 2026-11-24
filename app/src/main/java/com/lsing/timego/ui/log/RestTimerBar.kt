@@ -175,7 +175,7 @@ fun RestTimerBar(
 
 /** "How many reps were left?" as four big buttons; each carries a small effort-coloured mark. One tap records the RPE. */
 @Composable
-private fun RepsLeftPrompt(onRate: (Int) -> Unit) {
+internal fun RepsLeftPrompt(onRate: (Int) -> Unit) {
     val repsLeftOptions = listOf(
         Triple("0", 10, PlateRed),
         Triple("1", 9, lerp(PlateRed, PlateYellow, 0.5f)),
