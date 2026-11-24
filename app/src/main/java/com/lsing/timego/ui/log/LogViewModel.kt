@@ -342,6 +342,8 @@ class LogViewModel(
     val bothSidesExerciseIds: StateFlow<Set<Long>> = _bothSidesExerciseIds.asStateFlow()
     private var restAlertJob: kotlinx.coroutines.Job? = null
     private var restExerciseId: Long? = null
+    // ponytail: restores the countdown only; the end-of-rest buzz cannot fire while the process is dead (needs AlarmManager).
+    private val restPrefs = application.getSharedPreferences("rest_timer", android.content.Context.MODE_PRIVATE)
     private val _advanceToExercise = kotlinx.coroutines.flow.MutableSharedFlow<AdvanceRequest>(extraBufferCapacity = 1)
     val advanceToExercise: kotlinx.coroutines.flow.SharedFlow<AdvanceRequest> = _advanceToExercise
 
@@ -360,6 +362,10 @@ class LogViewModel(
     val setLoggedPulse: StateFlow<SetLoggedPulse?> = _setLoggedPulse.asStateFlow()
 
     init {
+        com.lsing.timego.domain.restorableRest(restPrefs.getLong("startedAt", 0L), restPrefs.getInt("total", 0), System.currentTimeMillis())?.let {
+            restExerciseId = restPrefs.getLong("exerciseId", -1L).takeIf { id -> id >= 0 }
+            setRest(it)
+        }
         viewModelScope.launch {
             repository.seedMissingExercises(SEED_EXERCISES)
             catalogueRepository.ensureBundledImported()
@@ -989,6 +995,10 @@ class LogViewModel(
         RestAlert.cancel(getApplication())
         if (state == null) _rpePromptSetId.value = null
         _restTimer.value = state
+        restPrefs.edit().apply {
+            if (state == null) clear()
+            else putLong("startedAt", state.startedAtMillis).putInt("total", state.totalSeconds).putLong("exerciseId", restExerciseId ?: -1L)
+        }.apply()
         if (state != null) {
             restAlertJob = viewModelScope.launch {
                 val remainingMillis = state.totalSeconds * 1000L - (System.currentTimeMillis() - state.startedAtMillis)

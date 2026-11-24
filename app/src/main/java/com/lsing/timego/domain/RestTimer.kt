@@ -13,6 +13,12 @@ fun RestTimerState.remainingSeconds(nowMillis: Long): Int =
 fun RestTimerState.adjusted(deltaSeconds: Int): RestTimerState =
     copy(totalSeconds = (totalSeconds + deltaSeconds).coerceAtLeast(MIN_REST_SECONDS))
 
+/** A rest saved before the process died, only while it still has time left: a finished one would buzz on launch.
+ *  A start in the future means the clock moved, so it is dropped. */
+fun restorableRest(startedAtMillis: Long, totalSeconds: Int, nowMillis: Long): RestTimerState? =
+    RestTimerState(startedAtMillis, totalSeconds)
+        .takeIf { startedAtMillis in 1..nowMillis && it.remainingSeconds(nowMillis) > 0 }
+
 /** Rest for the set just logged. Static: always [defaultSeconds]. Adaptive: the program's prescribed rest
  *  (midpoint of its range) when there is one, else [defaultSeconds], then nudged by how hard the set was:
  *  RPE 9+ rests 30s longer, RPE 6 or lower 15s shorter. */
