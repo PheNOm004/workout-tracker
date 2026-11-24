@@ -174,6 +174,8 @@ private class SideModes(
     val bothSidesIds: Set<Long>,
     val toggleCombinedEntry: (Long) -> Unit,
     val toggleBothSides: (Long) -> Unit,
+    val weightSteps: Map<Long, Double> = emptyMap(),
+    val setWeightStep: (Long, Double) -> Unit = { _, _ -> },
 )
 
 private val LocalSideModes = androidx.compose.runtime.compositionLocalOf {
@@ -295,7 +297,8 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
     val calisthenicsTier by viewModel.calisthenicsTier.collectAsStateWithLifecycle()
     val combinedEntryIds by viewModel.combinedEntryExerciseIds.collectAsStateWithLifecycle()
     val bothSidesIds by viewModel.bothSidesExerciseIds.collectAsStateWithLifecycle()
-    val sideModes = SideModes(combinedEntryIds, bothSidesIds, viewModel::toggleCombinedEntry, viewModel::toggleBothSides)
+    val weightSteps by viewModel.weightSteps.collectAsStateWithLifecycle()
+    val sideModes = SideModes(combinedEntryIds, bothSidesIds, viewModel::toggleCombinedEntry, viewModel::toggleBothSides, weightSteps, viewModel::setWeightStep)
     val routineNotes by viewModel.routineNotes.collectAsStateWithLifecycle()
     val draftSetNotes by viewModel.draftSetNotes.collectAsStateWithLifecycle()
     val nextSides by viewModel.nextSide.collectAsStateWithLifecycle()
@@ -1801,6 +1804,9 @@ private fun StrengthLogRow(
     // Combined entry only applies to loaded exercises; bodyweight moves keep their added-kg convention.
     val combined = !isBodyweight && exerciseId in sideModes.combinedEntryIds
     fun displayKg(stored: Double) = com.lsing.timego.domain.storedToCombinedEntry(stored, combined)
+    // Steps are per hand; the box shows both dumbbells in combined entry, so it moves twice as far.
+    val handStepKg = com.lsing.timego.domain.weightStepKg(exerciseName, combined, sideModes.weightSteps[exerciseId])
+    val stepKg = displayKg(handStepKg)
     var weightText by rememberSaveable(exerciseName) { mutableStateOf("") }
     var repsText by rememberSaveable(exerciseName) { mutableStateOf("") }
     var rpeText by rememberSaveable(exerciseName) { mutableStateOf("") }
@@ -1957,21 +1963,24 @@ private fun StrengthLogRow(
                 )
                 StepperStrip(
                     adjusting = if (selectedField == EntryField.WEIGHT) "Adjusting kg" else "Adjusting reps",
-                    step = if (selectedField == EntryField.WEIGHT) "2.5 kg" else "1 rep",
+                    step = if (selectedField == EntryField.WEIGHT) "${formatKg(stepKg)} kg" else "1 rep",
+                    onStepClick = if (selectedField == EntryField.WEIGHT) {
+                        { sideModes.setWeightStep(exerciseId, com.lsing.timego.domain.nextWeightStep(handStepKg)) }
+                    } else null,
                     onMinus = {
                         if (selectedField == EntryField.WEIGHT) {
-                            val next = ((enteredWeight ?: targetKg ?: 0.0) - 2.5).coerceAtLeast(0.0)
+                            val next = ((enteredWeight ?: targetKg ?: 0.0) - stepKg).coerceAtLeast(0.0)
                             weightText = if (next == 0.0 && isBodyweight) "" else formatKg(next)
                         } else {
                             repsText = ((reps ?: suggestion?.reps ?: 1) - 1).coerceAtLeast(1).toString()
                         }
                     },
                     onPlus = {
-                        if (selectedField == EntryField.WEIGHT) weightText = formatKg((enteredWeight ?: targetKg ?: 0.0) + 2.5)
+                        if (selectedField == EntryField.WEIGHT) weightText = formatKg((enteredWeight ?: targetKg ?: 0.0) + stepKg)
                         else repsText = ((reps ?: suggestion?.reps ?: 0) + 1).toString()
                     },
-                    minusDescription = if (selectedField == EntryField.WEIGHT) "Decrease weight by 2.5 kilograms" else "Decrease reps by one",
-                    plusDescription = if (selectedField == EntryField.WEIGHT) "Increase weight by 2.5 kilograms" else "Increase reps by one",
+                    minusDescription = if (selectedField == EntryField.WEIGHT) "Decrease weight by ${formatKg(stepKg)} kilograms" else "Decrease reps by one",
+                    plusDescription = if (selectedField == EntryField.WEIGHT) "Increase weight by ${formatKg(stepKg)} kilograms" else "Increase reps by one",
                 )
                 // Slider mode: the RPE strip is part of the card (it slides in with it). It stays optional.
                 androidx.compose.animation.AnimatedVisibility(
