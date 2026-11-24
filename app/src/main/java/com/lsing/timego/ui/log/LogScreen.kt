@@ -91,6 +91,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -184,6 +185,8 @@ private val LocalShowExerciseDetails = androidx.compose.runtime.compositionLocal
 /** Items LoggingContent's list renders before the first exercise card: activeHeader, activeSummary,
  *  favorites, quickAdd, logExerciseAction, exercisesHeader. Keep in sync when adding items above. */
 private const val FIRST_EXERCISE_ITEM_INDEX = 6
+private const val EXPAND_FOLLOW_NANOS = 1_000_000_000L
+private const val EXPAND_FOLLOW_FRACTION = 0.25f
 
 /** ExerciseCard recentres itself in its scroll parent when expanded; the active-session list scrolls to
  *  each card itself (see LoggingContent), so it turns this off. */
@@ -992,16 +995,20 @@ private fun LoggingContent(
             // place the card instantly rather than layering a second scroll animation on top of it.
             focusAppliedOnce = true
             activeListState.scrollToItem(target, topGap)
-        } else {
-            activeListState.animateScrollToItem(target, topGap)
         }
-        // The card keeps growing for a moment after it opens (and the list can only scroll as far as it is long), so
-        // re-check a few times and correct whenever it is off its mark.
-        repeat(4) {
-            delay(250)
+        // The opening card keeps growing and the previously open one shrinks above it, so its position moves for
+        // about a second. A one-shot animated scroll aims at where the card is now and overshoots (it leaves the
+        // screen, then snaps back). Instead follow it: every frame close a fraction of the remaining gap, which
+        // stays smooth while the target moves and settles on its own.
+        val endNanos = System.nanoTime() + EXPAND_FOLLOW_NANOS
+        while (System.nanoTime() < endNanos) {
+            withFrameNanos { }
             val offset = activeListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == target }?.offset
-            if (offset == null || kotlin.math.abs(offset - topGap) > with(density) { 8.dp.roundToPx() }) {
-                activeListState.animateScrollToItem(target, topGap)
+            if (offset == null) {
+                activeListState.scrollToItem(target, topGap)
+            } else {
+                val gap = (offset - topGap).toFloat()
+                if (kotlin.math.abs(gap) > 1f) activeListState.scrollBy(gap * EXPAND_FOLLOW_FRACTION)
             }
         }
     }
