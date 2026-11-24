@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -165,11 +167,20 @@ fun RoutineFormDialog(
                 modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.ExtraSmall),
             )
             Text(
-                "Tap in workout order",
+                "Tick exercises, then drag the handle to set the workout order",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = Spacing.ExtraSmall),
             )
+            if (selectedExerciseIds.value.isNotEmpty()) {
+                val namesById = remember(exercises) { exercises.associate { it.id to it.name } }
+                RoutineExerciseOrder(
+                    ids = selectedExerciseIds.value,
+                    nameOf = { namesById[it].orEmpty() },
+                    onReorder = { selectedExerciseIds.value = it },
+                )
+                Spacer(Modifier.height(Spacing.Small))
+            }
             ExerciseSections(exercises = exercises) { exercise ->
                 val checked = exercise.id in selectedExerciseIds.value
                 Row(
