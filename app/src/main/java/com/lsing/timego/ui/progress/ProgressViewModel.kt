@@ -119,6 +119,12 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
     private val _muscleDistribution = MutableStateFlow<Map<String, Float>>(emptyMap())
     val muscleDistribution: StateFlow<Map<String, Float>> = _muscleDistribution.asStateFlow()
 
+    /** Body-map heat from stimulating reps (an estimate), and the share of sets whose effort had to be guessed. */
+    private val _muscleDistributionEffectiveReps = MutableStateFlow<Map<String, Float>>(emptyMap())
+    val muscleDistributionEffectiveReps: StateFlow<Map<String, Float>> = _muscleDistributionEffectiveReps.asStateFlow()
+    private val _estimatedEffortShare = MutableStateFlow(0.0)
+    val estimatedEffortShare: StateFlow<Double> = _estimatedEffortShare.asStateFlow()
+
     private val _muscleSetSummaries = MutableStateFlow<Map<String, MuscleSetSummary>>(emptyMap())
     val muscleSetSummaries: StateFlow<Map<String, MuscleSetSummary>> = _muscleSetSummaries.asStateFlow()
 
@@ -199,6 +205,15 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
                                         exercisesById = exercisesById,
                                         today = today,
                                     )
+                                    val (stimulusHeat, estimatedShare) = com.lsing.timego.domain.muscleStimulusHeatForTimeframe(
+                                        timeframe = timeframe,
+                                        sessions = sessions,
+                                        sets = allSets,
+                                        exercisesById = exercisesById,
+                                        today = today,
+                                    )
+                                    _muscleDistributionEffectiveReps.value = stimulusHeat
+                                    _estimatedEffortShare.value = estimatedShare
                                     _muscleSetSummaries.value = muscleGroupSetSummaryForTimeframe(
                                         timeframe = timeframe,
                                         sessions = sessions,

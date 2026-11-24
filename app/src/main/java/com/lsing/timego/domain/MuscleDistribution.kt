@@ -39,10 +39,15 @@ fun muscleDistributionForTimeframe(
     // Effort-weighted sets, not kg x reps: load is not comparable across muscles (a lateral raise is never
     // going to move what a squat does), so volume left small muscles looking untrained on the heatmap.
     val rawDistribution = muscleGroupEffectiveSetDistribution(sets, exercisesById, sessionDateById, since)
-    // FULL_BODY is a catch-all tag, not a drawable muscle: letting it set the maximum would dim every real group.
-    val maxSets = rawDistribution.filterKeys { it != MuscleGroup.FULL_BODY.name }.values.maxOrNull() ?: return emptyMap()
-    if (maxSets <= 0.0) return emptyMap()
-    return rawDistribution.mapValues { (_, effectiveSets) -> heatIntensity(effectiveSets / maxSets) }
+    return normalizedHeat(rawDistribution)
+}
+
+/** Raw per-muscle totals scaled to 0 to 1 heat. FULL_BODY is a catch-all tag, not a drawable muscle:
+ *  letting it set the maximum would dim every real group. */
+internal fun normalizedHeat(raw: Map<String, Double>): Map<String, Float> {
+    val maxValue = raw.filterKeys { it != MuscleGroup.FULL_BODY.name }.values.maxOrNull() ?: return emptyMap()
+    if (maxValue <= 0.0) return emptyMap()
+    return raw.mapValues { (_, value) -> heatIntensity(value / maxValue) }
 }
 
 /** Total volume per muscle group across WEIGHT_REPS/HOLD sets logged on or after [since] -- an
