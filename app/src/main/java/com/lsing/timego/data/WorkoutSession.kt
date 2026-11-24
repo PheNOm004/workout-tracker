@@ -17,4 +17,6 @@ data class WorkoutSession(
     val routineId: Long?,
     val startEpochMillis: Long,
     val endEpochMillis: Long?,
+    /** Optional 1 (drained) to 5 (great) self-rating taken at session start when the readiness setting is on. Local only. */
+    val readiness: Int? = null,
 )

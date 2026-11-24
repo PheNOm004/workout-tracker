@@ -90,6 +90,8 @@ import androidx.compose.runtime.Composable
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.runtime.getValue
@@ -185,6 +187,34 @@ private val LocalShowExerciseDetails = androidx.compose.runtime.compositionLocal
 /** Items LoggingContent's list renders before the first exercise card: activeHeader, activeSummary,
  *  favorites, quickAdd, logExerciseAction, exercisesHeader. Keep in sync when adding items above. */
 private const val FIRST_EXERCISE_ITEM_INDEX = 6
+
+/** "How ready are you?" shown once at the top of a new session when the readiness setting is on. */
+@Composable
+private fun ReadinessPrompt(onRate: (Int) -> Unit, onSkip: () -> Unit) {
+    SurfaceCard(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small)) {
+        Column(modifier = Modifier.padding(Spacing.Medium), verticalArrangement = Arrangement.spacedBy(Spacing.Small)) {
+            Text("How ready do you feel today?", style = MaterialTheme.typography.titleSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.Small), modifier = Modifier.fillMaxWidth()) {
+                (1..5).forEach { value ->
+                    OutlinedButton(
+                        onClick = { onRate(value) },
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.weight(1f).height(48.dp).semantics { contentDescription = "Readiness $value of 5" },
+                    ) { Text("$value") }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "1 drained, 5 great. On a 1 or 2 day TimeGo holds weights and adds 15 s of rest.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onSkip) { Text("Skip") }
+            }
+        }
+    }
+}
 
 /** Per-exercise notes, left/right state and asymmetry flags, handed to every strength row without threading parameters. */
 private data class LogExtras(
@@ -1067,6 +1097,12 @@ private fun LoggingContent(
         contentPadding = PaddingValues(bottom = Spacing.ExtraLarge + LocalDockHeight.current + LocalRestClearance.current),
     ) {
             item(key = "activeHeader") {
+                val readinessEnabled by viewModel.readinessEnabled.collectAsStateWithLifecycle()
+                val activeReadiness by viewModel.activeReadiness.collectAsStateWithLifecycle()
+                var readinessSkipped by rememberSaveable { mutableStateOf(false) }
+                if (readinessEnabled && activeReadiness == null && !readinessSkipped) {
+                    ReadinessPrompt(onRate = viewModel::setReadiness, onSkip = { readinessSkipped = true })
+                }
                 Text(
                     "Current session",
                     style = MaterialTheme.typography.headlineSmall,

@@ -65,6 +65,8 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
     private val _themeMode = MutableStateFlow(com.lsing.timego.data.ThemeMode.DARK)
     val themeMode: StateFlow<com.lsing.timego.data.ThemeMode> = _themeMode.asStateFlow()
 
+    private val _readinessTapEnabled = MutableStateFlow(false)
+    val readinessTapEnabled: StateFlow<Boolean> = _readinessTapEnabled.asStateFlow()
     private val _restAdaptive = MutableStateFlow(true)
     val restAdaptive: StateFlow<Boolean> = _restAdaptive.asStateFlow()
 
@@ -145,6 +147,9 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
                             settingsRepository.restAdaptive.collect { _restAdaptive.value = it }
                         }
                         launch {
+                            settingsRepository.readinessTapEnabled.collect { _readinessTapEnabled.value = it }
+                        }
+                        launch {
                             settingsRepository.themeMode.collect { _themeMode.value = it }
                         }
                         launch {
@@ -164,6 +169,10 @@ class RoutinesViewModel(application: Application) : AndroidViewModel(application
 
     fun setRpeEntryMode(mode: com.lsing.timego.data.RpeEntryMode) {
         viewModelScope.launch { settingsRepository.setRpeEntryMode(mode) }
+    }
+
+    fun setReadinessTapEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setReadinessTapEnabled(enabled) }
     }
 
     fun setRestAdaptive(adaptive: Boolean) {

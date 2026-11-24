@@ -203,7 +203,28 @@ class LogViewModel(
     val lastWorkingSets: StateFlow<Map<Long, SetLog>> = _lastWorkingSets.asStateFlow()
 
     private val _suggestions = MutableStateFlow<Map<Long, OverloadSuggestion>>(emptyMap())
-    val suggestions: StateFlow<Map<Long, OverloadSuggestion>> = _suggestions.asStateFlow()
+    private val _readinessEnabled = MutableStateFlow(false)
+    val readinessEnabled: StateFlow<Boolean> = _readinessEnabled.asStateFlow()
+    private val _activeReadiness = MutableStateFlow<Int?>(null)
+    val activeReadiness: StateFlow<Int?> = _activeReadiness.asStateFlow()
+
+    /** Readiness only counts while the setting is on. */
+    private fun effectiveReadiness(): Int? = if (_readinessEnabled.value) _activeReadiness.value else null
+
+    fun setReadiness(readiness: Int) {
+        val sessionId = (_sessionState.value as? SessionUiState.Active)?.sessionId ?: return
+        viewModelScope.launch { repository.setSessionReadiness(sessionId, readiness) }
+    }
+
+    /** The overload suggestions, with the low-readiness hold applied on top. */
+    val suggestions: StateFlow<Map<Long, OverloadSuggestion>> =
+        combine(_suggestions, _readinessEnabled, _activeReadiness, _lastWorkingSets) { raw, enabled, readiness, lastSets ->
+            if (!enabled || !com.lsing.timego.domain.readinessIsLow(readiness)) {
+                raw
+            } else {
+                raw.mapValues { (id, suggestion) -> com.lsing.timego.domain.applyReadiness(suggestion, lastSets[id]?.weightKg, readiness) }
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     private val _holdSuggestions = MutableStateFlow<Map<Long, HoldSuggestion>>(emptyMap())
     val holdSuggestions: StateFlow<Map<Long, HoldSuggestion>> = _holdSuggestions.asStateFlow()
@@ -346,6 +367,14 @@ class LogViewModel(
                 .collectLatest { screenStarted ->
                     if (!screenStarted) return@collectLatest
                     coroutineScope {
+                        launch {
+                            settingsRepository.readinessTapEnabled.collect { _readinessEnabled.value = it }
+                        }
+                        launch {
+                            combine(_sessionState, repository.sessions) { state, sessions ->
+                                (state as? SessionUiState.Active)?.sessionId?.let { id -> sessions.firstOrNull { it.id == id }?.readiness }
+                            }.collect { _activeReadiness.value = it }
+                        }
                         launch {
                             settingsRepository.holdDelaySeconds.collect { _holdDelaySeconds.value = it }
                         }
@@ -928,7 +957,10 @@ class LogViewModel(
     private fun startRest(exerciseId: Long, lastRpe: Int? = null) {
         if (_restDefaultSeconds.value <= 0) return
         val name = allExercises.firstOrNull { it.id == exerciseId }?.name
-        val seconds = com.lsing.timego.domain.restSecondsFor(activePrescriptions.value[name], _restDefaultSeconds.value, _restAdaptive.value, lastRpe)
+        val seconds = com.lsing.timego.domain.readinessRestSeconds(
+            com.lsing.timego.domain.restSecondsFor(activePrescriptions.value[name], _restDefaultSeconds.value, _restAdaptive.value, lastRpe),
+            effectiveReadiness(),
+        )
         restExerciseId = exerciseId
         setRest(com.lsing.timego.domain.RestTimerState(System.currentTimeMillis(), seconds))
     }
@@ -986,7 +1018,10 @@ class LogViewModel(
         viewModelScope.launch { repository.setSetRpe(setId, rpe) }
         val current = _restTimer.value ?: return
         val exerciseName = restExerciseId?.let { id -> allExercises.firstOrNull { it.id == id }?.name }
-        val seconds = com.lsing.timego.domain.restSecondsFor(activePrescriptions.value[exerciseName], _restDefaultSeconds.value, _restAdaptive.value, rpe)
+        val seconds = com.lsing.timego.domain.readinessRestSeconds(
+            com.lsing.timego.domain.restSecondsFor(activePrescriptions.value[exerciseName], _restDefaultSeconds.value, _restAdaptive.value, rpe),
+            effectiveReadiness(),
+        )
         setRest(current.copy(totalSeconds = seconds))
     }
 

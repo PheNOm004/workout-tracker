@@ -65,6 +65,8 @@ fun SettingsBottomSheet(
     onSetRestTimerSeconds: (Int) -> Unit,
     restAdaptive: Boolean,
     onSetRestAdaptive: (Boolean) -> Unit,
+    readinessTapEnabled: Boolean,
+    onSetReadinessTapEnabled: (Boolean) -> Unit,
     rpeEntryMode: com.lsing.timego.data.RpeEntryMode,
     onSetRpeEntryMode: (com.lsing.timego.data.RpeEntryMode) -> Unit,
     themeMode: com.lsing.timego.data.ThemeMode,
@@ -133,6 +135,17 @@ fun SettingsBottomSheet(
                     },
                     checked = restAdaptive,
                     onChange = onSetRestAdaptive,
+                )
+                SettingsDivider()
+                SettingSwitch(
+                    label = "Readiness check",
+                    supporting = if (readinessTapEnabled) {
+                        "Asks how ready you feel (1 to 5) when a session starts. On a 1 or 2 day, weights are held and rests run 15 s longer."
+                    } else {
+                        "Off. Turn on to rate how ready you feel at the start of each session."
+                    },
+                    checked = readinessTapEnabled,
+                    onChange = onSetReadinessTapEnabled,
                 )
                 SettingsDivider()
                 SettingStepper(

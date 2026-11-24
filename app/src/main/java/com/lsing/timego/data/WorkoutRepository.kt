@@ -88,6 +88,10 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
         }
     }
 
+    suspend fun setSessionReadiness(sessionId: Long, readiness: Int) {
+        db.sessionDao().setReadiness(sessionId, readiness.coerceIn(1, 5))
+    }
+
     suspend fun startSession(routineId: Long?): WorkoutSession {
         val now = System.currentTimeMillis()
         val session = WorkoutSession(date = LocalDate.now(), routineId = routineId, startEpochMillis = now, endEpochMillis = null)

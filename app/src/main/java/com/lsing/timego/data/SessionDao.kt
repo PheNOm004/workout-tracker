@@ -10,6 +10,9 @@ interface SessionDao {
     @Insert
     suspend fun insert(session: WorkoutSession): Long
 
+    @Query("UPDATE workout_sessions SET readiness = :readiness WHERE id = :id")
+    suspend fun setReadiness(id: Long, readiness: Int)
+
     @Query("SELECT * FROM workout_sessions ORDER BY date DESC")
     fun observeAll(): Flow<List<WorkoutSession>>
 

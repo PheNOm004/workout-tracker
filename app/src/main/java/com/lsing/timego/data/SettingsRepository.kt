@@ -33,6 +33,10 @@ class SettingsRepository(private val context: Context) {
     }
 
     /** Adaptive rest adjusts to the program and the last set's RPE; static always uses [restTimerSeconds]. */
+    val readinessTapEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
+        prefs[READINESS_TAP_KEY] ?: false
+    }
+
     val restAdaptive: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
         prefs[REST_ADAPTIVE_KEY] ?: true
     }
@@ -82,6 +86,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setRestTimerSeconds(seconds: Int) {
         context.settingsDataStore.edit { prefs -> prefs[REST_TIMER_SECONDS_KEY] = seconds }
+    }
+
+    suspend fun setReadinessTapEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { prefs -> prefs[READINESS_TAP_KEY] = enabled }
     }
 
     suspend fun setRestAdaptive(adaptive: Boolean) {
@@ -136,6 +144,7 @@ class SettingsRepository(private val context: Context) {
         private val HOLD_DELAY_SECONDS_KEY = intPreferencesKey("hold_delay_seconds")
         private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
         private val REST_TIMER_SECONDS_KEY = intPreferencesKey("rest_timer_seconds")
+        private val READINESS_TAP_KEY = androidx.datastore.preferences.core.booleanPreferencesKey("readiness_tap")
         private val REST_ADAPTIVE_KEY = androidx.datastore.preferences.core.booleanPreferencesKey("rest_adaptive")
         private val COMBINED_ENTRY_IDS_KEY = stringSetPreferencesKey("combined_entry_exercise_ids")
         private val BOTH_SIDES_IDS_KEY = stringSetPreferencesKey("both_sides_exercise_ids")

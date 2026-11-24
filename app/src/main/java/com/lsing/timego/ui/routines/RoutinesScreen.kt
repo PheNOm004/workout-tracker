@@ -97,6 +97,7 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
     val holdDelaySeconds by viewModel.holdDelaySeconds.collectAsStateWithLifecycle()
     val restTimerSeconds by viewModel.restTimerSeconds.collectAsStateWithLifecycle()
     val restAdaptive by viewModel.restAdaptive.collectAsStateWithLifecycle()
+    val readinessTapEnabled by viewModel.readinessTapEnabled.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val rpeEntryMode by viewModel.rpeEntryMode.collectAsStateWithLifecycle()
     val trainingLean by viewModel.trainingLean.collectAsStateWithLifecycle()
@@ -234,6 +235,8 @@ fun RoutinesScreen(viewModel: RoutinesViewModel = viewModel()) {
             onSetRestTimerSeconds = viewModel::setRestTimerSeconds,
             restAdaptive = restAdaptive,
             onSetRestAdaptive = viewModel::setRestAdaptive,
+            readinessTapEnabled = readinessTapEnabled,
+            onSetReadinessTapEnabled = viewModel::setReadinessTapEnabled,
             rpeEntryMode = rpeEntryMode,
             onSetRpeEntryMode = viewModel::setRpeEntryMode,
             themeMode = themeMode,
