@@ -92,6 +92,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import com.lsing.timego.ui.common.TimeGoBottomSheet
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.runtime.getValue
@@ -211,6 +212,47 @@ private fun ReadinessPrompt(onRate: (Int) -> Unit, onSkip: () -> Unit) {
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = onSkip) { Text("Skip") }
+            }
+        }
+    }
+}
+
+/** What switching to a program would change: weekly sets per muscle against the last 30 days of training. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun ProgramDiffSheet(programName: String, diff: com.lsing.timego.domain.ProgramDiff, onDismiss: () -> Unit) {
+    TimeGoBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.Large).padding(bottom = Spacing.ExtraLarge + 24.dp)) {
+            Text("COMPARE", style = com.lsing.timego.ui.theme.EyebrowStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("$programName vs your last 30 days", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Weekly sets per muscle, projected from the program as written (3 sets per exercise, each routine once a week).",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
+            )
+            if (diff.gainers.isEmpty() && diff.drops.isEmpty()) {
+                Text("No notable change: the weekly volume per muscle would stay within half a set.", style = MaterialTheme.typography.bodyMedium)
+            }
+            listOf("Gains" to diff.gainers, "Drops" to diff.drops).forEach { (title, rows) ->
+                if (rows.isNotEmpty()) {
+                    SectionHeader(title, topPadding = Spacing.Small)
+                    rows.forEach { row ->
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall)) {
+                            Text(formatEnumLabel(row.muscle), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            Text(
+                                "${if (row.delta > 0) "+" else ""}${"%.1f".format(row.delta)} sets/wk",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = if (row.delta > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
+                            )
+                            Text(
+                                "  ${"%.1f".format(row.currentWeekly)} to ${"%.1f".format(row.projectedWeekly)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -349,6 +391,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                 onChooseAnother = viewModel::chooseAnotherSuggestion,
                 activeProgramId = activeProgramId,
                 onSetActiveProgramId = viewModel::setActiveProgramId,
+                programDiffFor = viewModel::programDiff,
                 calisthenicsTier = calisthenicsTier,
                 onSetCalisthenicsTier = viewModel::setCalisthenicsTier,
                 onOpenExerciseDetails = { detailExercise = it },
@@ -380,6 +423,7 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                                 onChooseAnother = {},
                                 activeProgramId = activeProgramId,
                                 onSetActiveProgramId = viewModel::setActiveProgramId,
+                                programDiffFor = viewModel::programDiff,
                                 calisthenicsTier = calisthenicsTier,
                                 onSetCalisthenicsTier = viewModel::setCalisthenicsTier,
                                 onOpenExerciseDetails = { detailExercise = it },
@@ -494,6 +538,7 @@ private fun LogLandingContent(
     onChooseAnother: () -> Unit,
     activeProgramId: String?,
     onSetActiveProgramId: (String?) -> Unit,
+    programDiffFor: (String) -> com.lsing.timego.domain.ProgramDiff,
     calisthenicsTier: com.lsing.timego.data.CalisthenicsTier,
     onSetCalisthenicsTier: (com.lsing.timego.data.CalisthenicsTier) -> Unit,
     routineLastCompleted: Map<Long, LocalDate>,
@@ -852,6 +897,18 @@ private fun LogLandingContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = Spacing.ExtraSmall),
                     )
+                    var showProgramDiff by rememberSaveable { mutableStateOf(false) }
+                    if (activeProgramId != null && com.lsing.timego.data.SEED_ROUTINES.any { it.programId == activeProgramId }) {
+                        TextButton(onClick = { showProgramDiff = true }) { Text("Compare vs current") }
+                    }
+                    val diffProgramId = activeProgramId
+                    if (showProgramDiff && diffProgramId != null) {
+                        ProgramDiffSheet(
+                            programName = selectedProgramName,
+                            diff = remember(diffProgramId) { programDiffFor(diffProgramId) },
+                            onDismiss = { showProgramDiff = false },
+                        )
+                    }
                 }
             }
             if (activeProgramId == "calisthenics_progression") {

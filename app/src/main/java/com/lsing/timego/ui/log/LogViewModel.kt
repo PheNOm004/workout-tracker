@@ -519,6 +519,17 @@ class LogViewModel(
         viewModelScope.launch { refreshDisplayedExercises() }
     }
 
+    /** Weekly sets per muscle if [programId] were followed as written, against the last 30 days of training. */
+    fun programDiff(programId: String): com.lsing.timego.domain.ProgramDiff {
+        val exercisesByName = allExercises.associateBy { it.name }
+        val routines = com.lsing.timego.data.SEED_ROUTINES.filter { it.programId == programId }
+            .map { com.lsing.timego.domain.ProjectedRoutine(it.exerciseNames) }
+        return com.lsing.timego.domain.diffWeeklySets(
+            projected = com.lsing.timego.domain.projectedWeeklySets(routines, exercisesByName),
+            current = com.lsing.timego.domain.trailingWeeklySets(latestSetLogs, latestSessions, allExercises.associateBy { it.id }, java.time.LocalDate.now()),
+        )
+    }
+
     fun setActiveProgramId(id: String?) {
         viewModelScope.launch { settingsRepository.setActiveProgramId(id) }
     }
