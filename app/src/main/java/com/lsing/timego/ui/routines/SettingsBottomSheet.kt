@@ -38,7 +38,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lsing.timego.data.TrainingLean
-import com.lsing.timego.ui.common.SectionHeader
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import com.lsing.timego.ui.common.SurfaceCard
 import com.lsing.timego.ui.theme.LedgerFigureEmphasis
 import com.lsing.timego.ui.theme.Spacing
 import kotlinx.coroutines.launch
@@ -101,187 +114,197 @@ fun SettingsBottomSheet(
                 modifier = Modifier.padding(bottom = Spacing.Small),
             )
 
-            // Workout: the controls used mid-session, ordered by how often they change
-            SectionHeader(title = "Workout", topPadding = Spacing.Small)
-            SettingStepper(
-                label = "Rest timer between sets",
-                value = if (restTimerSeconds == 0) "Off" else "${restTimerSeconds}s",
-                onMinus = { onSetRestTimerSeconds((restTimerSeconds - 15).coerceAtLeast(0)) },
-                onPlus = { onSetRestTimerSeconds(restTimerSeconds + 15) },
-                minusDescription = "Decrease rest time",
-                plusDescription = "Increase rest time",
-            )
-            SettingSwitch(
-                label = "Adaptive rest",
-                supporting = if (restAdaptive) {
-                    "Uses the program's rest and your last RPE; the time above is the fallback."
-                } else {
-                    "Always the fixed time above."
-                },
-                checked = restAdaptive,
-                onChange = onSetRestAdaptive,
-            )
-            SettingStepper(
-                label = "Hold-exercise start delay",
-                value = "${holdDelaySeconds}s",
-                onMinus = { onSetHoldDelaySeconds((holdDelaySeconds - 1).coerceAtLeast(0)) },
-                onPlus = { onSetHoldDelaySeconds(holdDelaySeconds + 1) },
-                minusDescription = "Decrease delay",
-                plusDescription = "Increase delay",
-            )
-            Text(
-                "Suggested exercise style",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = Spacing.Small, bottom = Spacing.ExtraSmall),
-            )
-            FlowRow(
-                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
-            ) {
-                TrainingLean.entries.forEach { lean ->
-                    FilterChip(
-                        selected = trainingLean == lean,
-                        onClick = { onSetTrainingLean(lean) },
-                        label = {
-                            Text(
-                                when (lean) {
-                                    TrainingLean.STRENGTH -> "Strength"
-                                    TrainingLean.BALANCED -> "Balanced"
-                                    TrainingLean.CALISTHENICS -> "Calisthenics"
-                                },
-                            )
-                        },
-                    )
+            SettingsGroup("Workout", Icons.Filled.FitnessCenter) {
+                SettingStepper(
+                    label = "Rest timer between sets",
+                    value = if (restTimerSeconds == 0) "Off" else "${restTimerSeconds}s",
+                    onMinus = { onSetRestTimerSeconds((restTimerSeconds - 15).coerceAtLeast(0)) },
+                    onPlus = { onSetRestTimerSeconds(restTimerSeconds + 15) },
+                    minusDescription = "Decrease rest time",
+                    plusDescription = "Increase rest time",
+                )
+                SettingsDivider()
+                SettingSwitch(
+                    label = "Adaptive rest",
+                    supporting = if (restAdaptive) {
+                        "Uses the program's rest and your last RPE; the time above is the fallback."
+                    } else {
+                        "Always the fixed time above."
+                    },
+                    checked = restAdaptive,
+                    onChange = onSetRestAdaptive,
+                )
+                SettingsDivider()
+                SettingStepper(
+                    label = "Hold-exercise start delay",
+                    value = "${holdDelaySeconds}s",
+                    onMinus = { onSetHoldDelaySeconds((holdDelaySeconds - 1).coerceAtLeast(0)) },
+                    onPlus = { onSetHoldDelaySeconds(holdDelaySeconds + 1) },
+                    minusDescription = "Decrease delay",
+                    plusDescription = "Increase delay",
+                )
+                SettingsDivider()
+                SettingChoice(label = "Suggested exercise style") {
+                    TrainingLean.entries.forEach { lean ->
+                        FilterChip(
+                            selected = trainingLean == lean,
+                            onClick = { onSetTrainingLean(lean) },
+                            label = {
+                                Text(
+                                    when (lean) {
+                                        TrainingLean.STRENGTH -> "Strength"
+                                        TrainingLean.BALANCED -> "Balanced"
+                                        TrainingLean.CALISTHENICS -> "Calisthenics"
+                                    },
+                                )
+                            },
+                        )
+                    }
                 }
-            }
-
-            Text(
-                "Rate effort (RPE)",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = Spacing.Small, bottom = Spacing.ExtraSmall),
-            )
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
-            ) {
-                com.lsing.timego.data.RpeEntryMode.entries.forEach { mode ->
-                    FilterChip(
-                        selected = rpeEntryMode == mode,
-                        onClick = { onSetRpeEntryMode(mode) },
-                        label = {
-                            Text(
-                                when (mode) {
-                                    com.lsing.timego.data.RpeEntryMode.AFTER_SET -> "After the set"
-                                    com.lsing.timego.data.RpeEntryMode.SLIDER -> "Slider"
-                                    com.lsing.timego.data.RpeEntryMode.OFF -> "Off"
-                                },
-                            )
-                        },
-                    )
-                }
-            }
-            Text(
-                when (rpeEntryMode) {
-                    com.lsing.timego.data.RpeEntryMode.AFTER_SET -> "After each working set the rest timer asks how many reps you had left. One tap, or ignore it."
-                    com.lsing.timego.data.RpeEntryMode.SLIDER -> "Open an RPE slider on the entry card before you log the set."
-                    com.lsing.timego.data.RpeEntryMode.OFF -> "RPE is not asked for. Adaptive rest uses the program rest only."
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
-
-            SectionHeader(title = "Appearance", topPadding = Spacing.Small)
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
-            ) {
-                com.lsing.timego.data.ThemeMode.entries.forEach { mode ->
-                    FilterChip(
-                        selected = themeMode == mode,
-                        onClick = { onSetThemeMode(mode) },
-                        label = { Text(mode.name.lowercase().replaceFirstChar(Char::uppercase)) },
-                    )
-                }
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
-
-            // Local backup & restore
-            SectionHeader(title = "Local Backup & Restore", topPadding = Spacing.Small)
-            Text(
-                "TimeGo stores all data strictly on your device. Export a SQLite database backup or restore previously saved data.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = Spacing.Small),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
-            ) {
-                Button(
-                    onClick = { dismissThen(onExportBackup) },
-                    modifier = Modifier.weight(1f),
+                SettingsDivider()
+                SettingChoice(
+                    label = "Rate effort (RPE)",
+                    supporting = when (rpeEntryMode) {
+                        com.lsing.timego.data.RpeEntryMode.AFTER_SET -> "After each working set the rest timer asks how many reps you had left. One tap, or ignore it."
+                        com.lsing.timego.data.RpeEntryMode.SLIDER -> "Open an RPE slider on the entry card before you log the set."
+                        com.lsing.timego.data.RpeEntryMode.OFF -> "RPE is not asked for. Adaptive rest uses the program rest only."
+                    },
                 ) {
-                    Text("Export Backup")
-                }
-                OutlinedButton(
-                    onClick = { dismissThen(onRestoreBackup) },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Restore")
+                    com.lsing.timego.data.RpeEntryMode.entries.forEach { mode ->
+                        FilterChip(
+                            selected = rpeEntryMode == mode,
+                            onClick = { onSetRpeEntryMode(mode) },
+                            label = {
+                                Text(
+                                    when (mode) {
+                                        com.lsing.timego.data.RpeEntryMode.AFTER_SET -> "After the set"
+                                        com.lsing.timego.data.RpeEntryMode.SLIDER -> "Slider"
+                                        com.lsing.timego.data.RpeEntryMode.OFF -> "Off"
+                                    },
+                                )
+                            },
+                        )
+                    }
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
-
-            SectionHeader(title = "Training Profile", topPadding = Spacing.Small)
-            Text(
-                "The preferences TimeGo uses to filter and explain recommendations.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = Spacing.Small),
-            )
-            TrainingProfileSummary(trainingProfile)
-            OutlinedButton(
-                onClick = { dismissThen(onEditTrainingProfile) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Edit training profile") }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
-
-            SectionHeader(title = "Account & Reports", topPadding = Spacing.Small)
-            Text(
-                "Optional email sign-in, cloud backup, and report preferences. Guest mode stays fully available.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = Spacing.Small),
-            )
-            OutlinedButton(onClick = { dismissThen(onOpenAccount) }, modifier = Modifier.fillMaxWidth()) { Text("Account and email reports") }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Small), color = MaterialTheme.colorScheme.outlineVariant)
-
-            // Session history & management
-            SectionHeader(title = "Session Management", topPadding = Spacing.Small)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.Small),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Workout History", style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        "$sessionHistoryCount total recorded sessions",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+            SettingsGroup("Appearance", Icons.Filled.Palette) {
+                SettingChoice(label = "Theme") {
+                    com.lsing.timego.data.ThemeMode.entries.forEach { mode ->
+                        FilterChip(
+                            selected = themeMode == mode,
+                            onClick = { onSetThemeMode(mode) },
+                            label = { Text(mode.name.lowercase().replaceFirstChar(Char::uppercase)) },
+                        )
+                    }
                 }
-                OutlinedButton(onClick = { dismissThen(onViewSessionHistory) }) {
-                    Text("Manage")
+            }
+
+            SettingsGroup("Backup & restore", Icons.Filled.Backup) {
+                Text(
+                    "TimeGo stores all data strictly on your device. Export a SQLite database backup or restore previously saved data.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = Spacing.Small),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                ) {
+                    Button(onClick = { dismissThen(onExportBackup) }, modifier = Modifier.weight(1f)) { Text("Export backup") }
+                    OutlinedButton(onClick = { dismissThen(onRestoreBackup) }, modifier = Modifier.weight(1f)) { Text("Restore") }
                 }
+            }
+
+            SettingsGroup("Training profile", Icons.Filled.Tune) {
+                Text(
+                    "The preferences TimeGo uses to filter and explain recommendations.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = Spacing.Small),
+                )
+                TrainingProfileSummary(trainingProfile)
+                SettingsDivider()
+                SettingsLinkRow("Edit training profile", null) { dismissThen(onEditTrainingProfile) }
+            }
+
+            SettingsGroup("Account & reports", Icons.Filled.AccountCircle) {
+                SettingsLinkRow(
+                    "Account and email reports",
+                    "Optional email sign-in, cloud backup, and report preferences. Guest mode stays fully available.",
+                ) { dismissThen(onOpenAccount) }
+            }
+
+            SettingsGroup("Session management", Icons.Filled.History) {
+                SettingsLinkRow(
+                    "Workout history",
+                    "$sessionHistoryCount total recorded sessions",
+                ) { dismissThen(onViewSessionHistory) }
             }
         }
+    }
+}
+
+/** A titled card holding one group of related settings; groups are spaced apart instead of divided by rules. */
+@Composable
+private fun SettingsGroup(title: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(top = Spacing.Large, bottom = Spacing.Small, start = Spacing.ExtraSmall),
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = Spacing.Small),
+        )
+    }
+    SurfaceCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.Medium, vertical = Spacing.Small), content = content)
+    }
+}
+
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.ExtraSmall), color = MaterialTheme.colorScheme.outlineVariant)
+}
+
+/** A label, optional explanation of the current choice, and a wrapping row of chips. */
+@Composable
+private fun SettingChoice(label: String, supporting: String? = null, chips: @Composable () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall)) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(bottom = Spacing.ExtraSmall))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.Small)) { chips() }
+        if (supporting != null) {
+            Text(
+                supporting,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.ExtraSmall),
+            )
+        }
+    }
+}
+
+/** A whole-row tap target with a chevron, for settings that open another screen. */
+@Composable
+private fun SettingsLinkRow(title: String, supporting: String?, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = Spacing.ExtraSmall),
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = Spacing.Small)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            if (supporting != null) {
+                Text(supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
