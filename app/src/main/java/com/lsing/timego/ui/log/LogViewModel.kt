@@ -340,6 +340,8 @@ class LogViewModel(
     val combinedEntryExerciseIds: StateFlow<Set<Long>> = _combinedEntryExerciseIds.asStateFlow()
     private val _bothSidesExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
     val bothSidesExerciseIds: StateFlow<Set<Long>> = _bothSidesExerciseIds.asStateFlow()
+    private val _weightSteps = MutableStateFlow<Map<Long, Double>>(emptyMap())
+    val weightSteps: StateFlow<Map<Long, Double>> = _weightSteps.asStateFlow()
     private var restAlertJob: kotlinx.coroutines.Job? = null
     private var restExerciseId: Long? = null
     private val _advanceToExercise = kotlinx.coroutines.flow.MutableSharedFlow<AdvanceRequest>(extraBufferCapacity = 1)
@@ -396,6 +398,12 @@ class LogViewModel(
                         }
                         launch {
                             settingsRepository.combinedEntryExerciseIds.collect { _combinedEntryExerciseIds.value = it }
+                        }
+                        launch {
+                            settingsRepository.weightStepOverrides.collect {
+                                _weightSteps.value = it
+                                refreshSuggestions(allExercises, latestSetLogs, latestSessions)
+                            }
                         }
                         launch {
                             settingsRepository.bothSidesExerciseIds.collect { _bothSidesExerciseIds.value = it }
@@ -963,6 +971,10 @@ class LogViewModel(
         viewModelScope.launch { settingsRepository.toggleCombinedEntry(exerciseId) }
     }
 
+    fun setWeightStep(exerciseId: Long, stepKg: Double) {
+        viewModelScope.launch { settingsRepository.setWeightStep(exerciseId, stepKg) }
+    }
+
     fun toggleBothSides(exerciseId: Long) {
         viewModelScope.launch { settingsRepository.toggleBothSides(exerciseId) }
     }
@@ -1058,9 +1070,10 @@ class LogViewModel(
         sessionHistory.lastOrNull()?.let { repRangeAtWeight(exerciseSets, it.weightKg) }
 
     /** Null for calisthenics: their stored weight is bodyweight + added k, which has no plate
-     *  granularity to round to. Everything else steps in [DEFAULT_WEIGHT_INCREMENT_KG]. */
+     *  granularity to round to. Everything else uses its own step, see weightStepKg. */
     private fun weightIncrementFor(exercise: Exercise): Double? =
-        if (exercise.category == ExerciseCategory.CALISTHENICS.name) null else DEFAULT_WEIGHT_INCREMENT_KG
+        if (exercise.category == ExerciseCategory.CALISTHENICS.name) null
+        else com.lsing.timego.domain.weightStepKg(exercise.name, exercise.id in _combinedEntryExerciseIds.value, _weightSteps.value[exercise.id])
 
     fun addCustomExercise(name: String, muscleGroups: List<String>, category: String) {
         viewModelScope.launch {

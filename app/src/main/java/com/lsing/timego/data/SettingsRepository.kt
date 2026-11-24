@@ -100,6 +100,21 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun toggleBothSides(exerciseId: Long) = toggleId(BOTH_SIDES_IDS_KEY, exerciseId)
 
+    val weightStepOverrides: Flow<Map<Long, Double>> = context.settingsDataStore.data.map { prefs ->
+        prefs[WEIGHT_STEPS_KEY].orEmpty().mapNotNull { entry ->
+            val id = entry.substringBefore(':').toLongOrNull()
+            val step = entry.substringAfter(':').toDoubleOrNull()
+            if (id != null && step != null && step > 0) id to step else null
+        }.toMap()
+    }
+
+    suspend fun setWeightStep(exerciseId: Long, stepKg: Double) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[WEIGHT_STEPS_KEY] = prefs[WEIGHT_STEPS_KEY].orEmpty()
+                .filterNot { it.startsWith("$exerciseId:") }.toSet() + "$exerciseId:$stepKg"
+        }
+    }
+
     private suspend fun toggleId(key: androidx.datastore.preferences.core.Preferences.Key<Set<String>>, exerciseId: Long) {
         context.settingsDataStore.edit { prefs ->
             val saved = prefs[key].orEmpty()
@@ -147,6 +162,7 @@ class SettingsRepository(private val context: Context) {
         private val READINESS_TAP_KEY = androidx.datastore.preferences.core.booleanPreferencesKey("readiness_tap")
         private val REST_ADAPTIVE_KEY = androidx.datastore.preferences.core.booleanPreferencesKey("rest_adaptive")
         private val COMBINED_ENTRY_IDS_KEY = stringSetPreferencesKey("combined_entry_exercise_ids")
+        private val WEIGHT_STEPS_KEY = stringSetPreferencesKey("weight_step_overrides")
         private val BOTH_SIDES_IDS_KEY = stringSetPreferencesKey("both_sides_exercise_ids")
         private val RPE_ENTRY_MODE_KEY = stringPreferencesKey("rpe_entry_mode")
         private val TRAINING_LEAN_KEY = stringPreferencesKey("training_lean")

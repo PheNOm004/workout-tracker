@@ -266,6 +266,7 @@ fun StepperStrip(
     minusDescription: String,
     plusDescription: String,
     modifier: Modifier = Modifier,
+    onStepClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -280,7 +281,12 @@ fun StepperStrip(
             Icon(Icons.Filled.Remove, contentDescription = minusDescription)
         }
         Box(modifier = Modifier.width(1.dp).height(56.dp).background(Hairline))
-        Column(modifier = Modifier.weight(1.4f), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.weight(1.4f).height(56.dp)
+                .then(if (onStepClick != null) Modifier.clickable(onClickLabel = "Change step size", onClick = onStepClick) else Modifier),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
             Text(adjusting, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(step, style = LedgerFigureValue.copy(fontSize = 15.sp), color = MaterialTheme.colorScheme.onSurface)
         }
