@@ -19,7 +19,7 @@ class TimeGoDatabaseMigration15Test {
         createSchema14Database(context, TEST_DATABASE)
 
         val migrated = Room.databaseBuilder(context, TimeGoDatabase::class.java, TEST_DATABASE)
-            .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+            .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
             .allowMainThreadQueries()
             .build()
         try {
@@ -35,6 +35,14 @@ class TimeGoDatabaseMigration15Test {
                     }
                 }
             assertTrue("Expected timestamp index after migration", "index_set_logs_loggedAtEpochMillis" in indexes)
+            val setLogColumns = migrated.openHelper.readableDatabase.query("PRAGMA table_info(`set_logs`)")
+                .use { cursor -> buildSet { while (cursor.moveToNext()) add(cursor.getString(cursor.getColumnIndexOrThrow("name"))) } }
+            assertTrue("Expected side and note columns on set_logs", setLogColumns.containsAll(listOf("side", "note")))
+            runBlocking {
+                val migratedSet = migrated.setLogDao().getAll().single()
+                assertEquals(null, migratedSet.side)
+                assertEquals(null, migratedSet.note)
+            }
         } finally {
             migrated.close()
             context.deleteDatabase(TEST_DATABASE)
@@ -54,7 +62,7 @@ class TimeGoDatabaseMigration15Test {
         }
 
         val migrated = Room.databaseBuilder(context, TimeGoDatabase::class.java, TEST_DATABASE_16)
-            .addMigrations(MIGRATION_15_16, MIGRATION_16_17)
+            .addMigrations(MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
             .allowMainThreadQueries()
             .build()
         try {

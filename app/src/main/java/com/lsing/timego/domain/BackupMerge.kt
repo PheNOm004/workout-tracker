@@ -15,7 +15,7 @@ data class BackupSessionImport(val session: WorkoutSession, val sets: List<SetLo
 
 /** A routine ready to insert (`id = 0`), with its exercise ids already resolved to the live
  *  database and kept in original order. */
-data class BackupRoutineImport(val routine: Routine, val exerciseIds: List<Long>)
+data class BackupRoutineImport(val routine: Routine, val exerciseIds: List<Long>, val exerciseNotes: List<String?> = emptyList())
 
 /** Everything a backup restore can safely add on top of live data, plus counts of what it
  *  deliberately left alone. Never contains an instruction to delete or overwrite a live row --
@@ -91,12 +91,14 @@ fun planBackupMerge(
     val routineImports = backupRoutines
         .filter { it.name !in liveRoutineNames }
         .map { routine ->
-            val exerciseIds = backupRoutineExercisesByRoutine[routine.id].orEmpty()
+            val resolved = backupRoutineExercisesByRoutine[routine.id].orEmpty()
                 .sortedBy { it.orderIndex }
                 .mapNotNull { entry ->
-                    backupExercisesById[entry.exerciseId]?.let { resolveLiveExerciseId(it, liveByCatalogueKey, liveByName) }
+                    backupExercisesById[entry.exerciseId]
+                        ?.let { resolveLiveExerciseId(it, liveByCatalogueKey, liveByName) }
+                        ?.let { liveId -> liveId to entry.note }
                 }
-            BackupRoutineImport(routine = routine.copy(id = 0), exerciseIds = exerciseIds)
+            BackupRoutineImport(routine = routine.copy(id = 0), exerciseIds = resolved.map { it.first }, exerciseNotes = resolved.map { it.second })
         }
     val skippedRoutineCount = backupRoutines.size - routineImports.size
 

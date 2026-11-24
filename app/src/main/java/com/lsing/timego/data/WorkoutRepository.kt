@@ -452,9 +452,10 @@ class WorkoutRepository(private val db: TimeGoDatabase) {
     suspend fun updateRoutine(routineId: Long, name: String, exerciseIds: List<Long>, daysOfWeek: List<String>) = db.withTransaction {
         val existing = db.routineDao().getRoutineById(routineId) ?: return@withTransaction
         db.routineDao().updateRoutine(existing.copy(name = name, daysOfWeek = daysOfWeek))
+        val previous = db.routineDao().exercisesForRoutine(routineId)
         db.routineDao().deleteRoutineExercises(routineId)
-        exerciseIds.forEachIndexed { index, exerciseId ->
-            db.routineDao().insertRoutineExercise(RoutineExercise(routineId = routineId, exerciseId = exerciseId, orderIndex = index))
+        com.lsing.timego.domain.relinkRoutineExercises(routineId, previous, exerciseIds).forEach {
+            db.routineDao().insertRoutineExercise(it)
         }
         syncRepository.markPending("routine", routineId)
     }

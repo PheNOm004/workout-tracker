@@ -10,4 +10,6 @@ data class RoutineExercise(
     val routineId: Long,
     val exerciseId: Long,
     val orderIndex: Int,
+    /** Optional note shown under the set card for this exercise in this routine. Local only: kept in backups, never sent by account sync. */
+    val note: String? = null,
 )

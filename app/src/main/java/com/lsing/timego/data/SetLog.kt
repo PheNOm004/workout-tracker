@@ -46,4 +46,8 @@ data class SetLog(
      * [TargetProvenance.UNKNOWN], so downstream analysis cannot misread `target == reps` as a
      * successful planned target. */
     val targetProvenance: String = TargetProvenance.UNKNOWN.name,
+    /** "LEFT" or "RIGHT" for one side of a unilateral set; null for bilateral and all historic rows. */
+    val side: String? = null,
+    /** Optional free-text note for this set. Local only: kept in backups, never sent by account sync. */
+    val note: String? = null,
 )

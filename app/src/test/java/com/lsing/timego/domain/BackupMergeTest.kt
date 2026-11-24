@@ -156,7 +156,26 @@ class BackupMergeTest {
         val imported = plan.routinesToImport.single()
         assertEquals(0L, imported.routine.id)
         assertEquals(listOf(20L, 10L), imported.exerciseIds)
+        assertEquals(listOf<String?>(null, null), imported.exerciseNotes)
         assertEquals(0, plan.skippedRoutineCount)
+    }
+
+    @Test
+    fun `imported routine carries each exercise note in order`() {
+        val ex = { id: Long -> Exercise(id = id, name = "E$id", muscleGroups = listOf("CHEST"), isCustom = false) }
+        val plan = planBackupMerge(
+            backupSessions = emptyList(), backupSetLogs = emptyList(),
+            backupExercises = listOf(ex(1), ex(2)),
+            backupRoutines = listOf(Routine(id = 1, name = "R", daysOfWeek = emptyList())),
+            backupRoutineExercises = listOf(
+                RoutineExercise(id = 1, routineId = 1, exerciseId = 1, orderIndex = 1, note = "second"),
+                RoutineExercise(id = 2, routineId = 1, exerciseId = 2, orderIndex = 0, note = "first"),
+            ),
+            backupBodyMetrics = emptyList(),
+            liveSessions = emptyList(), liveExercises = listOf(ex(1), ex(2)), liveRoutines = emptyList(), liveBodyMetrics = emptyList(),
+        )
+        assertEquals(listOf(2L, 1L), plan.routinesToImport.single().exerciseIds)
+        assertEquals(listOf<String?>("first", "second"), plan.routinesToImport.single().exerciseNotes)
     }
 
     @Test

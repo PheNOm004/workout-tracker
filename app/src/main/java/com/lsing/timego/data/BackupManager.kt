@@ -139,6 +139,7 @@ class BackupManager(private val context: Context, private val db: TimeGoDatabase
                                         routineId = newRoutineId,
                                         exerciseId = exerciseId,
                                         orderIndex = index,
+                                        note = routineImport.exerciseNotes.getOrNull(index),
                                     ),
                                 )
                             }

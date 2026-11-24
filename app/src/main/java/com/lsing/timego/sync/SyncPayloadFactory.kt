@@ -39,7 +39,7 @@ private suspend fun SetLog.toSyncPayload(database: TimeGoDatabase): Map<String, 
         "exerciseIdentity" to exerciseIdentity, "weightKg" to weightKg, "reps" to reps, "targetReps" to targetReps,
         "loggedAtEpochMillis" to loggedAtEpochMillis, "durationMinutes" to durationMinutes, "distanceKm" to distanceKm,
         "holdSeconds" to holdSeconds, "targetHoldSeconds" to targetHoldSeconds, "isWarmup" to isWarmup,
-        "addedWeightKg" to addedWeightKg, "rpe" to rpe, "targetProvenance" to targetProvenance,
+        "addedWeightKg" to addedWeightKg, "rpe" to rpe, "targetProvenance" to targetProvenance, "side" to side,
     )
 }
 
