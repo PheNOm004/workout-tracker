@@ -99,7 +99,7 @@ fun buildDayHistoryEntries(setLogs: List<SetLog>, exercisesById: Map<Long, Exerc
             val exercise = exercisesById[log.exerciseId] ?: return@mapNotNull null
             val description = when (exercise.loggingType) {
                 LoggingType.DURATION_DISTANCE.name -> {
-                    val distance = log.distanceKm?.let { " -- ${it}km" } ?: ""
+                    val distance = log.distanceKm?.let { " · ${it}km" } ?: ""
                     "${formatHistoryDuration(log.durationMinutes)}$distance"
                 }
                 LoggingType.HOLD.name -> "${log.holdSeconds ?: 0}s hold"

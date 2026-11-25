@@ -23,11 +23,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lsing.timego.data.Exercise
 import com.lsing.timego.domain.PrType
 import com.lsing.timego.domain.RecordEntry
 import com.lsing.timego.domain.formatCalisthenicsWeight
 import com.lsing.timego.ui.common.SurfaceCard
+import com.lsing.timego.ui.theme.LedgerFigureValue
 import com.lsing.timego.ui.theme.PlateYellow
 import com.lsing.timego.ui.theme.Spacing
 
@@ -76,6 +78,6 @@ private fun RecordTile(entry: RecordEntry, name: String, modifier: Modifier) {
             .padding(12.dp),
     ) {
         Text(name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(value, style = MaterialTheme.typography.titleMedium)
+        Text(value, style = LedgerFigureValue.copy(fontSize = 16.sp), color = if (entry.isNew) PlateYellow else MaterialTheme.colorScheme.onSurface, maxLines = 1)
     }
 }
