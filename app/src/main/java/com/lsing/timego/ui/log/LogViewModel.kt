@@ -685,6 +685,8 @@ class LogViewModel(
                 _sessionState.value = SessionUiState.NoActiveSession
                 return
             }
+            // After a process death the session survives in Room but the routine choice did not.
+            if (_selectedRoutineId.value != active.routineId) selectRoutine(active.routineId)
             _sessionState.value = SessionUiState.Active(active.id)
         } else {
             _activeSessionSets.value = emptyList()

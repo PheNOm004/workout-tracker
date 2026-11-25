@@ -190,8 +190,8 @@ private val LocalRpeEntryMode = androidx.compose.runtime.compositionLocalOf { co
 private val LocalShowExerciseDetails = androidx.compose.runtime.compositionLocalOf<(String) -> Unit> { {} }
 
 /** Items LoggingContent's list renders before the first exercise card: activeHeader, activeSummary,
- *  favorites, quickAdd, logExerciseAction, exercisesHeader. Keep in sync when adding items above. */
-private const val FIRST_EXERCISE_ITEM_INDEX = 6
+ *  exercisesHeader. Keep in sync when adding items above. */
+private const val FIRST_EXERCISE_ITEM_INDEX = 3
 
 /** "How ready are you?" shown once at the top of a new session when the readiness setting is on. */
 @Composable
@@ -488,13 +488,15 @@ fun LogScreen(viewModel: LogViewModel = viewModel()) {
                         }
                     } else {
                         activeViewStateHolder.SaveableStateProvider("activeLogging") {
+                            val activeRoutineId by viewModel.selectedRoutineId.collectAsStateWithLifecycle()
                             LoggingContent(
                                 sessionId = state.sessionId,
                                 viewModel = viewModel,
                                 activeTimer = activeTimer,
                                 expandedExerciseIds = expandedExerciseIds,
                                 onExpandedExerciseIdsChange = { expandedExerciseIds = it },
-                                selectedExerciseIds = selectedExerciseIds,
+                                // The routine's own list comes from the session's routine, so it survives a process death.
+                                selectedExerciseIds = (routineExercisesById[activeRoutineId].orEmpty().map { it.id } + selectedExerciseIds).distinct(),
                                 onOpenExercisePicker = { activeLogPageName = ActiveLogPage.EXERCISE_PICKER.name },
                                 onSelectExercise = { exerciseId ->
                                     if (exerciseId !in selectedExerciseIds) selectedExerciseIds = selectedExerciseIds + exerciseId
@@ -1225,72 +1227,6 @@ private fun LoggingContent(
                     },
                 )
             }
-            item(key = "favorites") {
-                val favoriteExercises = libraryExercises.filter { it.id in favoriteExerciseIds }
-                SectionHeader("Favorites", topPadding = Spacing.Small)
-                if (favoriteExercises.isNotEmpty()) {
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
-                    ) {
-                        favoriteExercises.forEach { exercise ->
-                            AnimatedAssistChip(
-                                onClick = {
-                                    onSelectExercise(exercise.id)
-                                },
-                                label = { Text(exercise.name) },
-                            )
-                        }
-                    }
-                } else {
-                    Text(
-                        "Your starred exercises will appear here.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = Spacing.Small),
-                    )
-                }
-            }
-            item(key = "quickAdd") {
-                SectionHeader("Quick add", topPadding = Spacing.Small)
-                if (quickAddExercises.isNotEmpty()) {
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
-                    ) {
-                        quickAddExercises.forEach { exercise ->
-                            AnimatedAssistChip(
-                                onClick = {
-                                    onSelectExercise(exercise.id)
-                                },
-                                label = { Text(exercise.name) },
-                            )
-                        }
-                    }
-                } else {
-                    val hasLoggedStrength = activeSessionSetsByExercise.keys.any { id ->
-                        libraryExercises.firstOrNull { it.id == id }?.category in setOf(
-                            ExerciseCategory.STRENGTH.name,
-                            ExerciseCategory.CALISTHENICS.name,
-                        )
-                    }
-                    Text(
-                        if (hasLoggedStrength) "No familiar strength exercises to add yet." else "Log a strength or calisthenics set to unlock session-aware quick add.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = Spacing.Small),
-                    )
-                }
-            }
-            item(key = "logExerciseAction") {
-                Button(
-                    onClick = onOpenExercisePicker,
-                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.padding(end = Spacing.ExtraSmall))
-                    Text("Log exercise")
-                }
-            }
             item(key = "exercisesHeader") {
                 if (selectedExercises.isNotEmpty()) {
                     SectionHeader("Exercises", topPadding = Spacing.Small)
@@ -1361,6 +1297,72 @@ private fun LoggingContent(
                             },
                         )
                     }
+                }
+            }
+            item(key = "favorites") {
+                val favoriteExercises = libraryExercises.filter { it.id in favoriteExerciseIds }
+                SectionHeader("Favorites", topPadding = Spacing.Small)
+                if (favoriteExercises.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                    ) {
+                        favoriteExercises.forEach { exercise ->
+                            AnimatedAssistChip(
+                                onClick = {
+                                    onSelectExercise(exercise.id)
+                                },
+                                label = { Text(exercise.name) },
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        "Your starred exercises will appear here.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = Spacing.Small),
+                    )
+                }
+            }
+            item(key = "quickAdd") {
+                SectionHeader("Quick add", topPadding = Spacing.Small)
+                if (quickAddExercises.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.Small),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                    ) {
+                        quickAddExercises.forEach { exercise ->
+                            AnimatedAssistChip(
+                                onClick = {
+                                    onSelectExercise(exercise.id)
+                                },
+                                label = { Text(exercise.name) },
+                            )
+                        }
+                    }
+                } else {
+                    val hasLoggedStrength = activeSessionSetsByExercise.keys.any { id ->
+                        libraryExercises.firstOrNull { it.id == id }?.category in setOf(
+                            ExerciseCategory.STRENGTH.name,
+                            ExerciseCategory.CALISTHENICS.name,
+                        )
+                    }
+                    Text(
+                        if (hasLoggedStrength) "No familiar strength exercises to add yet." else "Log a strength or calisthenics set to unlock session-aware quick add.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = Spacing.Small),
+                    )
+                }
+            }
+            item(key = "logExerciseAction") {
+                Button(
+                    onClick = onOpenExercisePicker,
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.ExtraSmall, bottom = Spacing.Small),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.padding(end = Spacing.ExtraSmall))
+                    Text("Log exercise")
                 }
             }
             item(key = "activeBottomSpacer") {
