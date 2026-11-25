@@ -33,7 +33,7 @@ class WorkoutHistoryDialogTest {
             mapOf(running.id to running),
         )
 
-        assertEquals(listOf(DayHistoryEntry("Running", listOf("31s -- 2.5km"))), entries)
+        assertEquals(listOf(DayHistoryEntry("Running", listOf("31s · 2.5km"))), entries)
     }
 
     @Test

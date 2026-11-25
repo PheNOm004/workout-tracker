@@ -1,5 +1,7 @@
 package com.lsing.timego.ui.log
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.FocusRequester
 import com.lsing.timego.ui.common.rememberDismissKeyboard
@@ -224,9 +226,12 @@ private fun ReadinessPrompt(onRate: (Int) -> Unit, onSkip: () -> Unit) {
 @Composable
 private fun ProgramDiffSheet(programName: String, diff: com.lsing.timego.domain.ProgramDiff, onDismiss: () -> Unit) {
     TimeGoBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.Large).padding(bottom = Spacing.ExtraLarge + 24.dp)) {
-            Text("COMPARE", style = com.lsing.timego.ui.theme.EyebrowStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("$programName vs your last 30 days", style = MaterialTheme.typography.titleLarge)
+        Column(
+            modifier = Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState())
+                .padding(horizontal = Spacing.Large).padding(bottom = Spacing.ExtraLarge + 24.dp),
+        ) {
+            Text("COMPARE WITH LAST 30 DAYS", style = com.lsing.timego.ui.theme.EyebrowStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(programName, style = MaterialTheme.typography.titleLarge)
             Text(
                 "Weekly sets per muscle, projected from the program as written (3 sets per exercise, each routine once a week).",
                 style = MaterialTheme.typography.bodySmall,
@@ -236,27 +241,49 @@ private fun ProgramDiffSheet(programName: String, diff: com.lsing.timego.domain.
             if (diff.gainers.isEmpty() && diff.drops.isEmpty()) {
                 Text("No notable change: the weekly volume per muscle would stay within half a set.", style = MaterialTheme.typography.bodyMedium)
             }
+            // One scale for every bar, so lengths compare across muscles and not only within one.
+            val scale = (diff.gainers + diff.drops).maxOfOrNull { maxOf(it.currentWeekly, it.projectedWeekly) } ?: 1.0
             listOf("Gains" to diff.gainers, "Drops" to diff.drops).forEach { (title, rows) ->
                 if (rows.isNotEmpty()) {
                     SectionHeader(title, topPadding = Spacing.Small)
-                    rows.forEach { row ->
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.ExtraSmall)) {
-                            Text(formatEnumLabel(row.muscle), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                            Text(
-                                "${if (row.delta > 0) "+" else ""}${"%.1f".format(row.delta)} sets/wk",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = if (row.delta > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
-                            )
-                            Text(
-                                "  ${"%.1f".format(row.currentWeekly)} to ${"%.1f".format(row.projectedWeekly)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                    SurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(Spacing.Medium), verticalArrangement = Arrangement.spacedBy(Spacing.Medium)) {
+                            rows.forEach { ProgramDiffRow(it, scale) }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ProgramDiffRow(row: com.lsing.timego.domain.MuscleDelta, scale: Double) {
+    Column(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(formatEnumLabel(row.muscle), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            Text(
+                "${if (row.delta > 0) "+" else ""}${"%.1f".format(row.delta)} sets/wk",
+                style = MaterialTheme.typography.labelLarge,
+                color = if (row.delta > 0) PlateGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        ProgramDiffBar("Now", row.currentWeekly, scale, MaterialTheme.colorScheme.outline)
+        ProgramDiffBar("New", row.projectedWeekly, scale, com.lsing.timego.ui.common.muscleGroupColor(row.muscle))
+    }
+}
+
+@Composable
+private fun ProgramDiffBar(label: String, value: Double, scale: Double, color: androidx.compose.ui.graphics.Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.Small)) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(32.dp))
+        Box(modifier = Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.surfaceContainerHighest)) {
+            Box(
+                modifier = Modifier.fillMaxWidth((value / scale).toFloat().coerceIn(0f, 1f)).height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)).background(color),
+            )
+        }
+        Text("%.1f".format(value), style = MaterialTheme.typography.labelMedium, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.width(36.dp))
     }
 }
 
@@ -902,7 +929,7 @@ private fun LogLandingContent(
                     )
                     var showProgramDiff by rememberSaveable { mutableStateOf(false) }
                     if (activeProgramId != null && com.lsing.timego.data.SEED_ROUTINES.any { it.programId == activeProgramId }) {
-                        TextButton(onClick = { showProgramDiff = true }) { Text("Compare vs current") }
+                        TextButton(onClick = { showProgramDiff = true }) { Text("Compare vs last 30 days") }
                     }
                     val diffProgramId = activeProgramId
                     if (showProgramDiff && diffProgramId != null) {
@@ -1163,9 +1190,6 @@ private fun LoggingContent(
                 val readinessEnabled by viewModel.readinessEnabled.collectAsStateWithLifecycle()
                 val activeReadiness by viewModel.activeReadiness.collectAsStateWithLifecycle()
                 var readinessSkipped by rememberSaveable { mutableStateOf(false) }
-                if (readinessEnabled && activeReadiness == null && !readinessSkipped) {
-                    ReadinessPrompt(onRate = viewModel::setReadiness, onSkip = { readinessSkipped = true })
-                }
                 Text(
                     "Current session",
                     style = MaterialTheme.typography.headlineSmall,
@@ -1185,6 +1209,9 @@ private fun LoggingContent(
                         }
                     },
                 )
+                if (readinessEnabled && activeReadiness == null && !readinessSkipped) {
+                    ReadinessPrompt(onRate = viewModel::setReadiness, onSkip = { readinessSkipped = true })
+                }
             }
             item(key = "activeSummary") {
                 // Live in-session summary of completed sets
@@ -1995,6 +2022,8 @@ private fun StrengthLogRow(
                         onClear = { rpeText = "" },
                     )
                 }
+                var noteOpen by rememberSaveable(exerciseName) { mutableStateOf(false) }
+                val showNoteField = noteOpen || draftNote.isNotBlank()
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.Small), verticalArrangement = Arrangement.spacedBy(Spacing.Small)) {
                     FilterChip(
                         selected = isWarmup,
@@ -2022,6 +2051,9 @@ private fun StrengthLogRow(
                             label = { Text("Next: ${com.lsing.timego.domain.Side.label(nextSide)}") },
                         )
                     }
+                    if (onDraftNoteChange != null && !showNoteField) {
+                        FilterChip(selected = false, onClick = { noteOpen = true }, label = { Text("Add note") })
+                    }
                 }
                 asymmetry?.let {
                     Text(
@@ -2039,19 +2071,14 @@ private fun StrengthLogRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (onDraftNoteChange != null) {
-                    var noteOpen by rememberSaveable(exerciseName) { mutableStateOf(false) }
-                    if (noteOpen || draftNote.isNotBlank()) {
-                        OutlinedTextField(
-                            value = draftNote,
-                            onValueChange = onDraftNoteChange,
-                            label = { Text("Note for the next set") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    } else {
-                        TextButton(onClick = { noteOpen = true }) { Text("Add a note to this set") }
-                    }
+                if (onDraftNoteChange != null && showNoteField) {
+                    OutlinedTextField(
+                        value = draftNote,
+                        onValueChange = onDraftNoteChange,
+                        label = { Text("Note for the next set") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
                 val logInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                 val workingSetNumber = workingDone + 1

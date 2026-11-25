@@ -67,7 +67,7 @@ class RuleBasedOverloadSuggester : OverloadSuggester {
             PlateauStatus.PLATEAUING -> OverloadSuggestion(
                 weightKg = last.weightKg,
                 reps = last.targetReps,
-                note = "Plateau: performance has been flat for several sessions -- hold steady one more session before deciding",
+                note = "Plateau: performance has been flat for several sessions, hold steady one more session before deciding",
                 plateauStatus = status,
             )
             PlateauStatus.PROGRESSING -> when {
@@ -78,7 +78,7 @@ class RuleBasedOverloadSuggester : OverloadSuggester {
                 }
                 last.reps < repRange.ceiling -> addOneRep(last, status)
                 else -> when (escalationTierForRpe(last.rpe)) {
-                    EscalationTier.FULL -> fullEscalation(last, weightIncrementKg, status, "Ceiling hit with reps in reserve -- increasing weight.", repRange.ceiling)
+                    EscalationTier.FULL -> fullEscalation(last, weightIncrementKg, status, "Ceiling hit with reps in reserve, increasing weight.", repRange.ceiling)
                     EscalationTier.PARTIAL -> partialEscalation(last, weightIncrementKg, status, repRange)
                     EscalationTier.HOLD -> holdAtCeiling(last, status, repRange)
                 }
@@ -108,7 +108,7 @@ private fun holdAtCeiling(last: SetPerformance, status: PlateauStatus, repRange:
     OverloadSuggestion(
         weightKg = last.weightKg,
         reps = repRange.ceiling,
-        note = "Ceiling hit at max effort -- hold before adding load.",
+        note = "Ceiling hit at max effort, hold before adding load.",
         plateauStatus = status,
     )
 
@@ -126,7 +126,7 @@ private fun partialEscalation(last: SetPerformance, weightIncrementKg: Double?, 
         OverloadSuggestion(
             weightKg = last.weightKg + halfStep,
             reps = repRange.ceiling,
-            note = "Ceiling hit but close to your limit -- small increase.",
+            note = "Ceiling hit but close to your limit, small increase.",
             plateauStatus = status,
         )
     }

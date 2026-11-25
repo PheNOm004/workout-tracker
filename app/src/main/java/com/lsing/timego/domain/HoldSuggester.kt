@@ -60,7 +60,7 @@ class RuleBasedHoldSuggester : HoldSuggester {
         if (status != PlateauStatus.REGRESSING && clearedCeiling && nextTier != null) {
             return HoldSuggestion(
                 targetDurationSeconds = last.targetDurationSeconds,
-                note = "Consistently hitting target -- try $nextTier next",
+                note = "Consistently hitting target, try $nextTier next",
                 plateauStatus = status,
             )
         }
@@ -73,7 +73,7 @@ class RuleBasedHoldSuggester : HoldSuggester {
             )
             PlateauStatus.PLATEAUING -> HoldSuggestion(
                 targetDurationSeconds = last.targetDurationSeconds,
-                note = "Plateau: hold duration has been flat for several sessions -- hold steady one more session before deciding",
+                note = "Plateau: hold duration has been flat for several sessions, hold steady one more session before deciding",
                 plateauStatus = status,
             )
             PlateauStatus.PROGRESSING -> if (last.durationSeconds >= last.targetDurationSeconds) {

@@ -104,7 +104,7 @@ class OverloadSuggesterTest {
         val result = suggester.suggestNext(history, emptyList(), repRange = RepRange(floor = 6, ceiling = 10))
         assertEquals(62.5, result!!.weightKg, 0.001)
         assertEquals(10, result.reps)
-        assertEquals("Ceiling hit with reps in reserve -- increasing weight.", result.note)
+        assertEquals("Ceiling hit with reps in reserve, increasing weight.", result.note)
     }
 
     @Test
@@ -114,7 +114,7 @@ class OverloadSuggesterTest {
         val history = listOf(SetPerformance(weightKg = 60.0, reps = 10, targetReps = 8, rpe = 8))
         val result = suggester.suggestNext(history, emptyList(), repRange = RepRange(floor = 6, ceiling = 10))
         assertEquals(60.0, result!!.weightKg, 0.001)
-        assertEquals("Ceiling hit at max effort -- hold before adding load.", result.note)
+        assertEquals("Ceiling hit at max effort, hold before adding load.", result.note)
     }
 
     @Test
@@ -122,7 +122,7 @@ class OverloadSuggesterTest {
         val history = listOf(SetPerformance(weightKg = 60.0, reps = 10, targetReps = 8, rpe = 8))
         val result = suggester.suggestNext(history, emptyList(), weightIncrementKg = 10.0, repRange = RepRange(floor = 6, ceiling = 10))
         assertEquals(65.0, result!!.weightKg, 0.001)
-        assertEquals("Ceiling hit but close to your limit -- small increase.", result.note)
+        assertEquals("Ceiling hit but close to your limit, small increase.", result.note)
     }
 
     @Test
@@ -131,7 +131,7 @@ class OverloadSuggesterTest {
         val result = suggester.suggestNext(history, emptyList(), repRange = RepRange(floor = 6, ceiling = 10))
         assertEquals(60.0, result!!.weightKg, 0.001)
         assertEquals(10, result.reps)
-        assertEquals("Ceiling hit at max effort -- hold before adding load.", result.note)
+        assertEquals("Ceiling hit at max effort, hold before adding load.", result.note)
     }
 
     @Test

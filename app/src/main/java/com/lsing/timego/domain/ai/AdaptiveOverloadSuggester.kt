@@ -86,7 +86,7 @@ class AdaptiveOverloadSuggester(
                 OverloadSuggestion(
                     weightKg = last.weightKg + stepKg,
                     reps = last.targetReps,
-                    note = "Target reps achieved -- increasing load",
+                    note = "Target reps achieved, increasing load",
                     plateauStatus = status
                 )
             } else {
