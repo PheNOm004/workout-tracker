@@ -46,9 +46,11 @@ fun RecordsCard(entries: List<RecordEntry>, exercisesById: Map<Long, Exercise>) 
                 Text("$newCount new", style = MaterialTheme.typography.labelMedium, color = PlateYellow)
             }
             val shown = if (showAll) entries else entries.take(COLLAPSED_RECORDS)
+            // An outline on every tile marks nothing out, so it only appears beside older records.
+            val outlineNew = shown.any { !it.isNew }
             shown.chunked(2).forEach { pair ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    pair.forEach { entry -> RecordTile(entry, exercisesById[entry.record.exerciseId]?.name.orEmpty(), Modifier.weight(1f)) }
+                    pair.forEach { entry -> RecordTile(entry, exercisesById[entry.record.exerciseId]?.name.orEmpty(), outlineNew, Modifier.weight(1f)) }
                     if (pair.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
@@ -60,7 +62,7 @@ fun RecordsCard(entries: List<RecordEntry>, exercisesById: Map<Long, Exercise>) 
 }
 
 @Composable
-private fun RecordTile(entry: RecordEntry, name: String, modifier: Modifier) {
+private fun RecordTile(entry: RecordEntry, name: String, outlineNew: Boolean, modifier: Modifier) {
     val record = entry.record
     val value = if (record.type == PrType.LONGEST_HOLD) {
         "${record.value.toInt()}s hold"
@@ -73,7 +75,7 @@ private fun RecordTile(entry: RecordEntry, name: String, modifier: Modifier) {
         modifier = modifier
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .then(if (entry.isNew) Modifier.border(1.5.dp, PlateYellow, shape) else Modifier)
+            .then(if (entry.isNew && outlineNew) Modifier.border(1.5.dp, PlateYellow, shape) else Modifier)
             .semantics(mergeDescendants = true) { if (entry.isNew) contentDescription = "New record, $name, $value" }
             .padding(12.dp),
     ) {
